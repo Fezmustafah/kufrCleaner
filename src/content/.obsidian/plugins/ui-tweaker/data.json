@@ -5,7 +5,7 @@
   "leftTabHeaders": "show",
   "rightTabHeaders": "show",
   "ribbonRevealOnHover": false,
-  "vaultSwitcher": "reveal",
+  "vaultSwitcher": "show",
   "helpButton": "show",
   "settingsButton": "show",
   "tabBar": false,
@@ -29,9 +29,9 @@
   "tooltips": false,
   "searchSuggestions": false,
   "searchTermCounts": false,
-  "propertiesInReadingView": true,
-  "propertiesInHeading": true,
-  "addPropertyButton": true,
+  "propertiesInReadingView": false,
+  "propertiesInHeading": false,
+  "addPropertyButton": false,
   "deemphasizeProperties": false,
   "instructions": false,
   "mobileChevronsIcon": false,
@@ -54,13 +54,13 @@
   "vaultSwitcherBackgroundTransparency": 1,
   "helpButtonReplacement": {
     "enabled": false,
-    "commandId": "ui-tweaker:open-settings",
+    "commandId": "",
     "iconId": "wrench"
   },
   "syncButtonReplacement": {
-    "enabled": true,
-    "commandId": "ui-tweaker:open-settings",
-    "iconId": "lucide-wrench"
+    "enabled": false,
+    "commandId": "",
+    "iconId": "wrench"
   },
   "tabBarCommands": [
     {
@@ -70,23 +70,17 @@
       "displayName": "Editing Toolbar: Hide/Show ",
       "mode": "desktop",
       "toggleIcon": "lucide-panel-top-close",
-      "showOnFileTypes": "md"
+      "showOnFileTypes": "md,mdx"
     }
   ],
   "statusBarItems": [
     {
       "id": "plugin-editor-status;1",
-      "name": "Live Preview",
+      "name": "plugin-editor-status",
       "type": "existing",
       "hidden": false,
-      "mdOnly": false
-    },
-    {
-      "id": "plugin-backlink;1",
-      "name": "0 backlinks",
-      "type": "existing",
-      "hidden": false,
-      "mdOnly": false
+      "mdOnly": false,
+      "sticky": "left"
     },
     {
       "id": "plugin-word-count;1",
@@ -96,24 +90,10 @@
       "mdOnly": false
     },
     {
-      "id": "plugin-editing-toolbar-editingToolbar-statusbar-button-statusbar-organizer-element-hidden;1",
-      "name": "plugin-editing-toolbar-editingToolbar-statusbar-bu",
-      "type": "existing",
-      "hidden": true,
-      "mdOnly": false
-    },
-    {
       "id": "plugin-editing-toolbar-editingToolbar-statusbar-button;1",
       "name": "plugin-editing-toolbar-editingToolbar-statusbar-bu",
       "type": "existing",
       "hidden": true,
-      "mdOnly": false
-    },
-    {
-      "id": "plugin-sync;1",
-      "name": "Uninitialized",
-      "type": "existing",
-      "hidden": false,
       "mdOnly": false
     },
     {
@@ -125,16 +105,8 @@
       "sticky": "right"
     },
     {
-      "id": "plugin-obsidian-git-status;1",
-      "name": "Last Commit: 2 days ago",
-      "type": "existing",
-      "hidden": false,
-      "mdOnly": false,
-      "sticky": "right"
-    },
-    {
       "id": "plugin-obsidian-git;1",
-      "name": "Last Commit: 11 minutes ago",
+      "name": "Git is ready",
       "type": "existing",
       "hidden": false,
       "mdOnly": false,
@@ -153,8 +125,8 @@
       "sticky": "right"
     },
     {
-      "id": "plugin-properties;1",
-      "name": "0 properties",
+      "id": "plugin-obsidian-git-status;1",
+      "name": "Git: pull: everything is up-to-date",
       "type": "existing",
       "hidden": false,
       "mdOnly": false
@@ -192,7 +164,7 @@
     },
     {
       "id": "native-collapseAll",
-      "name": "Expand all",
+      "name": "Collapse all",
       "ariaLabel": "Collapse all",
       "type": "native",
       "hidden": false

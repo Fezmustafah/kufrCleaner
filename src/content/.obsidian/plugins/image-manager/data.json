@@ -21,7 +21,7 @@
   "autoConvertRemoteImages": false,
   "convertOnNoteOpen": false,
   "convertOnNoteSave": false,
-  "processBackgroundChanges": false,
+  "processBackgroundChanges": true,
   "showRenameDialog": true,
   "autoRename": false,
   "dupNumberDelimiter": "-",

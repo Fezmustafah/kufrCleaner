@@ -3,18 +3,19 @@
   "enableForLinking": true,
   "enableForQuickSwitcher": true,
   "includeFilenameInSearch": true,
-  "includeFolderNameInSearch": true,
   "includeAliasesInSearch": true,
   "enableForDragDrop": true,
   "useSimpleSearch": false,
   "enableForGraphView": true,
   "enableForBacklinks": true,
+  "hideUnlinkedMentionsInBacklinks": false,
   "enableForTabs": true,
   "enableForExplorer": false,
   "folderNoteFilename": "index",
   "enableForWindowFrame": true,
   "enableForBookmarks": true,
-  "enableMdxSupport": false,
+  "enableMdxSupport": true,
   "quickSwitcherExcludedBehavior": "deemphasize",
-  "linkSuggesterExcludedBehavior": "deemphasize"
+  "linkSuggesterExcludedBehavior": "deemphasize",
+  "enableForWindowTitle": true
 }
