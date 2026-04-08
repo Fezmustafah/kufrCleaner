@@ -74,7 +74,7 @@ No problem! You can still use Astro Modular with any editor.
 
 **Next Steps:**
 - Read the [setup guide](docs/configuration.md) for detailed configuration
-- Explore the [reference guide](formatting-reference.md) for markdown features
+- Explore the [reference guide](muhammad-saw.md) for markdown features
 - Customize your theme and layout in `src/config.ts`
 
 ## Essential Configuration
@@ -123,13 +123,13 @@ Optimized for performance with automatic image optimization and lazy loading.
 ### For Non-Obsidian Users:
 1. **Customize your site** - Edit `src/config.ts`
 2. **Read the full guide** - [Complete Setup Guide](docs/configuration.md)
-3. **Explore features** - [Formatting Reference](formatting-reference.md)
+3. **Explore features** - [Formatting Reference](muhammad-saw.md)
 4. **Start writing** - Create your first post
 
 ## Need Help?
 
 - **Complete Setup Guide**: [Configuration Documentation](docs/configuration.md)
 - **Obsidian Vault Guide**: [Obsidian Vault Guide](vault-cms-guide.md)
-- **Formatting Reference**: [Formatting Reference](formatting-reference.md)
+- **Formatting Reference**: [Formatting Reference](muhammad-saw.md)
 
 Your modular Astro blog is ready to go!

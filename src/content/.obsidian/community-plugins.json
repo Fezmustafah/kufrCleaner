@@ -18,5 +18,15 @@
   "omnisearch",
   "data-files-editor",
   "file-name-history",
-  "nested-properties"
+  "nested-properties",
+  "obsidian-local-images-plus",
+  "consistent-attachments-and-links",
+  "obsidian-importer",
+  "frontmatter-modified-date",
+  "obsidian-linter",
+  "safe-filename-linter",
+  "obsidian-auto-link-title",
+  "obsidian-image-toolkit",
+  "auto-mover",
+  "markitdown"
 ]

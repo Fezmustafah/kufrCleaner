@@ -146,32 +146,8 @@
 # Generated redirects from content aliases
 
 [[redirects]]
-  from = "/about-me"
-  to = "/about"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/about-us"
-  to = "/about"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/contact-me"
-  to = "/contact"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/contact-us"
-  to = "/contact"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/privacy"
-  to = "/privacy-policy"
+  from = "/posts/KufrCleaner"
+  to = "/posts/kufr-cleaner"
   status = 301
   force = true
 
@@ -208,36 +184,6 @@
 [[redirects]]
   from = "/posts/obsidian-vault-guide"
   to = "/posts/vault-cms-guide"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/projects/obsidian-astro-composer"
-  to = "/projects/astro-composer"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/projects/obsidian-astro-suite"
-  to = "/projects/vault-cms"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/docs/api-reference"
-  to = "/docs/api"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/docs/astro-modular-configuration"
-  to = "/docs/configuration"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/docs/sourcetree-and-git"
-  to = "/docs/sourcetree-and-git-setup"
   status = 301
   force = true
 
