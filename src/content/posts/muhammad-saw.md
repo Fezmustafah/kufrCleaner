@@ -3,12 +3,9 @@ title: " 𝐌𝐮𝐡𝐚𝐦𝐦𝐚𝐝 ﷺ"
 date: 2025-09-07
 description: Explore all the markdown, extended markdown, and other features available in this blog theme. For Obsidian-specific embeds, check the Obsidian embeds post.
 tags:
-  - markdown
-  - formatting
-  - tutorial
-  - reference
   - meta
-  - blog
+  - civilization
+  - academia
 image: "[[attachments/mountains.png]]"
 imageAlt: Mountains and water.
 imageOG: false
@@ -16,7 +13,7 @@ hideCoverImage: false
 hideTOC: false
 targetKeyword:
 draft: false
-modified: 2026-04-09T00:23:02+04:00
+modified: 2026-04-09T19:34:37+04:00
 created: 2026-04-08T01:05:28+04:00
 aliases:
   - formatting-reference
@@ -88,3 +85,5 @@ See https://discord.com/channels/1310948573768319047/1355110903342960700
 {Forwarded Message}
 # Europe in the Middle Ages
 It was characterized by environmental an
+
+24g5
