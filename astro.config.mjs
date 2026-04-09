@@ -82,6 +82,7 @@ export default defineConfig({
   },
   redirects: (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'build') ? {
   '/posts/KufrCleaner': '/posts/kufr-cleaner',
+  '/posts/formatting-reference': '/posts/muhammad-saw',
   '/posts/mermaid-test': '/posts/obsidian-embeds-demo',
   '/posts/mermaid-diagram-test': '/posts/obsidian-embeds-demo',
   '/posts/mermaid-diagrams': '/posts/obsidian-embeds-demo',

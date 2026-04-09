@@ -1,0 +1,148 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection } from 'astro:content';
+import { siteConfig } from '@/config';
+import { shouldShowPost, sortPostsByDate, extractCategories, extractTags } from '@/utils/markdown';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import Categories from '@/components/Categories.astro';
+import Tags from '@/components/Tags.astro';
+import Pagination from '@/components/Pagination.astro';
+import Icon from '@/components/Icon.astro';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const isDev = import.meta.env.DEV;
+
+  try {
+    const allPosts = await getCollection('posts');
+    const visiblePosts = allPosts.filter(post => shouldShowPost(post, isDev));
+    const sortedPosts = sortPostsByDate(visiblePosts);
+    const allCategories = extractCategories(sortedPosts);
+    const postsPerPage = siteConfig.postOptions.postsPerPage;
+    const paths: any[] = [];
+
+    for (const category of allCategories) {
+      const categoryPosts = sortedPosts.filter((post: any) => {
+        const cat = post.data.category;
+        return cat && typeof cat === 'string' && cat.trim() === category.trim();
+      });
+      const totalPages = Math.ceil(categoryPosts.length / postsPerPage);
+
+      for (let page = 2; page <= totalPages; page++) {
+        paths.push({
+          params: { category, page: page.toString() },
+          props: { category, allPosts: sortedPosts, allCategories, currentPage: page }
+        });
+      }
+    }
+
+    return paths;
+  } catch (error) {
+    return [];
+  }
+};
+
+const { category, allPosts, allCategories, currentPage } = Astro.props as {
+  category: string;
+  allPosts: any[];
+  allCategories: string[];
+  currentPage: number;
+};
+const isDev = import.meta.env.DEV;
+
+if (!category || typeof category !== 'string') {
+  if (!isDev) return Astro.redirect('/404');
+}
+
+const filteredPosts = allPosts.filter((post: any) => {
+  const cat = post.data.category;
+  return cat && typeof cat === 'string' && cat.trim() === category.trim();
+});
+
+const allTags = extractTags(allPosts);
+
+const postsPerPage = siteConfig.postOptions.postsPerPage;
+const totalPosts = filteredPosts.length;
+const totalPages = Math.ceil(totalPosts / postsPerPage);
+const startIndex = (currentPage - 1) * postsPerPage;
+const paginatedPosts = filteredPosts.slice(startIndex, startIndex + postsPerPage);
+
+const pageTitle = `Category: ${category} - Page ${currentPage}`;
+
+const seoData = {
+  title: `${pageTitle} | ${siteConfig.title}`,
+  description: `Page ${currentPage} of posts in the "${category}" category`,
+  canonical: Astro.url.href,
+  ogType: 'website' as const
+};
+
+const baseUrl = `/posts/category/${encodeURIComponent(category)}`;
+const pagination = {
+  currentPage,
+  totalPages,
+  hasNext: currentPage < totalPages,
+  hasPrev: currentPage > 1,
+  nextUrl: currentPage < totalPages ? `${baseUrl}/${currentPage + 1}` : undefined,
+  prevUrl: currentPage > 1 ? (currentPage === 2 ? baseUrl : `${baseUrl}/${currentPage - 1}`) : undefined
+};
+---
+
+<BaseLayout seoData={seoData}>
+  <div class="py-8 relative">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 mb-12" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+      <header class="mb-8">
+        <h1 class="text-lg font-bold text-primary-900 dark:text-primary-50 mb-3">
+          Category: {category}
+        </h1>
+        <p class="text-base text-primary-600 dark:text-primary-300">
+          Page {currentPage} of {totalPages} • <strong>{filteredPosts.length}</strong> posts in
+          <span class="inline-flex items-center px-2 py-1 bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 rounded text-sm font-medium ml-1">
+            {category}
+          </span>
+        </p>
+        <div class="mt-4">
+          <a
+            href="/posts"
+            class="inline-flex items-center text-sm text-primary-600 dark:text-primary-300 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
+          >
+            <Icon name="arrow-left" class="w-4 h-4 mr-1" />
+            Show all posts
+          </a>
+        </div>
+      </header>
+
+      <div class="relative">
+        <div class="max-w-none">
+          <div class="space-y-6 mb-12">
+            {paginatedPosts.map((post: any, index: number) => (
+              <PostCard post={post} context="tags" eager={index < 2} />
+            ))}
+          </div>
+          <Pagination pagination={pagination} baseUrl={baseUrl} />
+        </div>
+
+        <!-- Mobile sidebar -->
+        <div class="xl:hidden mt-12 space-y-6">
+          {siteConfig.postOptions.categories && allCategories.length > 0 && (
+            <Categories categories={allCategories} currentCategory={category} />
+          )}
+          {siteConfig.postOptions.tags && allTags.length > 0 && (
+            <Tags tags={allTags} />
+          )}
+        </div>
+
+        <!-- Desktop sidebar -->
+        <div class="hidden xl:block absolute top-0 left-full ml-8 w-64">
+          <div class="sticky top-24 space-y-3 max-h-[calc(100vh-12rem)] overflow-y-auto pb-6">
+            {siteConfig.postOptions.categories && allCategories.length > 0 && (
+              <Categories categories={allCategories} currentCategory={category} />
+            )}
+            {siteConfig.postOptions.tags && allTags.length > 0 && (
+              <Tags tags={allTags} />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

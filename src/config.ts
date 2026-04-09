@@ -130,6 +130,7 @@ export interface SiteConfig {
     readingTime: boolean;
     wordCount: boolean;
     tags: boolean;
+    categories: boolean;
     linkedMentions: {
       enabled: boolean;
       linkedMentionsCompact: boolean;
@@ -389,6 +390,8 @@ export const siteConfig: SiteConfig = {
     wordCount: true,
     // [CONFIG:POST_OPTIONS_TAGS]
     tags: true,
+    // [CONFIG:POST_OPTIONS_CATEGORIES]
+    categories: true,
     linkedMentions: {
       // [CONFIG:POST_OPTIONS_LINKED_MENTIONS_ENABLED]
       enabled: true,

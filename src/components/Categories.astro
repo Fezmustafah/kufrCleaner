@@ -1,0 +1,37 @@
+---
+import { siteConfig } from '@/config';
+import Icon from './Icon.astro';
+
+export interface Props {
+  categories: string[];
+  currentCategory?: string;
+}
+
+const { categories, currentCategory } = Astro.props;
+
+const sortedCategories = [...categories].sort();
+---
+
+{siteConfig.postOptions.categories && sortedCategories.length > 0 && (
+  <div class="categories-container p-4 bg-white dark:bg-primary-900 rounded-xl border border-primary-200 dark:border-primary-700 shadow-lg backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
+    <h3 class="font-semibold text-primary-900 dark:text-primary-50 mb-3 flex items-center text-sm">
+      <Icon name="folder" class="w-4 h-4 mr-2" />
+      Categories
+    </h3>
+
+    <div class="flex flex-wrap gap-2">
+      {sortedCategories.map(category => (
+        <a
+          href={`/posts/category/${encodeURIComponent(category)}`}
+          class={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
+            currentCategory === category
+              ? 'bg-highlight-100 dark:bg-highlight-900/40 text-highlight-800 dark:text-highlight-200 ring-1 ring-highlight-300 dark:ring-highlight-700'
+              : 'bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-700 hover:text-primary-800 dark:hover:text-primary-200'
+          }`}
+        >
+          {category}
+        </a>
+      ))}
+    </div>
+  </div>
+)}

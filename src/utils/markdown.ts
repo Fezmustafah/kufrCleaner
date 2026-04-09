@@ -383,6 +383,40 @@ export function extractTags(posts: Post[]): string[] {
   return Array.from(tags).sort();
 }
 
+// Extract unique categories from posts
+export function extractCategories(posts: Post[]): string[] {
+  const categories = new Set<string>();
+
+  try {
+    posts.forEach((post) => {
+      const cat = (post.data as any).category;
+      if (cat && typeof cat === "string" && cat.trim()) {
+        categories.add(cat.trim());
+      }
+    });
+  } catch (error) {
+    return [];
+  }
+
+  return Array.from(categories).sort();
+}
+
+// Filter posts by category
+export function filterPostsByCategory(posts: Post[], category: string): Post[] {
+  if (!category || typeof category !== "string") {
+    return [];
+  }
+
+  try {
+    return posts.filter((post) => {
+      const cat = (post.data as any).category;
+      return cat && typeof cat === "string" && cat.trim() === category.trim();
+    });
+  } catch (error) {
+    return [];
+  }
+}
+
 // Filter posts by tag
 export function filterPostsByTag(posts: Post[], tag: string): Post[] {
   const isDev = import.meta.env.DEV;

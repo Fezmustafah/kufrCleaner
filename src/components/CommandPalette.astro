@@ -240,11 +240,12 @@ import Icon from './Icon.astro';
   interface CommandPaletteItem {
     id: string;
     title: string;
-    description?: string; // Optional description for posts
+    description?: string;
     url: string;
     type: 'post' | 'page' | 'project' | 'documentation' | 'docs' | 'action';
-    score?: number; // Score for search relevance
-    tags?: string[]; // Tags for posts
+    score?: number;
+    tags?: string[];
+    category?: string | null;
   }
 
   // Command Palette Class Definition
@@ -470,15 +471,25 @@ import Icon from './Icon.astro';
         const Fuse = fuseModule.default || fuseModule;
         
         if (typeof Fuse === 'function') {
-          this.fuse = new Fuse(this.items, {
+          // NFKD normalization converts Unicode variants (e.g. Mathematical Bold "𝐌𝐮𝐡" → ASCII "Muh")
+          const norm = (s: string) => s ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : '';
+          // Build a normalized shadow index; _idx maps back to original items for display
+          const normalizedItems = this.items.map((item, idx) => ({
+            _idx: idx,
+            _title: norm(item.title),
+            _description: norm(item.description || ''),
+            _tags: (item.tags || []).map(norm),
+            _category: norm((item as any).category || ''),
+          }));
+          this.fuse = new Fuse(normalizedItems, {
             keys: [
-              { name: 'title', weight: 0.5 },
-              { name: 'description', weight: 0.2 },
-              { name: 'tags', weight: 0.3 }
+              { name: '_title', weight: 0.5 },
+              { name: '_description', weight: 0.2 },
+              { name: '_tags', weight: 0.2 },
+              { name: '_category', weight: 0.1 },
             ],
-            threshold: 0.3, // Lower threshold for more fuzzy matching
+            threshold: 0.4,
             includeScore: true,
-            includeMatches: true,
             minMatchCharLength: 1,
             shouldSort: true,
             findAllMatches: true,
@@ -512,25 +523,28 @@ import Icon from './Icon.astro';
     }
 
     private fuzzySearch(query: string): CommandPaletteItem[] {
-      const results = this.fuse.search(query);
+      // Normalize query to match the normalized index
+      const normalizedQuery = query.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+      const results = this.fuse.search(normalizedQuery);
       return results
         .slice(0, this.MAX_RESULTS)
         .map((result: any) => ({
-          ...result.item,
-          score: result.score ? (1 - result.score) * 1000 : 0, // Convert Fuse score to our scale
-          matches: result.matches
+          ...this.items[result.item._idx], // Use original item for display (preserves fancy title)
+          score: result.score ? (1 - result.score) * 1000 : 0,
         }));
     }
 
     private basicSearch(query: string): CommandPaletteItem[] {
-      const queryLower = query.toLowerCase();
+      const norm = (s: string) => s ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : '';
+      const queryLower = norm(query);
       const queryWords = queryLower.split(/\s+/).filter(word => word.length > 0);
 
       return this.items
         .map(item => {
-          const title = item.title.toLowerCase();
-          const description = (item.description || '').toLowerCase();
-          const tags = (item.tags || []).join(' ').toLowerCase();
+          const title = norm(item.title);
+          const description = norm(item.description || '');
+          const tags = (item.tags || []).map(norm).join(' ');
+          const category = norm((item as any).category || '');
 
           let score = 0;
 
@@ -553,6 +567,11 @@ import Icon from './Icon.astro';
             score += 300;
           }
 
+          // Category match
+          if (category.includes(queryLower)) {
+            score += 250;
+          }
+
           // Word-by-word matching for better fuzzy search
           queryWords.forEach(word => {
             if (title.includes(word)) {
@@ -562,7 +581,10 @@ import Icon from './Icon.astro';
               score += 25;
             }
             if (tags.includes(word)) {
-              score += 40; // Higher weight for tag matches
+              score += 40;
+            }
+            if (category.includes(word)) {
+              score += 35;
             }
           });
 
@@ -575,7 +597,10 @@ import Icon from './Icon.astro';
             score += 50;
           }
           if (wordBoundaryRegex.test(tags)) {
-            score += 80; // Higher weight for tag word boundary matches
+            score += 80;
+          }
+          if (wordBoundaryRegex.test(category)) {
+            score += 70;
           }
 
           return { ...item, score };

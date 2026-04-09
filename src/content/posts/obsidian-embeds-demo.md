@@ -13,6 +13,7 @@ hideCoverImage: false
 hideTOC: false
 targetKeyword: obsidian embeds
 draft: false
+category: Tutorial
 aliases:
   - mermaid-test
   - mermaid-diagram-test

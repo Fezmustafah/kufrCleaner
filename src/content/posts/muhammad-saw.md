@@ -13,6 +13,7 @@ hideCoverImage: false
 hideTOC: false
 targetKeyword:
 draft: false
+category: Islam
 modified: 2026-04-09T19:34:37+04:00
 created: 2026-04-08T01:05:28+04:00
 aliases:

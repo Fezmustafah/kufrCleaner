@@ -11,7 +11,7 @@
   "mobilePullAction": "command-palette:open",
   "trashOption": "system",
   "alwaysUpdateLinks": true,
-  "useMarkdownLinks": true,
+  "useMarkdownLinks": false,
   "mobileToolbarCommands": [
     "editor:undo",
     "editor:redo",
@@ -39,9 +39,10 @@
   ],
   "newFileLocation": "folder",
   "newFileFolderPath": "posts",
-  "newLinkFormat": "relative",
+  "newLinkFormat": "shortest",
   "mobileQuickRibbonItem": "",
   "vimMode": false,
   "readableLineLength": true,
-  "defaultViewMode": "source"
+  "defaultViewMode": "source",
+  "showUnsupportedFiles": true
 }

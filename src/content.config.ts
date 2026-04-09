@@ -30,6 +30,7 @@ const postsCollection = defineCollection({
     targetKeyword: z.string().nullable().optional(),
     author: z.string().nullable().optional(),
     noIndex: z.boolean().optional(),
+    category: z.string().nullable().optional(),
   }),
 });
 

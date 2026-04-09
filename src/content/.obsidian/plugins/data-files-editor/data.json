@@ -1,6 +1,6 @@
 {
-  "doLoadTxt": false,
-  "doCreateTxt": false,
+  "doLoadTxt": true,
+  "doCreateTxt": true,
   "doLoadXml": false,
   "doCreateXml": false,
   "doLoadJson": true,

@@ -1,0 +1,243 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Icon from '@/components/Icon.astro';
+
+const query = Astro.url.searchParams.get('q') || '';
+const pageTitle = query ? `Search: "${query}"` : 'Search';
+---
+
+<BaseLayout title={pageTitle} description="Search all posts and content">
+  <div class="max-w-2xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 mb-4">Search</h1>
+      <form id="search-form" action="/search" method="get">
+        <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-primary-300 dark:border-primary-600 bg-white dark:bg-primary-800 focus-within:border-highlight-400 dark:focus-within:border-highlight-500 focus-within:ring-2 focus-within:ring-highlight-500/20 transition-all duration-200 shadow-sm">
+          <Icon name="search" class="w-4 h-4 shrink-0 text-primary-400 dark:text-primary-500" />
+          <input
+            type="search"
+            name="q"
+            id="search-query"
+            value={query}
+            placeholder="Search posts, categories, tags…"
+            autocomplete="off"
+            autofocus
+            class="flex-1 bg-transparent outline-none text-primary-900 dark:text-primary-50 placeholder-primary-400 dark:placeholder-primary-500 text-base"
+          />
+          <button
+            type="submit"
+            class="shrink-0 px-3 py-1.5 text-xs font-semibold bg-highlight-500 hover:bg-highlight-600 text-white rounded-lg transition-colors"
+          >
+            Search
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Status line -->
+    <p id="search-status" class="text-sm text-primary-500 dark:text-primary-400 mb-4 hidden"></p>
+
+    <!-- Result cards -->
+    <div id="search-results" class="space-y-3"></div>
+
+    <!-- Search mode badge (shown after engine is determined) -->
+    <p id="search-mode" class="hidden text-xs text-primary-400 dark:text-primary-500 mb-4"></p>
+
+  </div>
+</BaseLayout>
+
+<script>
+  // NFKD normalization: converts Unicode variants (e.g. Mathematical Bold "𝐌𝐮𝐡" → "muh") for matching
+  const norm = (s: string) =>
+    s ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : '';
+
+  // Shared result card HTML (used by both engines)
+  function resultCard(url: string, title: string, subtitle: string): string {
+    return `
+      <a href="${url}"
+         class="block p-4 rounded-xl border border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-900 hover:border-highlight-400 dark:hover:border-highlight-500 hover:shadow-md transition-all duration-200 group">
+        <div class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               class="w-4 h-4 text-primary-400 dark:text-primary-500 group-hover:text-highlight-500 mt-0.5 shrink-0">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <div class="min-w-0">
+            <h3 class="font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors mb-1">${title}</h3>
+            ${subtitle ? `<p class="text-sm text-primary-600 dark:text-primary-300 leading-relaxed line-clamp-2">${subtitle}</p>` : ''}
+          </div>
+        </div>
+      </a>`;
+  }
+
+  function initSearch() {
+    const queryInput = document.getElementById('search-query') as HTMLInputElement | null;
+    const resultsEl  = document.getElementById('search-results') as HTMLElement | null;
+    const statusEl   = document.getElementById('search-status') as HTMLElement | null;
+    const modeEl     = document.getElementById('search-mode') as HTMLElement | null;
+    const form       = document.getElementById('search-form') as HTMLFormElement | null;
+
+    if (!queryInput || !resultsEl || !statusEl) return;
+
+    let pagefind: any = null;
+    let fuse: any = null;
+    let fuseItems: any[] = [];
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    // 'pagefind' | 'fuse' | null
+    let engine: string | null = null;
+
+    // ── Engine 1: Pagefind (production, full-text) ────────────────────────────
+    async function tryPagefind(): Promise<boolean> {
+      if (pagefind) return true;
+      try {
+        // @ts-ignore — generated at build time
+        pagefind = await import('/pagefind/pagefind.js');
+        await pagefind.init();
+        engine = 'pagefind';
+        if (modeEl) {
+          modeEl.textContent = 'Full-text search';
+          modeEl.classList.remove('hidden');
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // ── Engine 2: Fuse.js fallback (dev mode / no build) ─────────────────────
+    async function tryFuse(): Promise<boolean> {
+      if (fuse) return true;
+      try {
+        const [fuseModule, postsRes] = await Promise.all([
+          import('fuse.js'),
+          fetch('/api/posts.json').then(r => r.ok ? r.json() : []),
+        ]);
+        const Fuse = (fuseModule as any).default || fuseModule;
+        fuseItems = postsRes;
+        // Build normalized shadow index so Unicode variants match
+        const normalized = fuseItems.map((item: any, idx: number) => ({
+          _idx: idx,
+          _title:       norm(item.title),
+          _description: norm(item.description || ''),
+          _tags:        (item.tags || []).map(norm),
+          _category:    norm(item.category || ''),
+        }));
+        fuse = new Fuse(normalized, {
+          keys: [
+            { name: '_title',       weight: 0.5 },
+            { name: '_description', weight: 0.2 },
+            { name: '_tags',        weight: 0.2 },
+            { name: '_category',    weight: 0.1 },
+          ],
+          threshold: 0.4,
+          includeScore: true,
+          minMatchCharLength: 1,
+          shouldSort: true,
+          findAllMatches: true,
+          ignoreLocation: true,
+        });
+        engine = 'fuse';
+        if (modeEl) {
+          modeEl.textContent = 'Metadata search (run pnpm build for full-text)';
+          modeEl.classList.remove('hidden');
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    function showResults(items: Array<{ url: string; title: string; subtitle: string }>, query: string) {
+      if (items.length === 0) {
+        statusEl!.textContent = `No results for "${query}"`;
+        statusEl!.classList.remove('hidden');
+        resultsEl!.innerHTML = '';
+        return;
+      }
+      statusEl!.textContent = `${items.length} result${items.length === 1 ? '' : 's'} for "${query}"`;
+      statusEl!.classList.remove('hidden');
+      resultsEl!.innerHTML = items.map(i => resultCard(i.url, i.title, i.subtitle)).join('');
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    async function doSearch(query: string) {
+      if (!query.trim()) {
+        statusEl!.classList.add('hidden');
+        resultsEl!.innerHTML = '';
+        return;
+      }
+
+      // Try Pagefind first, fall back to Fuse.js
+      const hasPagefind = await tryPagefind();
+      if (!hasPagefind) await tryFuse();
+
+      if (engine === 'pagefind') {
+        try {
+          const search = await pagefind.search(query);
+          const data   = await Promise.all(search.results.slice(0, 20).map((r: any) => r.data()));
+          showResults(
+            data.map((r: any) => ({ url: r.url, title: r.meta?.title || r.url, subtitle: r.excerpt || '' })),
+            query
+          );
+        } catch {
+          statusEl!.textContent = 'Search error — please try again.';
+          statusEl!.classList.remove('hidden');
+        }
+      } else if (engine === 'fuse') {
+        const normalizedQuery = norm(query);
+        const raw = fuse.search(normalizedQuery).slice(0, 20);
+        showResults(
+          raw.map((r: any) => {
+            const item = fuseItems[r.item._idx];
+            return { url: item.url, title: item.title, subtitle: item.description || '' };
+          }),
+          query
+        );
+      } else {
+        statusEl!.textContent = 'Search unavailable — please try again.';
+        statusEl!.classList.remove('hidden');
+      }
+    }
+
+    // ── Wire up events ────────────────────────────────────────────────────────
+    queryInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => doSearch(queryInput.value), 300);
+    });
+
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = queryInput.value.trim();
+        const url = new URL(window.location.href);
+        if (q) { url.searchParams.set('q', q); } else { url.searchParams.delete('q'); }
+        window.history.replaceState({}, '', url.toString());
+        doSearch(queryInput.value);
+      });
+    }
+
+    // Auto-search on load if ?q= is present
+    const initialQuery = new URLSearchParams(window.location.search).get('q');
+    if (initialQuery) {
+      queryInput.value = initialQuery;
+      doSearch(initialQuery);
+    }
+  }
+
+  initSearch();
+  document.addEventListener('page:view', initSearch);
+</script>
+
+<style>
+  /* Pagefind highlight marks */
+  mark {
+    background-color: transparent;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: rgb(var(--color-highlight-500) / 0.6);
+  }
+</style>

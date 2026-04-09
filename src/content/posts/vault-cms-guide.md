@@ -15,6 +15,7 @@ hideCoverImage: true
 hideTOC: false
 targetKeyword: vault cms
 draft: false
+category: Tutorial
 aliases:
   - astro-suite-vault-modular-guide
   - astro-suite-obsidian-vault-guide-astro-modular

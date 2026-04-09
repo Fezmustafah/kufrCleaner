@@ -2,11 +2,12 @@
 import { getCollection } from 'astro:content';
 import { siteConfig } from '@/config';
 import { generatePageSEO } from '@/utils/seo';
-import { shouldShowPost, sortPostsByDate, extractTags } from '@/utils/markdown';
+import { shouldShowPost, sortPostsByDate, extractTags, extractCategories } from '@/utils/markdown';
 import { optimizePostImagePath } from '@/utils/images';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
 import Tags from '@/components/Tags.astro';
+import Categories from '@/components/Categories.astro';
 import Pagination from '@/components/Pagination.astro';
 import Icon from '@/components/Icon.astro';
 
@@ -49,8 +50,9 @@ const startIndex = 0;
 const endIndex = Math.min(postsPerPage, totalPosts);
 const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
 
-// Extract all unique tags
+// Extract all unique tags and categories
 const allTags = extractTags(sortedPosts);
+const allCategories = extractCategories(sortedPosts);
 
 // Generate SEO data
 const pageTitle = selectedTag
@@ -205,6 +207,10 @@ const pagination = {
 
         <!-- Mobile sidebar - appears below content on mobile/tablet -->
         <div class="xl:hidden mt-12 space-y-6">
+          <!-- Categories -->
+          {siteConfig.postOptions.categories && allCategories.length > 0 && (
+            <Categories categories={allCategories} />
+          )}
           <!-- Tags -->
           {siteConfig.postOptions.tags && allTags.length > 0 && (
             <Tags tags={allTags} />
@@ -213,7 +219,11 @@ const pagination = {
 
         <!-- Desktop sidebar - floats to the right of the content container -->
         <div class="hidden xl:block absolute top-0 left-full ml-8 w-64 h-full">
-          <div class="sticky top-24 pb-6" id="tags-sidebar">
+          <div class="sticky top-24 pb-6 space-y-3" id="tags-sidebar">
+            <!-- Categories -->
+            {siteConfig.postOptions.categories && allCategories.length > 0 && (
+              <Categories categories={allCategories} />
+            )}
             <!-- Tags -->
             {siteConfig.postOptions.tags && allTags.length > 0 && (
               <Tags tags={allTags} />

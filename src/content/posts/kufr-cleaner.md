@@ -16,6 +16,7 @@ imageOG: true
 hideCoverImage: false
 hideTOC: false
 draft: false
+category: Islam
 aliases:
   - KufrCleaner
 ---
