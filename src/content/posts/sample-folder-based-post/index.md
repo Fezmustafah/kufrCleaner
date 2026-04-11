@@ -31,7 +31,7 @@ Standard markdown image embed:
 Wikilink image embed: 
 
 ```
-![[forest.png]]
+![[attachments/forest.png]]
 ```
 
 Don't worry, the `/post-title/attachment` folder works also. 

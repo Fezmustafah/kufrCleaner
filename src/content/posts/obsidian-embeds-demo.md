@@ -23,23 +23,23 @@ aliases:
 
 ### Video Files
 
-![[attachments/video.mp4|Eye drop video]]
+![[attachments/attachments/video.mp4|Eye drop video]]
 
 Video files are embedded as HTML5 video players with controls and responsive design.
 
 ### Audio Files
 
-![[attachments/sound.wav|sound.wav]]
+![[attachments/attachments/sound.wav|sound.wav]]
 
 Audio files are embedded as HTML5 audio players with controls and filename display.
 
 ### PDF Documents
 
-![[attachments/document.pdf|document.pdf]]
+![[attachments/attachments/document.pdf|document.pdf]]
 
 PDFs are embedded as inline viewers with download links.
 
-Use `![[attachments/document.pdf#page=3]]` to select a specific PDF page to display.
+Use `![[attachments/attachments/document.pdf#page=3]]` to select a specific PDF page to display.
 
 ## Auto-embeds
 
@@ -204,7 +204,7 @@ You can also embed a `.base` as a markdown embed:
 Or as a wikilinks embed:
 
 ```markdown
-![[Home.base]]
+![[attachments/Home.base]]
 ```
 ## Math
 
