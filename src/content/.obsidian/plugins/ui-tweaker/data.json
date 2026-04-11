@@ -133,7 +133,7 @@
     },
     {
       "id": "plugin-backlink;1",
-      "name": "plugin-backlink",
+      "name": "3 backlinks",
       "type": "existing",
       "hidden": false,
       "mdOnly": false
@@ -141,6 +141,13 @@
     {
       "id": "plugin-properties;1",
       "name": "plugin-properties",
+      "type": "existing",
+      "hidden": false,
+      "mdOnly": false
+    },
+    {
+      "id": "plugin-image-upload-toolkit;1",
+      "name": "plugin-image-upload-toolkit",
       "type": "existing",
       "hidden": false,
       "mdOnly": false

@@ -1,0 +1,80 @@
+{
+  "imageAltText": true,
+  "replaceOriginalDoc": true,
+  "ignoreProperties": true,
+  "imageStore": "CLOUDFLARE_R2",
+  "showProgressModal": true,
+  "uploadWebImages": true,
+  "convertMermaid": false,
+  "mermaidScale": 2,
+  "mermaidTheme": "default",
+  "imgurAnonymousSetting": {
+    "clientId": "fb4a95c4bc8432a"
+  },
+  "gyazoSetting": {
+    "accessToken": "",
+    "accessPolicy": "anyone",
+    "desc": ""
+  },
+  "ossSetting": {
+    "region": "oss-cn-hangzhou",
+    "accessKeyId": "",
+    "accessKeySecret": "",
+    "bucket": "",
+    "endpoint": "https://oss-cn-hangzhou.aliyuncs.com/",
+    "path": "",
+    "customDomainName": ""
+  },
+  "imagekitSetting": {
+    "endpoint": "",
+    "imagekitID": "",
+    "privateKey": "",
+    "publicKey": "",
+    "folder": ""
+  },
+  "awsS3Setting": {
+    "accessKeyId": "",
+    "secretAccessKey": "",
+    "region": "",
+    "bucketName": "",
+    "path": "",
+    "customDomainName": ""
+  },
+  "cosSetting": {
+    "region": "",
+    "bucket": "",
+    "secretId": "",
+    "secretKey": "",
+    "path": "",
+    "customDomainName": ""
+  },
+  "kodoSetting": {
+    "accessKey": "",
+    "secretKey": "",
+    "bucket": "",
+    "customDomainName": "",
+    "path": ""
+  },
+  "githubSetting": {
+    "repositoryName": "",
+    "branchName": "main",
+    "token": "",
+    "path": "images"
+  },
+  "r2Setting": {
+    "accessKeyId": "cddc949441aed7ba5b898078274d7f9c",
+    "secretAccessKey": "ac0470db0550deeb2cc1837c19a3a65a7b66c10574b05f1ba126cb11b0d1e7a9",
+    "endpoint": "https://4805e236ff7b20d6e97e630536f4d8ae.r2.cloudflarestorage.com",
+    "bucketName": "kc1",
+    "path": "attachments/{filename}",
+    "customDomainName": "https://pub-7bca7524425e4a1b8efbb7265e7ec52e.r2.dev"
+  },
+  "b2Setting": {
+    "accessKeyId": "",
+    "secretAccessKey": "",
+    "region": "",
+    "bucketName": "",
+    "path": "",
+    "customDomainName": ""
+  }
+}

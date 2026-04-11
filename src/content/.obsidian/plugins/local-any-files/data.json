@@ -1,0 +1,19 @@
+{
+  "tasks": [
+    "extract",
+    "download",
+    "replace"
+  ],
+  "scope": "currentFile",
+  "presetExtensions": [
+    "image",
+    "officeFile",
+    "video",
+    "music",
+    "ebook",
+    "academic"
+  ],
+  "customExtensions": [],
+  "storePath": "posts/attachments/",
+  "storeFileName": "${originalName}"
+}

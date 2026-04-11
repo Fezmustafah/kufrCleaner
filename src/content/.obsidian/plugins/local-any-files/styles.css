@@ -1,0 +1,379 @@
+/*
+ * This CSS file will be included with your plugin, and
+ * available in the app when your plugin is enabled.
+ */
+
+/* Layout Components
+   ========================================================================== */
+
+.vertical-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+/* Tasks and Presets */
+.tasks-setting,
+.presets-setting {
+    margin-bottom: 0;
+}
+
+.tasks-container,
+.presets-container {
+    margin-top: 6px;
+    margin-left: 36px;
+    border-left: 2px solid var(--background-modifier-border);
+    padding-left: 8px;
+}
+
+.task-item,
+.preset-item {
+    border: none;
+    padding: 4px 0;
+    margin: 0;
+}
+
+/* Buttons */
+button.full-width-button {
+    width: 100%;
+    padding: 10px;
+}
+
+/* Links */
+.target-link-text {
+    white-space: wrap;
+    word-break: break-all;
+    padding: 0 12px;
+    font-size: 0.9rem;
+    background-color: var(--background-modifier-form-field);
+    border-radius: 4px;
+}
+
+/* Progress and Stats
+   ========================================================================== */
+
+.custom-progress-section {
+    margin: 20px 0;
+}
+
+.custom-progress-bar {
+    width: 100%;
+    height: 10px;
+    margin: 20px 0;
+    background: var(--background-modifier-border);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.custom-progress-fill {
+    height: 100%;
+    width: var(--progress-width, 0%);
+    background: var(--text-accent);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+/* Stats Container */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: var(--background-secondary);
+    border-radius: 5px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.stat-value-processed { color: var(--text-accent); }
+.stat-value-total { color: var(--text-normal); }
+.stat-value-found { color: var(--text-success); }
+.stat-value-downloads { color: var(--interactive-accent); }
+.stat-value-failed { color: var(--text-error); }
+
+.stat-label {
+    font-size: 0.8em;
+    color: var(--text-muted);
+}
+
+/* Logs and Documents
+   ========================================================================== */
+
+/* Logs Section */
+.logs-section {
+    padding: 10px;
+    background: var(--background-secondary);
+    border-radius: 5px;
+}
+
+.logs-title {
+    margin: 0 0 10px;
+    font-size: 1em;
+    color: var(--text-normal);
+}
+
+.logs-container {
+    max-height: 300px;
+    padding: 2px;
+    background: var(--background-primary);
+    font-family: monospace;
+    font-size: 0.98rem;
+    overflow-y: auto;
+}
+
+.logs-container > div {
+    margin-bottom: 5px;
+}
+
+.logs-container > div:hover {
+    background: var(--background-secondary);
+}
+
+/* Log Entries */
+.log-entry {
+    display: flex;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.log-timestamp {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.log-message {
+    flex: 1;
+    word-break: break-word;
+}
+
+/* Log Status Colors */
+.log-success { color: var(--text-success); }
+.log-error { color: var(--text-error); }
+.log-warning { color: var(--text-warning); }
+.log-info {
+    color: var(--text-muted);
+    word-break: break-all;
+}
+
+/* Log Document Styles */
+.log-document-container {
+    margin-bottom: 10px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.log-document-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--background-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.log-document-header:hover {
+    background: var(--background-modifier-hover);
+}
+
+.log-document-header::after {
+    content: "▽";
+    position: absolute;
+    right: 12px;
+    color: rgba(0, 0, 0, 0.8);
+    transition: transform 0.15s ease;
+}
+
+.log-document-header.collapsed::after {
+    transform: rotate(-90deg);
+}
+
+.log-document-title {
+    flex: 1;
+    color: var(--text-normal);
+}
+
+.log-document-stats {
+    margin-right: 24px;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.log-document-content {
+    padding: 10px;
+    font-size: 0.8em;
+    background: var(--background-primary);
+}
+
+.log-document-content.collapsed {
+    display: none;
+}
+
+.log-task-header {
+    margin: 10px 0 5px;
+    padding: 5px;
+    color: var(--text-accent);
+    background-color: var(--background-secondary);
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.log-url {
+    color: var(--text-accent);
+    text-decoration: underline;
+    word-break: break-all;
+}
+
+.log-saved-path {
+    padding-left: 10px;
+    color: var(--text-accent);
+    font-family: monospace;
+}
+
+.log-divider {
+    margin: 10px 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+    opacity: 0.5;
+}
+
+.log-divider.thick {
+    border-bottom: 2px solid var(--background-modifier-border);
+    opacity: 0.85;
+}
+
+/* Extensions and Tags
+   ========================================================================== */
+
+.custom-extensions-setting {
+    margin-bottom: 0;
+}
+
+.custom-extensions-container {
+    margin-top: 6px;
+    margin-left: 36px;
+    padding-left: 8px;
+}
+
+.custom-input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.custom-input-container input {
+    flex-grow: 1;
+    height: 28px;
+    padding: 4px 8px;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+}
+
+.custom-input-container button {
+    display: flex;
+    align-items: center;
+    height: 28px;
+    padding: 4px;
+}
+
+/* Extension Tags */
+.custom-extensions-tags,
+.extensions-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    min-height: 32px;
+    padding: 8px;
+    background: var(--background-secondary);
+    border-radius: 4px;
+}
+
+.custom-extension-tag {
+    padding-right: 4px;
+}
+
+.extension-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    border-radius: 12px;
+}
+
+.extension-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text-on-accent);
+    background-color: rgba(var(--background-modifier-error-rgb), 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.extension-tag-remove:hover {
+    background-color: rgba(var(--background-modifier-error-rgb), 0.4);
+}
+
+.extensions-preview-setting {
+    margin-bottom: 0;
+}
+
+.extensions-preview-container {
+    margin-top: 6px;
+    margin-left: 36px;
+    padding-left: 8px;
+}
+
+.extension-empty-text {
+    padding: 4px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Utility Classes
+   ========================================================================== */
+
+.copyable-text {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.copyable-text:hover {
+    text-decoration: underline;
+}
+
+.copyable-text:hover::after {
+    content: "📋";
+    font-size: 14px;
+    opacity: 0.7;
+}
+
+.copyable-text.copied::after {
+    content: "✓";
+    color: var(--text-success);
+}

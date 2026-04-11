@@ -5,7 +5,6 @@
   "vault-cms",
   "astro-composer",
   "settings-search",
-  "editing-toolbar",
   "image-manager",
   "bases-cms",
   "home-base",
@@ -33,5 +32,8 @@
   "astro-modular-settings",
   "callout-manager",
   "folder-notes",
-  "obsidian-regex-replace"
+  "obsidian-regex-replace",
+  "local-media-embedder",
+  "local-any-files",
+  "image-upload-toolkit"
 ]

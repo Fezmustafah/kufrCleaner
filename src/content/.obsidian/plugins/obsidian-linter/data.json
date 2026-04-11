@@ -288,7 +288,7 @@
     {
       "label": "fix attachments",
       "find": "images\\\\(.+)",
-      "replace": "![[$1]]",
+      "replace": "![[attachments/$1]]",
       "flags": "gm",
       "enabled": true
     },
@@ -308,8 +308,22 @@
     },
     {
       "label": "remove timestamps",
-      "find": "\\[\\d{1,2}/\\d{1,2}/\\d{4} \\d{1,2}:\\d{2} (AM|PM)\\] \\w+",
+      "find": "\\[\\d{1,2}/\\d{1,2}/\\d{4} \\d{1,2}:\\d{2} (AM|PM)\\] .+",
       "replace": "",
+      "flags": "gm",
+      "enabled": true
+    },
+    {
+      "label": "replace  🔷 with bullet",
+      "find": " 🔷\\s*",
+      "replace": "- ",
+      "flags": "gm",
+      "enabled": true
+    },
+    {
+      "label": "replace ۞ with - ",
+      "find": "۞ \\*",
+      "replace": "- ",
       "flags": "gm",
       "enabled": true
     }
