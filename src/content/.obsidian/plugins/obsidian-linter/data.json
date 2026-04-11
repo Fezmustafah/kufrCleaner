@@ -82,7 +82,7 @@
       "alias-helper-key": "linter-yaml-title-alias"
     },
     "capitalize-headings": {
-      "enabled": false,
+      "enabled": true,
       "style": "Title Case",
       "ignore-case-words": true,
       "ignore-words": "macOS, iOS, iPhone, iPad, JavaScript, TypeScript, AppleScript, I",
@@ -92,7 +92,7 @@
       "enabled": false
     },
     "header-increment": {
-      "enabled": false,
+      "enabled": true,
       "start-at-h2": false
     },
     "headings-start-line": {
@@ -271,7 +271,7 @@
       "enabled": false
     }
   },
-  "lintOnSave": false,
+  "lintOnSave": true,
   "recordLintOnSaveLogs": false,
   "displayChanged": true,
   "suppressMessageWhenNoChange": false,
@@ -284,7 +284,29 @@
   "linterLocale": "system-default",
   "logLevel": "ERROR",
   "lintCommands": [],
-  "customRegexes": [],
+  "customRegexes": [
+    {
+      "label": "fix attachments",
+      "find": "images\\\\(.+)",
+      "replace": "![[$1]]",
+      "flags": "gm",
+      "enabled": true
+    },
+    {
+      "label": "fix bullet",
+      "find": "🔹\\s*",
+      "replace": "- ",
+      "flags": "gm",
+      "enabled": true
+    },
+    {
+      "label": "remove attachments label",
+      "find": "\\{Attachments\\}",
+      "replace": "",
+      "flags": "gm",
+      "enabled": true
+    }
+  ],
   "commonStyles": {
     "aliasArrayStyle": "single-line",
     "tagArrayStyle": "single-line",
