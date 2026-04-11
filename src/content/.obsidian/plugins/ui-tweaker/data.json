@@ -29,7 +29,7 @@
   "tooltips": false,
   "searchSuggestions": false,
   "searchTermCounts": false,
-  "propertiesInReadingView": false,
+  "propertiesInReadingView": true,
   "propertiesInHeading": false,
   "addPropertyButton": false,
   "deemphasizeProperties": false,

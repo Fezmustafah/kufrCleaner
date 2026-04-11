@@ -31,5 +31,6 @@
   "markitdown",
   "disable-tabs",
   "astro-modular-settings",
-  "folder-notes"
+  "folder-notes",
+  "callout-manager"
 ]

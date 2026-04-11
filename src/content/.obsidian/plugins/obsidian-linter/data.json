@@ -307,8 +307,8 @@
       "enabled": true
     },
     {
-      "label": "",
-      "find": "\\[\\d{1,2}/\\d{1,2}/\\d{4} \\d{1,2}:\\d{2} (?:AM|PM)\\] \\w+\\n",
+      "label": "remove timestamps",
+      "find": "\\[\\d{1,2}/\\d{1,2}/\\d{4} \\d{1,2}:\\d{2} (AM|PM)\\] \\w+",
       "replace": "",
       "flags": "gm",
       "enabled": true

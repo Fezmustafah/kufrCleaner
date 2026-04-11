@@ -11,9 +11,9 @@ imageOG: false
 hideCoverImage: false
 hideTOC: false
 targetKeyword: ""
-draft: true
+draft: false
 aliases: []
-modified: 2026-04-11T21:04:48+04:00
+modified: 2026-04-11T21:14:59+04:00
 created: 2026-04-11T20:01:05+04:00
 category: Christianity
 ---
