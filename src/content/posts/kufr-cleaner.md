@@ -19,10 +19,9 @@ draft: false
 category: Islam
 aliases:
   - KufrCleaner
-modified: 2026-04-11T20:08:45+04:00
+modified: 2026-04-11T20:23:52+04:00
 created: 2026-04-09T20:36:50+04:00
 ---
 # KufrCleaner Test
 
-
-WHATT?
+This is index
