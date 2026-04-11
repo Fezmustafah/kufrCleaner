@@ -175,6 +175,11 @@ image: {
   },
   vite: {
     assetsInclude: ['**/*.base', '**/*.home', '**/*.base'],
+    build: {
+      rollupOptions: {
+        external: ['/pagefind/pagefind.js'],
+      },
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
