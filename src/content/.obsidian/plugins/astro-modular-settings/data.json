@@ -1,7 +1,7 @@
 {
   "runWizardOnStartup": true,
   "currentTemplate": "standard",
-  "currentTheme": "oxygen",
+  "currentTheme": "minimal",
   "customThemeFile": "custom",
   "contentOrganization": "file-based",
   "themeColors": {
@@ -12,10 +12,10 @@
     }
   },
   "siteInfo": {
-    "site": "https://astro-modular.netlify.app",
-    "title": "Astro Modular",
-    "description": "A flexible blog theme designed for Obsidian users.",
-    "author": "David V. Kimball",
+    "site": "https://kufrcleaner.netlify.app",
+    "title": "KufrCleaner",
+    "description": "Cleaning kufr.",
+    "author": "Faiz Musatafa",
     "language": "en",
     "faviconThemeAdaptive": true,
     "defaultOgImageAlt": "Astro Modular logo."

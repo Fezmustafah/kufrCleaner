@@ -92,8 +92,8 @@ const pageTitle = query ? `Search: "${query}"` : 'Search';
     async function tryPagefind(): Promise<boolean> {
       if (pagefind) return true;
       try {
-        // @ts-ignore — generated at build time
-        pagefind = await import('/pagefind/pagefind.js');
+        // @ts-ignore — generated at build time, vite-ignore prevents Rollup resolution error
+        pagefind = await import(/* @vite-ignore */ '/pagefind/pagefind.js');
         await pagefind.init();
         engine = 'pagefind';
         if (modeEl) {

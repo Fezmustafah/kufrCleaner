@@ -3,7 +3,7 @@
   "autoInsertProperties": true,
   "dateFormat": "YYYY-MM-DD",
   "enableCopyHeadingLink": true,
-  "copyHeadingLinkFormat": "astro",
+  "copyHeadingLinkFormat": "obsidian",
   "addTrailingSlashToLinks": true,
   "enableOpenTerminalCommand": true,
   "terminalProjectRootPath": "../..",
@@ -100,7 +100,7 @@
   "draftProperty": "draft",
   "draftLogic": "true-is-draft",
   "publishDateField": "date",
-  "renameOnTitleClick": false,
+  "renameOnTitleClick": true,
   "updateModifiedDate": false,
   "modifiedDateField": ""
 }
