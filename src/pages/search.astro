@@ -1,12 +1,20 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Icon from '@/components/Icon.astro';
+import { siteConfig } from '@/config';
 
 const query = Astro.url.searchParams.get('q') || '';
 const pageTitle = query ? `Search: "${query}"` : 'Search';
+
+const seoData = {
+  title: `${pageTitle} | ${siteConfig.title}`,
+  description: 'Search all posts and content',
+  canonical: Astro.url.href,
+  ogType: 'website' as const,
+};
 ---
 
-<BaseLayout title={pageTitle} description="Search all posts and content">
+<BaseLayout seoData={seoData}>
   <div class="max-w-2xl mx-auto">
 
     <!-- Header -->
