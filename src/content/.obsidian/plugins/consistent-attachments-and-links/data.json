@@ -10,7 +10,7 @@
   "shouldCollectAttachmentsAutomatically": false,
   "shouldDeleteAttachmentsWithNote": false,
   "shouldDeleteExistingFilesWhenMovingNote": false,
-  "shouldMoveAttachmentsWithNote": false,
+  "shouldMoveAttachmentsWithNote": true,
   "shouldShowBackupWarning": false,
   "shouldUpdateLinks": true,
   "treatAsAttachmentExtensions": [

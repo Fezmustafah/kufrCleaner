@@ -2,7 +2,7 @@
   "showInlineTitle": false,
   "promptDelete": false,
   "showIndentGuide": false,
-  "attachmentFolderPath": "./",
+  "attachmentFolderPath": "posts/attachments",
   "userIgnoreFilters": [
     "dist",
     "node_modules/"
@@ -39,7 +39,7 @@
   ],
   "newFileLocation": "folder",
   "newFileFolderPath": "posts",
-  "newLinkFormat": "relative",
+  "newLinkFormat": "shortest",
   "mobileQuickRibbonItem": "",
   "vimMode": false,
   "readableLineLength": true,

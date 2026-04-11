@@ -31,6 +31,7 @@
   "markitdown",
   "disable-tabs",
   "astro-modular-settings",
+  "callout-manager",
   "folder-notes",
-  "callout-manager"
+  "obsidian-regex-replace"
 ]
