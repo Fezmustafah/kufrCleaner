@@ -11,9 +11,9 @@ imageOG: false
 hideCoverImage: false
 hideTOC: false
 targetKeyword: ""
-draft: true
+draft: false
 aliases: []
-modified: 2026-04-12T11:50:54+04:00
+modified: 2026-04-12T11:53:53+04:00
 created: 2026-04-12T11:41:59+04:00
 category: Islam
 ---
