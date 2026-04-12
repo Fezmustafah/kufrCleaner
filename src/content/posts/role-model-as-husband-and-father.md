@@ -12,26 +12,25 @@ targetKeyword: ""
 draft: true
 aliases: []
 category: Islam
-modified: 2026-04-12T11:27:07+04:00
+modified: 2026-04-12T11:28:46+04:00
 created: 2026-04-12T11:14:24+04:00
 ---
 
 ![[attachments/20250116_121042-62d3e362daf34f50.jpg]]
 
-
 ![[attachments/20250116_121044-f05d4cb3bac80900.jpg]]
 
-# Women before and after islam
+# Women before and after Islam
 
+# Before Islam
 
 here add reference of female infant killing
-condition of women before islam in differnet countries
 
-
-
-
+condition of women before islam in different countries
 
 Umar (ra) said, "In pre-Islamic times we didn't feel that women were worth anything. But when Islam came and Allah spoke of them, we realized our responsibilities towards them."
+
+# Teachings of Islam
 
 Sahih Al-Bukhari #5843
 
@@ -104,3 +103,6 @@ and his wives.
 # There is Consensus in Academic Circles that Islam Revolutionized Women's Rights
 
 https://discord.com/channels/1310948573768319047/1354369884779446379
+
+
+# all references here + cross reference to women rights in islam
