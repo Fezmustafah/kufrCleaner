@@ -13,7 +13,7 @@ hideTOC: false
 targetKeyword: ""
 draft: false
 aliases: []
-modified: 2026-04-11T23:51:31+04:00
+modified: 2026-04-12T11:37:58+04:00
 created: 2026-04-11T20:01:05+04:00
 category: Christianity
 ---
@@ -73,7 +73,7 @@ Thin 👇 Europe
 
  The Prophet, peace and blessings be upon him, said: "I will be their opponent on the Day of Resurrection." Among them: a man who sold a free man. The Prophet, peace and blessings be upon him, said: "Allah will not accept their prayers." Among them: a man who enslaved someone who had been freed.
 
- 🔷 # It was not possible to free the slaves all at once because 👇  
+- # It was not possible to free the slaves all at once because 👇  
 they would be homeless and without food. The economy based on their work would be destroyed. The wealth of the merchants who supported them would be wiped out in an instant
 
 ![[attachments/x-downloader.com_OMGnCr-f38a6f2f3460b54a.mp4]]

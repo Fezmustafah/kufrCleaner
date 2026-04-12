@@ -2,17 +2,21 @@
 title: Role Model as Husband and father
 date: 2026-04-12
 description: ""
-tags: []
+tags:
+  - Muhammad
+  - ProphetMuhammad
+  - womeninislam
+  - women
 image: ""
 imageAlt: ""
 imageOG: false
 hideCoverImage: false
 hideTOC: false
 targetKeyword: ""
-draft: true
+draft: false
 aliases: []
 category: Islam
-modified: 2026-04-12T11:32:06+04:00
+modified: 2026-04-12T11:38:40+04:00
 created: 2026-04-12T11:14:24+04:00
 ---
 
