@@ -12,7 +12,7 @@ targetKeyword: ""
 draft: true
 aliases: []
 category: Islam
-modified: 2026-04-12T11:28:46+04:00
+modified: 2026-04-12T11:32:06+04:00
 created: 2026-04-12T11:14:24+04:00
 ---
 
@@ -105,4 +105,4 @@ and his wives.
 https://discord.com/channels/1310948573768319047/1354369884779446379
 
 
-# all references here + cross reference to women rights in islam
+# ==all references here + cross reference to women/daughter  rights in islam and in Christianity== 
