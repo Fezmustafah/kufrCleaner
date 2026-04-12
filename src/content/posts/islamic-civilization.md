@@ -27,25 +27,25 @@ aliases:
 
 # Contents
 
- ۞Science between the causality of Islam and the randomness of atheism 
+ Science between the causality of Islam and the randomness of atheism 
 
-۞Europe in the Middle Ages
+Europe in the Middle Ages
 
- ۞The impact of Christianity on science 
+ The impact of Christianity on science 
 
-۞Muslims' rescue of the Greek heritage 
+Muslims' rescue of the Greek heritage 
 
-۞Muslims' correction of ancient sciences 
+Muslims' correction of ancient sciences 
 
-۞Muslims' invention of new sciences
+Muslims' invention of new sciences
 
- ۞Europeans as students of Muslims 
+ Europeans as students of Muslims 
 
-۞Europeans' theft of our sciences 
+Europeans' theft of our sciences 
 
-۞Women as scientists 
+Women as scientists 
 
-۞Atheist scientists
+Atheist scientists
 
 ![[x-downloader.com_5OQeGa-284cf535401cdee3.mp4]]
 
