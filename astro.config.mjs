@@ -22,6 +22,7 @@ import { rehypeNormalizeAnchors } from './src/utils/rehype-normalize-anchors.ts'
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import { siteConfig } from './src/config.ts';
+import { remarkMarginalia } from './src/utils/remark-marginalia.ts';
 import swup from '@swup/astro';
 import refreshContentOnChange from './src/integrations/refresh-content-on-change.ts';
 import { fileURLToPath } from 'node:url';
@@ -81,8 +82,12 @@ export default defineConfig({
     enabled: true
   },
   redirects: (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'build') ? {
-  '/posts/KufrCleaner': '/posts/kufr-cleaner',
-  '/posts/formatting-reference': '/posts/muhammad-saw',
+  '/posts/formatting-reference': '/posts/islamic-civilization',
+  '/posts/muhammad-saw': '/posts/islamic-civilization',
+  '/posts/propeht-muhammad': '/posts/islamic-civilization',
+  '/posts/prophet-muhammad': '/posts/islamic-civilization',
+  '/posts/prophet-muhammad-saw': '/posts/islamic-civilization',
+  '/posts/islamic-civiliation': '/posts/islamic-civilization',
   '/posts/mermaid-test': '/posts/obsidian-embeds-demo',
   '/posts/mermaid-diagram-test': '/posts/obsidian-embeds-demo',
   '/posts/mermaid-diagrams': '/posts/obsidian-embeds-demo',
@@ -133,6 +138,7 @@ image: {
       remarkInternalLinks,
       remarkInlineTags,
       remarkObsidianComments, // Remove Obsidian comments (%%...%%) early in processing
+      remarkMarginalia,       // Parse {{marginalia}} side notes
       remarkFolderImages,
       remarkObsidianEmbeds,
       // Bases directive (table-only v1)

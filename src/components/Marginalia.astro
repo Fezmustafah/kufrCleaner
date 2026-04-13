@@ -1,0 +1,91 @@
+---
+/**
+ * Marginalia — mobile footnotes section
+ * Renders at the bottom of the post on screens < 1280px.
+ * Hidden on desktop where MarginaliaDesktop.astro takes over.
+ */
+import type { MarginaliaEntry } from '../utils/remark-marginalia';
+
+interface Props {
+  marginalia: MarginaliaEntry[];
+}
+
+const { marginalia = [] } = Astro.props;
+
+if (!marginalia || marginalia.length === 0) return null;
+---
+
+<!-- Visible only on mobile/mid screens — hidden via CSS at ≥1280px -->
+<div class="marginalia-section mt-12 pt-8 border-t border-primary-200 dark:border-primary-700 xl:hidden">
+  <h3 class="text-base font-semibold mb-4 text-primary-800 dark:text-primary-200">
+    Notes
+  </h3>
+  <ol class="space-y-4 list-none pl-0">
+    {marginalia.map((note) => (
+      <li
+        id={`marginalia-${note.id}`}
+        class="text-sm text-primary-600 dark:text-primary-300 leading-relaxed pl-2 border-l-2 border-primary-200 dark:border-primary-700"
+      >
+        <a
+          href={`#marginalia-ref-${note.id}`}
+          class="text-highlight-600 dark:text-highlight-400 hover:underline font-semibold mr-1.5"
+        >
+          {note.id}.
+        </a>
+        <span set:html={note.html} />
+      </li>
+    ))}
+  </ol>
+</div>
+
+<style>
+  .marginalia-section ol {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  /* Markdown inside note content */
+  .marginalia-section li span p {
+    margin: 0;
+    display: inline;
+  }
+
+  .marginalia-section li span p + p {
+    margin-top: 0.5rem;
+    display: block;
+  }
+
+  .marginalia-section li span img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0.5rem 0;
+    border-radius: 4px;
+  }
+
+  .marginalia-section li span a {
+    color: rgb(var(--color-highlight-600));
+    text-decoration: none;
+    border-bottom: 1px solid rgb(var(--color-highlight-300));
+  }
+
+  .marginalia-section li span a:hover {
+    opacity: 0.8;
+  }
+
+  .marginalia-section li span em {
+    font-style: italic;
+  }
+
+  .marginalia-section li span strong {
+    font-weight: 600;
+  }
+
+  .marginalia-section li span code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.9em;
+    background: rgb(var(--color-primary-100));
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+</style>

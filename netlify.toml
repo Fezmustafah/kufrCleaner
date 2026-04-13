@@ -146,14 +146,38 @@
 # Generated redirects from content aliases
 
 [[redirects]]
-  from = "/posts/KufrCleaner"
-  to = "/posts/kufr-cleaner"
+  from = "/posts/formatting-reference"
+  to = "/posts/islamic-civilization"
   status = 301
   force = true
 
 [[redirects]]
-  from = "/posts/formatting-reference"
-  to = "/posts/muhammad-saw"
+  from = "/posts/muhammad-saw"
+  to = "/posts/islamic-civilization"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/propeht-muhammad"
+  to = "/posts/islamic-civilization"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/prophet-muhammad"
+  to = "/posts/islamic-civilization"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/prophet-muhammad-saw"
+  to = "/posts/islamic-civilization"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/islamic-civiliation"
+  to = "/posts/islamic-civilization"
   status = 301
   force = true
 

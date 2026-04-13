@@ -17,6 +17,9 @@ import ImageWrapper from '@/components/ImageWrapper.astro';
 import { devConfig } from '@/config/dev';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import Marginalia from '@/components/Marginalia.astro';
+import MarginaliaDesktop from '@/components/MarginaliaDesktop.astro';
+import type { MarginaliaEntry } from '@/utils/remark-marginalia';
 
 export interface Props {
   post: Post;
@@ -70,6 +73,10 @@ const readingTime = calculateReadingTime(post.body || '');
 const hideTOC = post.data.hideTOC === true;
 const shouldShowTOC = !hideTOC && siteConfig.tableOfContents.enabled && headings.length > 0;
 const toc = shouldShowTOC ? await generateTOC(headings) : [];
+
+// Extract marginalia from the remark plugin's frontmatter output
+const marginalia: MarginaliaEntry[] = remarkPluginFrontmatter?.marginalia ?? [];
+const hasMarginaliaData = marginalia.length > 0;
 
 // Get adjacent posts for navigation
 const { prev: prevPost, next: nextPost } = getAdjacentPosts(visiblePosts, post.id);
@@ -128,7 +135,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
   </Fragment>
 
   <div class="py-8 relative">
-    <div class="mx-auto px-4 sm:px-6 lg:px-8 relative" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+    <div class:list={["mx-auto px-4 sm:px-6 lg:px-8 relative", hasMarginaliaData && "has-marginalia"]} style={hasMarginaliaData ? undefined : `max-width: ${siteConfig.layout.contentWidth}`}>
 
       <!-- Category breadcrumb -->
       <nav class="flex items-center gap-1.5 text-sm text-primary-500 dark:text-primary-400 mb-4" aria-label="Breadcrumb">
@@ -296,6 +303,9 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
           <Content />
         </div>
 
+        <!-- Mobile marginalia footnotes (hidden at ≥1280px via CSS) -->
+        {hasMarginaliaData && <Marginalia marginalia={marginalia} />}
+
         {siteConfig.postOptions.linkedMentions.enabled && (
           <LinkedMentions currentSlug={post.id} />
         )}
@@ -351,6 +361,9 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         )}
         </div>
       </article>
+
+      <!-- Desktop marginalia column (≥1640px, second grid track of .has-marginalia) -->
+      {hasMarginaliaData && <MarginaliaDesktop marginalia={marginalia} />}
 
       <!-- Desktop Left Sidebar - Graph (top left) -->
       {hasLocalGraphConnections && (

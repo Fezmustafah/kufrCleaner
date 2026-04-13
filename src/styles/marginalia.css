@@ -1,0 +1,258 @@
+/**
+ * Marginalia — Tufte-style side notes
+ *
+ * Three responsive breakpoints:
+ *   ≥1640px  → full margin column beside article (CSS grid on .has-marginalia)
+ *   1280–1639px → numbered superscript refs only (no sidebar, no mobile list)
+ *   <1280px  → numbered footnotes at bottom of page (rendered by Marginalia.astro)
+ */
+
+/* ─── Inline marker (always present in the prose) ─────────────────────────── */
+.marginalia-marker {
+  position: relative;
+}
+
+.marginalia-marker a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Superscript reference number */
+.marginalia-ref {
+  color: rgb(var(--color-highlight-600));
+  font-size: 0.7em;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  vertical-align: baseline;
+  position: relative;
+  top: -0.5em;
+  line-height: 0;
+  transition: color 0.2s ease;
+}
+
+.dark .marginalia-ref {
+  color: rgb(var(--color-highlight-400));
+}
+
+.marginalia-ref:hover,
+.marginalia-ref.highlight {
+  color: rgb(var(--color-primary-900));
+}
+
+.dark .marginalia-ref:hover,
+.dark .marginalia-ref.highlight {
+  color: rgb(var(--color-primary-50));
+}
+
+/* ─── Mobile (<1280px): show ref numbers, hide inline content ─────────────── */
+@media (max-width: 1279px) {
+  .marginalia-content {
+    display: none;
+  }
+
+  .marginalia-ref {
+    display: inline;
+  }
+}
+
+/* ─── Mid (1280–1639px): ref numbers visible, no column ──────────────────── */
+@media (min-width: 1280px) {
+  .marginalia-ref {
+    display: none; /* column takes over labelling */
+  }
+}
+
+/* ─── Desktop (≥1640px): full margin column ────────────────────────────────── */
+@media (min-width: 1640px) {
+  /* Show ref numbers again — they link text ↔ column */
+  .marginalia-ref {
+    display: inline;
+  }
+
+  /* Content wrapper becomes a two-column grid when marginalia exist */
+  .has-marginalia {
+    display: grid !important;
+    grid-template-columns: minmax(auto, 65ch) 240px;
+    gap: 2rem;
+    max-width: none !important; /* override inline max-width style */
+    justify-content: center;
+  }
+
+  /* Keep the article from growing beyond a readable width */
+  .has-marginalia > article {
+    max-width: 65ch;
+    min-width: 0;
+  }
+
+  /* Marginalia column — takes the second grid track */
+  .marginalia-column-js {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    z-index: auto;
+    /* Prevent this column from becoming a grid item itself */
+    grid-column: 2;
+  }
+
+  /* Individual notes — absolutely positioned by JS */
+  .marginalia-note {
+    position: absolute;
+    width: 240px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: rgb(var(--color-primary-600));
+    padding: 0.5rem 0 0.5rem 1rem;
+    border-left: 2px solid rgb(var(--color-primary-200));
+    cursor: default;
+    transition: border-color 0.2s ease;
+  }
+
+  .dark .marginalia-note {
+    color: rgb(var(--color-primary-300));
+    border-left-color: rgb(var(--color-primary-700));
+  }
+
+  .marginalia-note:hover {
+    border-left-color: rgb(var(--color-highlight-500));
+  }
+
+  .dark .marginalia-note:hover {
+    border-left-color: rgb(var(--color-highlight-400));
+  }
+
+  /* Note number */
+  .marginalia-note-num {
+    color: rgb(var(--color-highlight-600));
+    font-weight: 600;
+    margin-right: 0.4rem;
+    transition: color 0.2s ease;
+  }
+
+  .dark .marginalia-note-num {
+    color: rgb(var(--color-highlight-400));
+  }
+
+  .marginalia-note-num.highlight,
+  .marginalia-note:hover .marginalia-note-num {
+    color: rgb(var(--color-primary-900));
+  }
+
+  .dark .marginalia-note-num.highlight,
+  .dark .marginalia-note:hover .marginalia-note-num {
+    color: rgb(var(--color-primary-50));
+  }
+
+  /* Note body text */
+  .marginalia-note-text {
+    color: rgb(var(--color-primary-600));
+  }
+
+  .dark .marginalia-note-text {
+    color: rgb(var(--color-primary-300));
+  }
+
+  /* Markdown rendering inside notes */
+  .marginalia-note-text p {
+    margin: 0;
+    display: inline;
+  }
+
+  .marginalia-note-text p + p {
+    margin-top: 0.5rem;
+    display: block;
+  }
+
+  .marginalia-note-text img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0.5rem 0;
+    border-radius: 4px;
+  }
+
+  .marginalia-note-text a {
+    color: rgb(var(--color-highlight-600));
+    text-decoration: none;
+    border-bottom: 1px solid rgb(var(--color-highlight-300));
+  }
+
+  .dark .marginalia-note-text a {
+    color: rgb(var(--color-highlight-400));
+    border-bottom-color: rgb(var(--color-highlight-700));
+  }
+
+  .marginalia-note-text a:hover {
+    opacity: 0.8;
+  }
+
+  .marginalia-note-text em {
+    font-style: italic;
+  }
+
+  .marginalia-note-text strong {
+    font-weight: 600;
+  }
+
+  .marginalia-note-text code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.9em;
+    background: rgb(var(--color-primary-100));
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+
+  .dark .marginalia-note-text code {
+    background: rgb(var(--color-primary-800));
+  }
+
+  /* Hide inline content on desktop — column handles display */
+  .prose .marginalia-content {
+    display: none;
+  }
+
+  .prose .marginalia-marker {
+    display: inline;
+  }
+
+  .prose .marginalia-ref {
+    display: inline;
+  }
+}
+
+/* ─── Hide desktop column below 1640px ────────────────────────────────────── */
+@media (max-width: 1639px) {
+  .marginalia-column-js {
+    display: none !important;
+  }
+
+  .marginalia-content {
+    display: none !important;
+  }
+}
+
+/* ─── Mobile footnotes section (rendered by Marginalia.astro) ─────────────── */
+.marginalia-section a {
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.marginalia-section a:hover {
+  text-decoration: underline;
+}
+
+/* ─── Fade-in animation ────────────────────────────────────────────────────── */
+@keyframes marginalia-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.marginalia-note {
+  animation: marginalia-fade-in 0.2s ease-out both;
+}

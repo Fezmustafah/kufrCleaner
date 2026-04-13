@@ -2,6 +2,9 @@
 /* KaTeX Math Rendering - Must be first */
 @import 'katex/dist/katex.css';
 
+/* Marginalia side notes */
+@import './marginalia.css';
+
 @tailwind base;
 
 /* Immediately override Tailwind preflight border styles for KaTeX */
