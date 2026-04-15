@@ -13,7 +13,7 @@ hideCoverImage: false
 hideTOC: false
 targetKeyword:
 draft: false
-category: Islam
+category: "Islamic civ"
 modified: 2026-04-12T11:14:00+04:00
 created: 2026-04-08T01:05:28+04:00
 aliases:
