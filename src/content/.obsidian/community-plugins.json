@@ -18,6 +18,7 @@
   "data-files-editor",
   "file-name-history",
   "nested-properties",
+  "obsidian-local-images-plus",
   "consistent-attachments-and-links",
   "obsidian-importer",
   "frontmatter-modified-date",
@@ -34,5 +35,6 @@
   "obsidian-regex-replace",
   "local-media-embedder",
   "local-any-files",
-  "image-upload-toolkit"
+  "image-upload-toolkit",
+  "dynamic-outline"
 ]

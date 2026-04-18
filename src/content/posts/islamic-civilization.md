@@ -11,13 +11,8 @@ tags:
   - scholarship
 image: https://pub-7bca7524425e4a1b8efbb7265e7ec52e.r2.dev/attachments/FCnVIs8WUAktsXD-9dcadfa94bae1697.png
 imageAlt: Mountains and water.
-imageOG: false
-hideCoverImage: false
-hideTOC: false
-targetKeyword:
-draft: false
 category: Islam
-modified: 2026-04-16T12:43:40-04:00
+modified: 2026-04-18T22:38:29+04:00
 created: 2026-04-08T01:05:28+04:00
 aliases:
   - formatting-reference
@@ -58,7 +53,7 @@ Atheist scientists
 
 ![FCnU1qbWQAM CV5 f18b49207c5f01b5](https://pub-7bca7524425e4a1b8efbb7265e7ec52e.r2.dev/attachments/FCnU1qbWQAM-CV5-f18b49207c5f01b5.png)
 
-# Islamic_civilization Is the Religion of Knowledge
+## Islam Is the Religion of Knowledge
 
 The Prophet, peace and blessings be upon him, said: When the son of Adam dies, his deeds come to an end except for three: knowledge that is beneficial.
 
@@ -67,6 +62,7 @@ The Prophet, peace and blessings be upon him, said: When the son of Adam dies, h
 - NASA names a mountain range on the surface of the planet Pluto after the Muslim scholar Al-Sharif Al-Idrisi.
 
 <img src="https://pub-7bca7524425e4a1b8efbb7265e7ec52e.r2.dev/attachments/FCnVIs8WUAktsXD-9dcadfa94bae1697.png" alt="" width="400">
+
 # Islamic_civilization Is Certain
 
  The Prophet (peace be upon him) said: "Tie it and trust in God" and "You are more knowledgeable about your worldly affairs." Who established the principle of causality that established science. Had it not been for religion, we would not have believed in the perfection of the creation of the universe with fixed laws that are subject to discovery and re-experimentation because they are implemented by a Self-Sustaining Self, unlike atheism, which claims that existence is coincidental and random, so there is no guarantee of the results.
