@@ -1,5 +1,6 @@
 {
   "pluginList": [
+    "PKM-er/obsidian-zotlit",
     "mnaoumov/obsidian-nested-properties",
     "davidvkimball/obsidian-property-over-file-name",
     "davidvkimball/obsidian-file-name-history",
@@ -15,6 +16,10 @@
     "davidvkimball/obsidian-astro-composer"
   ],
   "pluginSubListFrozenVersion": [
+    {
+      "repo": "PKM-er/obsidian-zotlit",
+      "version": "latest"
+    },
     {
       "repo": "mnaoumov/obsidian-nested-properties",
       "version": "latest"

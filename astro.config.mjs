@@ -23,6 +23,7 @@ import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import { siteConfig } from './src/config.ts';
 import { remarkMarginalia } from './src/utils/remark-marginalia.ts';
+import remarkCitations from './src/utils/remark-citations.ts';
 import { escapeMarginaliaForMdx } from './src/integrations/escape-marginalia-mdx.ts';
 import swup from '@swup/astro';
 import refreshContentOnChange from './src/integrations/refresh-content-on-change.ts';
@@ -83,12 +84,6 @@ export default defineConfig({
     enabled: true
   },
   redirects: (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'build') ? {
-  '/posts/formatting-reference': '/posts/islamic-civilization',
-  '/posts/muhammad-saw': '/posts/islamic-civilization',
-  '/posts/propeht-muhammad': '/posts/islamic-civilization',
-  '/posts/prophet-muhammad': '/posts/islamic-civilization',
-  '/posts/prophet-muhammad-saw': '/posts/islamic-civilization',
-  '/posts/islamic-civiliation': '/posts/islamic-civilization',
   '/posts/mermaid-test': '/posts/obsidian-embeds-demo',
   '/posts/mermaid-diagram-test': '/posts/obsidian-embeds-demo',
   '/posts/mermaid-diagrams': '/posts/obsidian-embeds-demo',
@@ -134,6 +129,7 @@ image: {
   ],
   markdown: {
       remarkPlugins: [
+      remarkCitations,          // Process [@citation-key] inline citations
       remarkObsidianImageSize, // Parse Obsidian image size syntax first
       remarkInternalLinks,
       remarkInlineTags,

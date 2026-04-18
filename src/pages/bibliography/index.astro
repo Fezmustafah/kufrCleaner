@@ -1,0 +1,242 @@
+---
+import { getCollection } from 'astro:content';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import { siteConfig } from '@/config';
+import { generatePostsListSEO } from '@/utils/seo';
+import { shouldShowContent } from '@/utils/markdown';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Icon from '@/components/Icon.astro';
+
+if (!siteConfig.optionalContentTypes.manuscripts) {
+  return Astro.redirect('/404');
+}
+
+const allManuscripts = await getCollection('manuscripts');
+const isDev = import.meta.env.DEV;
+const visible = allManuscripts.filter(m => shouldShowContent(m, isDev));
+
+interface RefEntry {
+  id: string;
+  type?: string;
+  title?: string;
+  author?: string | string[];
+  year?: number;
+  journal?: string;
+  booktitle?: string;
+  publisher?: string;
+  volume?: string;
+  issue?: string;
+  pages?: string;
+  doi?: string;
+  url?: string;
+  citedBy: Array<{ id: string; title: string }>;
+}
+
+// Seed refMap from global-refs.json (all entries in the .bib library)
+const refMap = new Map<string, RefEntry>();
+try {
+  const gPath = join(process.cwd(), 'src/data/global-refs.json');
+  if (existsSync(gPath)) {
+    const globalEntries: any[] = JSON.parse(readFileSync(gPath, 'utf-8'));
+    for (const ref of globalEntries) {
+      if (ref?.id) refMap.set(ref.id, { ...ref, citedBy: [] });
+    }
+  }
+} catch { /* not yet generated */ }
+
+// Merge per-manuscript frontmatter refs (enrich metadata, track citedBy)
+for (const manuscript of visible) {
+  const refs = (manuscript.data.references ?? []) as any[];
+  for (const ref of refs) {
+    if (!ref?.id) continue;
+    if (!refMap.has(ref.id)) {
+      refMap.set(ref.id, { ...ref, citedBy: [] });
+    } else {
+      // Frontmatter fields override global (allow per-manuscript metadata overrides)
+      const existing = refMap.get(ref.id)!;
+      Object.assign(existing, ref);
+    }
+    refMap.get(ref.id)!.citedBy.push({
+      id: manuscript.id,
+      title: manuscript.data.title,
+    });
+  }
+}
+
+// Sort by author last name, then by title
+const sorted = [...refMap.values()].sort((a, b) => {
+  const aAuth = Array.isArray(a.author) ? a.author[0] : (a.author ?? '');
+  const bAuth = Array.isArray(b.author) ? b.author[0] : (b.author ?? '');
+  const aLast = aAuth.split(' ').pop() ?? '';
+  const bLast = bAuth.split(' ').pop() ?? '';
+  const cmp = aLast.localeCompare(bLast);
+  return cmp !== 0 ? cmp : (a.title ?? '').localeCompare(b.title ?? '');
+});
+
+// Group by type
+const typeOrder = ['book', 'article', 'chapter', 'conference', 'preprint', 'other'];
+const grouped = new Map<string, RefEntry[]>();
+for (const ref of sorted) {
+  const t = ref.type ?? 'other';
+  if (!grouped.has(t)) grouped.set(t, []);
+  grouped.get(t)!.push(ref);
+}
+
+// Sort groups by typeOrder
+const orderedGroups = typeOrder
+  .filter(t => grouped.has(t))
+  .map(t => [t, grouped.get(t)!] as const);
+
+const typeLabels: Record<string, string> = {
+  book: 'Books',
+  article: 'Journal Articles',
+  chapter: 'Book Chapters',
+  conference: 'Conference Papers',
+  preprint: 'Preprints',
+  other: 'Other Sources',
+};
+
+const formatAuthors = (author: string | string[] | undefined): string => {
+  if (!author) return '';
+  if (Array.isArray(author)) return author.join(', ');
+  return author;
+};
+
+const formatCitation = (ref: RefEntry): string => {
+  const authors = formatAuthors(ref.author);
+  const year = ref.year ? ` (${ref.year}).` : '.';
+  const title = ref.title ? ` ${ref.title}.` : '';
+
+  let venue = '';
+  if (ref.type === 'article' || ref.type === 'conference') {
+    const j = ref.journal ?? ref.booktitle ?? '';
+    const vol = ref.volume ? `, ${ref.volume}` : '';
+    const iss = ref.issue ? `(${ref.issue})` : '';
+    const pg = ref.pages ? `, ${ref.pages}` : '';
+    if (j) venue = ` <em>${j}</em>${vol}${iss}${pg}.`;
+  } else if (ref.type === 'book') {
+    if (ref.publisher) venue = ` ${ref.publisher}.`;
+  } else if (ref.type === 'chapter') {
+    const bt = ref.booktitle ? ` In <em>${ref.booktitle}</em>.` : '';
+    const pub = ref.publisher ? ` ${ref.publisher}.` : '';
+    venue = bt + pub;
+  }
+
+  const doi = ref.doi
+    ? ` <a href="https://doi.org/${ref.doi}" target="_blank" rel="noopener" class="bib-link">https://doi.org/${ref.doi}</a>`
+    : '';
+  const url = !ref.doi && ref.url
+    ? ` <a href="${ref.url}" target="_blank" rel="noopener" class="bib-link">${ref.url}</a>`
+    : '';
+
+  return `${authors}${year}${title}${venue}${doi}${url}`;
+};
+
+const seoData = generatePostsListSEO(import.meta.env.SITE || '', undefined);
+seoData.title = `Bibliography | ${siteConfig.title}`;
+seoData.description = `Complete bibliography of all references cited in manuscripts by ${siteConfig.author}.`;
+---
+
+<BaseLayout seoData={seoData}>
+  <div class="pt-4 pb-16 md:py-8">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+
+      <!-- Header -->
+      <header class="mb-8 pb-6 border-b border-primary-200 dark:border-primary-700">
+        <h1 class="text-lg font-bold text-primary-900 dark:text-primary-50 mb-2">Bibliography</h1>
+        <p class="text-sm text-primary-600 dark:text-primary-300 mb-4">
+          All references cited across {visible.length} manuscript{visible.length !== 1 ? 's' : ''} —
+          {sorted.length} unique source{sorted.length !== 1 ? 's' : ''}.
+        </p>
+
+        <!-- Type breakdown counts -->
+        <div class="flex flex-wrap gap-2">
+          {orderedGroups.map(([type, refs]) => (
+            <a
+              href={`#${type}`}
+              class="font-mono text-xs text-highlight-600 dark:text-highlight-400 bg-highlight-50 dark:bg-highlight-950 px-2 py-0.5 rounded uppercase tracking-wider hover:underline"
+            >
+              {typeLabels[type] ?? type} ({refs.length})
+            </a>
+          ))}
+        </div>
+      </header>
+
+      {sorted.length === 0 ? (
+        <div class="text-center py-16">
+          <Icon name="book-open" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
+          <p class="text-sm text-primary-600 dark:text-primary-300">
+            No references found. Add <code>references:</code> to manuscript frontmatter.
+          </p>
+        </div>
+      ) : (
+        <div class="space-y-12">
+          {orderedGroups.map(([type, refs]) => (
+            <section id={type}>
+              <h2 class="text-sm font-bold uppercase tracking-widest text-primary-400 dark:text-primary-500 mb-5 flex items-center gap-2">
+                <Icon name="book-open" class="w-3.5 h-3.5" />
+                {typeLabels[type] ?? type}
+              </h2>
+              <ol class="space-y-5">
+                {refs.map(ref => (
+                  <li id={`bib-${ref.id}`} class="flex gap-4 scroll-mt-24 group">
+                    <!-- Citation key badge -->
+                    <span class="flex-shrink-0 font-mono text-xs text-primary-400 dark:text-primary-500 pt-0.5 w-36 truncate" title={ref.id}>
+                      {ref.id}
+                    </span>
+
+                    <!-- Formatted reference -->
+                    <div class="flex-1 min-w-0">
+                      <p
+                        class="text-sm text-primary-700 dark:text-primary-300 leading-relaxed"
+                        set:html={formatCitation(ref)}
+                      />
+
+                      <!-- Cited-by chips -->
+                      {ref.citedBy.length > 0 && (
+                        <div class="flex flex-wrap gap-1.5 mt-2">
+                          {ref.citedBy.map(m => (
+                            <a
+                              href={`/manuscripts/${m.id}/`}
+                              class="text-xs px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-800 text-primary-500 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-700 transition-colors"
+                            >
+                              ↗ {m.title}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ))}
+        </div>
+      )}
+
+      <!-- Obsidian-Zotlit integration note -->
+      <aside class="mt-16 p-4 border border-primary-200 dark:border-primary-700 rounded-lg bg-primary-50 dark:bg-primary-800">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-primary-400 dark:text-primary-500 mb-2 flex items-center gap-2">
+          <Icon name="external-link" class="w-3.5 h-3.5" />
+          Managing References with Zotero + obsidian-zotlit
+        </h3>
+        <p class="text-xs text-primary-600 dark:text-primary-400 leading-relaxed">
+          References are authored in manuscript frontmatter as YAML. To connect with Zotero:
+          install <strong>obsidian-zotlit</strong> in Obsidian, then use <strong>Better BibTeX</strong> in
+          Zotero to export citation keys. Insert <code class="text-highlight-600 dark:text-highlight-400">[@citekey]</code> inline,
+          then paste the corresponding entry into your manuscript's <code>references:</code> block.
+          Future: a build-time BibTeX parser at <code>src/content/manuscripts/_refs.bib</code> will
+          auto-populate the global library.
+        </p>
+      </aside>
+
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  :global(.bib-link) {
+    @apply text-highlight-600 dark:text-highlight-400 hover:underline break-all;
+  }
+</style>

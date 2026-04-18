@@ -167,6 +167,7 @@ export interface SiteConfig {
   optionalContentTypes: {
     projects: boolean;
     docs: boolean;
+    manuscripts: boolean;
   };
 }
 
@@ -319,6 +320,8 @@ export const siteConfig: SiteConfig = {
       { title: "Posts", url: "/posts/" },
       { title: "Bases", url: "/base/" },
       { title: "Projects", url: "/projects/" },
+      { title: "Manuscripts", url: "/manuscripts/" },
+      { title: "Bibliography", url: "/bibliography/" },
       { title: "Docs", url: "/docs/" },
       { title: "About", url: "/about/",
         children: [
@@ -347,6 +350,8 @@ export const siteConfig: SiteConfig = {
     projects: true, // Enable projects section
     // [CONFIG:OPTIONAL_CONTENT_TYPES_DOCS]
     docs: true, // Enable documentation section
+    // [CONFIG:OPTIONAL_CONTENT_TYPES_MANUSCRIPTS]
+    manuscripts: true, // Enable manuscripts section
   },
 
   // Home Options

@@ -36,5 +36,6 @@
   "local-media-embedder",
   "local-any-files",
   "image-upload-toolkit",
-  "dynamic-outline"
+  "dynamic-outline",
+  "hadith-lookup"
 ]
