@@ -317,6 +317,7 @@ export const siteConfig: SiteConfig = {
     // [CONFIG:NAVIGATION_PAGES]
     pages: [
       { title: "Posts", url: "/posts/" },
+      { title: "Bases", url: "/base/" },
       { title: "Projects", url: "/projects/" },
       { title: "Docs", url: "/docs/" },
       { title: "About", url: "/about/",

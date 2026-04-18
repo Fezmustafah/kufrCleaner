@@ -1,0 +1,50 @@
+---
+title: "Masonry Gallery Demo"
+date: 2026-04-16
+description: "Demonstrating the new MasonryGallery component — a CSS-columns masonry layout with lightbox support."
+tags: ["demo", "gallery"]
+category: "Design"
+---
+
+import MasonryGallery from '@/components/MasonryGallery.astro'
+
+The `MasonryGallery` component arranges images into a Pinterest-style masonry grid using CSS columns. Each image is clickable and opens in the existing lightbox. Captions appear on hover.
+
+## 3-column (default)
+
+<MasonryGallery images={[
+  { src: "https://picsum.photos/seed/arch1/600/900",   alt: "Architecture",         caption: "Tall corridors" },
+  { src: "https://picsum.photos/seed/nature2/600/400", alt: "Forest path",          caption: "Morning light through pines" },
+  { src: "https://picsum.photos/seed/city3/600/700",   alt: "City at night",        caption: "Urban geometry" },
+  { src: "https://picsum.photos/seed/ocean4/600/450",  alt: "Ocean wave",           caption: "Pacific coast" },
+  { src: "https://picsum.photos/seed/desert5/600/800", alt: "Desert dunes",         caption: "Sahara at dusk" },
+  { src: "https://picsum.photos/seed/mtn6/600/500",    alt: "Mountain ridge",       caption: "Above the clouds" },
+  { src: "https://picsum.photos/seed/flwr7/600/600",   alt: "Wildflowers",          caption: "Alpine meadow" },
+  { src: "https://picsum.photos/seed/port8/600/350",   alt: "Portrait",             caption: "Golden hour" },
+  { src: "https://picsum.photos/seed/ruins9/600/750",  alt: "Ancient ruins",        caption: "Forgotten places" },
+]} />
+
+## 2-column (wider images)
+
+<MasonryGallery columns={2} images={[
+  { src: "https://picsum.photos/seed/lake10/800/500",   alt: "Still lake",       caption: "Perfect reflection" },
+  { src: "https://picsum.photos/seed/rain11/800/700",   alt: "Rain on glass",    caption: "November in Tokyo" },
+  { src: "https://picsum.photos/seed/mkt12/800/550",    alt: "Market stalls",    caption: "Spice route" },
+  { src: "https://picsum.photos/seed/ice13/800/650",    alt: "Ice formations",   caption: "Iceland, February" },
+]} />
+
+## Usage
+
+```mdx
+import MasonryGallery from '@/components/MasonryGallery.astro'
+
+<MasonryGallery
+  columns={3}
+  images={[
+    { src: "/posts/my-post/photo1.jpg", alt: "...", caption: "optional" },
+    { src: "https://external.com/img.jpg", alt: "..." },
+  ]}
+/>
+```
+
+`src` accepts any URL or `/public` path. `columns` defaults to `3`. Click any image to open the lightbox.

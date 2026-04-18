@@ -12,222 +12,424 @@ const seoData = {
   canonical: Astro.url.href,
   ogType: 'website' as const,
 };
+
 ---
 
 <BaseLayout seoData={seoData}>
-  <div class="max-w-2xl mx-auto">
+  <div class="max-w-5xl mx-auto">
 
     <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 mb-4">Search</h1>
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 mb-4">Full Search</h1>
       <form id="search-form" action="/search" method="get">
         <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-primary-300 dark:border-primary-600 bg-white dark:bg-primary-800 focus-within:border-highlight-400 dark:focus-within:border-highlight-500 focus-within:ring-2 focus-within:ring-highlight-500/20 transition-all duration-200 shadow-sm">
           <Icon name="search" class="w-4 h-4 shrink-0 text-primary-400 dark:text-primary-500" />
           <input
-            type="search"
+            type="text"
             name="q"
             id="search-query"
             value={query}
-            placeholder="Search posts, categories, tags…"
+            placeholder="Search posts, tags… (prefix # to filter by tag)"
             autocomplete="off"
             autofocus
             class="flex-1 bg-transparent outline-none text-primary-900 dark:text-primary-50 placeholder-primary-400 dark:placeholder-primary-500 text-base"
           />
           <button
-            type="submit"
-            class="shrink-0 px-3 py-1.5 text-xs font-semibold bg-highlight-500 hover:bg-highlight-600 text-white rounded-lg transition-colors"
+            id="search-clear"
+            type="button"
+            aria-label="Clear search"
+            class="hidden p-1 rounded text-primary-400 hover:text-primary-600 dark:hover:text-primary-200 transition-colors"
           >
-            Search
+            <Icon name="x" class="w-4 h-4" />
           </button>
         </div>
       </form>
+      <p id="search-status" class="text-sm text-primary-500 dark:text-primary-400 mt-2 hidden"></p>
     </div>
 
-    <!-- Status line -->
-    <p id="search-status" class="text-sm text-primary-500 dark:text-primary-400 mb-4 hidden"></p>
+    <!-- Split pane -->
+    <div id="search-pane" class="hidden rounded-xl border border-primary-200 dark:border-primary-700 overflow-hidden" style="height: 68vh; min-height: 400px;">
+      <div class="flex h-full">
+        <!-- Results list -->
+        <div id="search-results" class="w-full md:w-72 md:min-w-[18rem] overflow-y-auto border-r border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-900 flex-shrink-0"></div>
+        <!-- Preview pane -->
+        <div class="hidden md:flex flex-1 flex-col overflow-hidden bg-white dark:bg-primary-900">
+          <div id="preview-content" class="flex-1 overflow-y-auto p-6">
+            <p class="text-primary-400 dark:text-primary-500 text-center mt-20 text-sm">Select a result to preview</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <!-- Result cards -->
-    <div id="search-results" class="space-y-3"></div>
-
-    <!-- Search mode badge (shown after engine is determined) -->
-    <p id="search-mode" class="hidden text-xs text-primary-400 dark:text-primary-500 mb-4"></p>
+    <!-- Empty state (before search) -->
+    <div id="search-empty" class="text-center py-20 text-primary-400 dark:text-primary-500">
+      <Icon name="search" class="w-10 h-10 mx-auto mb-3 opacity-25" />
+      <p class="text-sm font-medium mb-1">Search across all posts</p>
+      <p class="text-xs opacity-75">
+        Use
+        <kbd class="mx-1 px-1.5 py-0.5 bg-primary-100 dark:bg-primary-800 rounded border border-primary-200 dark:border-primary-700 font-mono text-xs">#tag</kbd>
+        to filter by tag
+      </p>
+    </div>
 
   </div>
 </BaseLayout>
 
 <script>
-  // NFKD normalization: converts Unicode variants (e.g. Mathematical Bold "𝐌𝐮𝐡" → "muh") for matching
-  const norm = (s: string) =>
+  // SVG paths mirroring Icon.astro — hardcoded so this stays a module script (define:vars breaks dynamic import)
+  const svgPaths = {
+    arrowRight:    `<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>`,
+    externalLink:  `<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>`,
+    folder:        `<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>`,
+    tag:           `<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>`,
+    fileText:      `<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>`,
+    triangleAlert: `<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17 .01 0"/>`,
+  };
+  // NFKD normalization for Unicode variants
+  const norm = (s) =>
     s ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : '';
 
-  // Shared result card HTML (used by both engines)
-  function resultCard(url: string, title: string, subtitle: string): string {
-    return `
-      <a href="${url}"
-         class="block p-4 rounded-xl border border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-900 hover:border-highlight-400 dark:hover:border-highlight-500 hover:shadow-md transition-all duration-200 group">
-        <div class="flex items-start gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-               class="w-4 h-4 text-primary-400 dark:text-primary-500 group-hover:text-highlight-500 mt-0.5 shrink-0">
-            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-            <polyline points="14 2 14 8 20 8"/>
-          </svg>
-          <div class="min-w-0">
-            <h3 class="font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors mb-1">${title}</h3>
-            ${subtitle ? `<p class="text-sm text-primary-600 dark:text-primary-300 leading-relaxed line-clamp-2">${subtitle}</p>` : ''}
-          </div>
-        </div>
-      </a>`;
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Inline SVG helper for JS-rendered HTML
+  function svg(path, size = 14, extraClass = '') {
+    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block shrink-0 ${extraClass}" aria-hidden="true">${path}</svg>`;
+  }
+
+  // Strip Obsidian/markdown syntax from content for plain-text preview
+  function cleanContent(raw) {
+    return raw
+      // Remove Obsidian image embeds: ![[file.png]] or ![[file.png|caption|500]]
+      .replace(/!\[\[[^\]]*\]\]/g, '')
+      // Unwrap Obsidian wikilinks: [[Page|display]] → display, [[Page]] → Page
+      .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
+      .replace(/\[\[([^\]]+)\]\]/g, '$1')
+      // Remove standard markdown images: ![alt](url)
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '')
+      // Remove markdown links but keep text: [text](url) → text
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      // Remove frontmatter-style dashes
+      .replace(/^---[\s\S]*?---\n?/, '')
+      // Remove heading markers
+      .replace(/^#{1,6}\s+/gm, '')
+      // Remove bold/italic markers
+      .replace(/(\*\*|__)(.*?)\1/g, '$2')
+      .replace(/(\*|_)(.*?)\1/g, '$2')
+      // Remove blockquote markers
+      .replace(/^>\s?/gm, '')
+      // Remove list markers
+      .replace(/^[-*+]\s+/gm, '')
+      .replace(/^\d+\.\s+/gm, '')
+      // Remove code fences
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      // Collapse whitespace
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  function highlight(text, query) {
+    if (!query || !text) return escapeHtml(text || '');
+    // Strip # prefix for tag searches before highlighting
+    const q = query.startsWith('#') ? query.slice(1) : query;
+    if (!q) return escapeHtml(text);
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escapeHtml(text).replace(
+      new RegExp(`(${escaped})`, 'gi'),
+      '<mark class="bg-highlight-300/40 dark:bg-highlight-500/30 rounded px-0.5 not-italic font-semibold">$1</mark>'
+    );
+  }
+
+  function excerptAround(content, query, radius = 160) {
+    const clean = cleanContent(content);
+    if (!query || !clean) return { text: clean.slice(0, radius * 2), truncated: clean.length > radius * 2 };
+    const q = query.startsWith('#') ? query.slice(1) : query;
+    const idx = q ? clean.toLowerCase().indexOf(q.toLowerCase()) : -1;
+    if (idx === -1) {
+      return { text: clean.slice(0, radius * 2), truncated: clean.length > radius * 2 };
+    }
+    const start = Math.max(0, idx - radius);
+    const end = Math.min(clean.length, idx + q.length + radius);
+    return {
+      text: (start > 0 ? '…' : '') + clean.slice(start, end) + (end < clean.length ? '…' : ''),
+      truncated: clean.length > radius * 2,
+      totalLength: clean.length,
+    };
   }
 
   function initSearch() {
-    const queryInput = document.getElementById('search-query') as HTMLInputElement | null;
-    const resultsEl  = document.getElementById('search-results') as HTMLElement | null;
-    const statusEl   = document.getElementById('search-status') as HTMLElement | null;
-    const modeEl     = document.getElementById('search-mode') as HTMLElement | null;
-    const form       = document.getElementById('search-form') as HTMLFormElement | null;
+    const queryInput = document.getElementById('search-query');
+    const resultsEl  = document.getElementById('search-results');
+    const statusEl   = document.getElementById('search-status');
+    const paneEl     = document.getElementById('search-pane');
+    const emptyEl    = document.getElementById('search-empty');
+    const previewEl  = document.getElementById('preview-content');
+    const clearBtn   = document.getElementById('search-clear');
+    const form       = document.getElementById('search-form');
 
-    if (!queryInput || !resultsEl || !statusEl) return;
+    if (!queryInput || !resultsEl || !statusEl || !paneEl || !emptyEl) return;
 
-    let pagefind: any = null;
-    let fuse: any = null;
-    let fuseItems: any[] = [];
-    let debounceTimer: ReturnType<typeof setTimeout>;
-    // 'pagefind' | 'fuse' | null
-    let engine: string | null = null;
+    let fuse = null;
+    let fuseItems = [];
+    let debounceTimer;
+    let selectedIndex = 0;
+    let currentItems = [];
+    let currentQuery = '';
 
-    // ── Engine 1: Pagefind (production, full-text) ────────────────────────────
-    async function tryPagefind(): Promise<boolean> {
-      if (pagefind) return true;
-      try {
-        // @ts-ignore — generated at build time, vite-ignore prevents Rollup resolution error
-        pagefind = await import(/* @vite-ignore */ '/pagefind/pagefind.js');
-        await pagefind.init();
-        engine = 'pagefind';
-        if (modeEl) {
-          modeEl.textContent = 'Full-text search';
-          modeEl.classList.remove('hidden');
-        }
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    // ── Engine 2: Fuse.js fallback (dev mode / no build) ─────────────────────
-    async function tryFuse(): Promise<boolean> {
+    async function ensureFuse() {
       if (fuse) return true;
       try {
         const [fuseModule, postsRes] = await Promise.all([
           import('fuse.js'),
           fetch('/api/posts.json').then(r => r.ok ? r.json() : []),
         ]);
-        const Fuse = (fuseModule as any).default || fuseModule;
+        const Fuse = fuseModule.default || fuseModule;
         fuseItems = postsRes;
-        // Build normalized shadow index so Unicode variants match
-        const normalized = fuseItems.map((item: any, idx: number) => ({
+        const normalized = fuseItems.map((item, idx) => ({
           _idx: idx,
           _title:       norm(item.title),
           _description: norm(item.description || ''),
+          _content:     norm(cleanContent(item.content || '')),
           _tags:        (item.tags || []).map(norm),
           _category:    norm(item.category || ''),
         }));
         fuse = new Fuse(normalized, {
           keys: [
-            { name: '_title',       weight: 0.5 },
-            { name: '_description', weight: 0.2 },
-            { name: '_tags',        weight: 0.2 },
-            { name: '_category',    weight: 0.1 },
+            { name: '_title',       weight: 0.45 },
+            { name: '_tags',        weight: 0.30 },
+            { name: '_description', weight: 0.15 },
+            { name: '_content',     weight: 0.07 },
+            { name: '_category',    weight: 0.03 },
           ],
-          threshold: 0.4,
+          threshold: 0.35,
           includeScore: true,
           minMatchCharLength: 1,
           shouldSort: true,
           findAllMatches: true,
           ignoreLocation: true,
         });
-        engine = 'fuse';
-        if (modeEl) {
-          modeEl.textContent = 'Metadata search (run pnpm build for full-text)';
-          modeEl.classList.remove('hidden');
-        }
         return true;
       } catch {
         return false;
       }
     }
 
-    // ── Render ────────────────────────────────────────────────────────────────
-    function showResults(items: Array<{ url: string; title: string; subtitle: string }>, query: string) {
-      if (items.length === 0) {
-        statusEl!.textContent = `No results for "${query}"`;
-        statusEl!.classList.remove('hidden');
-        resultsEl!.innerHTML = '';
-        return;
-      }
-      statusEl!.textContent = `${items.length} result${items.length === 1 ? '' : 's'} for "${query}"`;
-      statusEl!.classList.remove('hidden');
-      resultsEl!.innerHTML = items.map(i => resultCard(i.url, i.title, i.subtitle)).join('');
+    function renderPreview(item, rawQuery) {
+      if (!previewEl) return;
+
+      const { text: excerpt, truncated, totalLength } = excerptAround(item.content || item.description || '', rawQuery);
+      const wordCount = totalLength ? Math.ceil(totalLength.toString().length > 3 ? totalLength / 5 : totalLength) : null;
+
+      const tagsHtml = (item.tags || []).map(t =>
+        `<a href="/tags/${escapeHtml(t)}" class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-highlight-50 dark:bg-highlight-900/30 text-highlight-700 dark:text-highlight-400 border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-800/40 transition-colors">
+          ${svg(svgPaths.tag, 11, 'opacity-70')}
+          ${escapeHtml(t)}
+        </a>`
+      ).join('');
+
+      const categoryHtml = item.category
+        ? `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-primary-100 dark:bg-primary-800 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-700">
+            ${svg(svgPaths.folder, 11, 'opacity-70')}
+            ${escapeHtml(item.category)}
+          </span>`
+        : '';
+
+      const truncationWarning = truncated
+        ? `<div class="flex items-start gap-2 mt-4 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700 text-xs text-primary-500 dark:text-primary-400">
+            ${svg(svgPaths.triangleAlert, 13, 'mt-0.5 text-primary-400 shrink-0')}
+            <span>Preview truncated — open the post to read the full content.</span>
+          </div>`
+        : '';
+
+      previewEl.innerHTML = `
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</h2>
+          <a href="${escapeHtml(item.url)}"
+             title="Open post"
+             class="shrink-0 p-1.5 rounded-lg text-primary-400 hover:text-highlight-600 dark:hover:text-highlight-400 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+             aria-label="Open post">
+            ${svg(svgPaths.externalLink, 15)}
+          </a>
+        </div>
+
+        ${categoryHtml || tagsHtml ? `
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            ${categoryHtml}
+            ${tagsHtml}
+          </div>` : ''}
+
+        ${item.description
+          ? `<p class="text-sm text-primary-500 dark:text-primary-400 mb-4 leading-relaxed border-l-2 border-primary-200 dark:border-primary-700 pl-3 italic">${highlight(item.description, rawQuery)}</p>`
+          : ''}
+
+        ${excerpt
+          ? `<p class="text-sm leading-relaxed text-primary-700 dark:text-primary-300">${highlight(excerpt, rawQuery)}</p>`
+          : ''}
+
+        ${truncationWarning}
+
+        <a href="${escapeHtml(item.url)}"
+           class="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-highlight-500 hover:bg-highlight-600 text-white text-sm font-medium transition-colors">
+          Read post
+          ${svg(svgPaths.arrowRight, 14, 'text-white')}
+        </a>
+      `;
     }
 
-    // ── Search ────────────────────────────────────────────────────────────────
-    async function doSearch(query: string) {
-      if (!query.trim()) {
-        statusEl!.classList.add('hidden');
-        resultsEl!.innerHTML = '';
+    function renderResultItem(item, i, rawQuery) {
+      const isSelected = i === selectedIndex;
+      const categoryHtml = item.category
+        ? `<span class="inline-flex items-center gap-1 text-xs text-primary-400 dark:text-primary-500 mt-1">
+            ${svg(svgPaths.folder, 11)}
+            ${escapeHtml(item.category)}
+          </span>`
+        : '';
+      const tagsHtml = (item.tags || []).slice(0, 3).map(t =>
+        `<span class="text-xs text-highlight-600 dark:text-highlight-400">#${escapeHtml(t)}</span>`
+      ).join('');
+
+      return `
+        <a href="${escapeHtml(item.url)}"
+           data-index="${i}"
+           class="result-item block px-4 py-3 border-b border-primary-100 dark:border-primary-800 last:border-b-0 transition-colors border-l-2
+                  ${isSelected
+                    ? 'bg-primary-50 dark:bg-primary-800/60 border-l-highlight-500'
+                    : 'hover:bg-primary-50 dark:hover:bg-primary-800/30 border-l-transparent'}">
+          <div class="flex items-start gap-2">
+            <span class="mt-0.5 text-primary-400 dark:text-primary-500 shrink-0">${svg(svgPaths.fileText, 13)}</span>
+            <div class="min-w-0">
+              <div class="font-medium text-sm text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</div>
+              ${categoryHtml}
+              ${tagsHtml ? `<div class="mt-1 flex flex-wrap gap-1">${tagsHtml}</div>` : ''}
+            </div>
+          </div>
+        </a>`;
+    }
+
+    function renderResults(items, rawQuery) {
+      currentItems = items;
+      currentQuery = rawQuery;
+      selectedIndex = 0;
+
+      if (items.length === 0) {
+        paneEl.classList.add('hidden');
+        emptyEl.classList.remove('hidden');
+        statusEl.textContent = `No results for "${rawQuery}"`;
+        statusEl.classList.remove('hidden');
         return;
       }
 
-      // Try Pagefind first, fall back to Fuse.js
-      const hasPagefind = await tryPagefind();
-      if (!hasPagefind) await tryFuse();
+      statusEl.textContent = `${items.length} result${items.length === 1 ? '' : 's'}`;
+      statusEl.classList.remove('hidden');
+      paneEl.classList.remove('hidden');
+      emptyEl.classList.add('hidden');
 
-      if (engine === 'pagefind') {
-        try {
-          const search = await pagefind.search(query);
-          const data   = await Promise.all(search.results.slice(0, 20).map((r: any) => r.data()));
-          showResults(
-            data.map((r: any) => ({ url: r.url, title: r.meta?.title || r.url, subtitle: r.excerpt || '' })),
-            query
-          );
-        } catch {
-          statusEl!.textContent = 'Search error — please try again.';
-          statusEl!.classList.remove('hidden');
-        }
-      } else if (engine === 'fuse') {
-        const normalizedQuery = norm(query);
-        const raw = fuse.search(normalizedQuery).slice(0, 20);
-        showResults(
-          raw.map((r: any) => {
-            const item = fuseItems[r.item._idx];
-            return { url: item.url, title: item.title, subtitle: item.description || '' };
-          }),
-          query
+      resultsEl.innerHTML = items.map((item, i) => renderResultItem(item, i, rawQuery)).join('');
+
+      resultsEl.querySelectorAll('.result-item').forEach((el, i) => {
+        el.addEventListener('mouseenter', () => setSelected(i));
+        el.addEventListener('click', () => {});
+      });
+
+      renderPreview(items[0], rawQuery);
+    }
+
+    function setSelected(idx) {
+      if (idx < 0 || idx >= currentItems.length) return;
+      selectedIndex = idx;
+      resultsEl.querySelectorAll('.result-item').forEach((el, i) => {
+        const active = i === idx;
+        el.classList.toggle('bg-primary-50', active);
+        el.classList.toggle('dark:bg-primary-800/60', active);
+        el.classList.toggle('border-l-highlight-500', active);
+        el.classList.toggle('border-l-transparent', !active);
+      });
+      renderPreview(currentItems[idx], currentQuery);
+    }
+
+    async function doSearch(rawQuery) {
+      if (clearBtn) {
+        clearBtn.classList.toggle('hidden', !rawQuery);
+      }
+
+      if (!rawQuery.trim()) {
+        paneEl.classList.add('hidden');
+        emptyEl.classList.remove('hidden');
+        statusEl.classList.add('hidden');
+        return;
+      }
+
+      const ok = await ensureFuse();
+      if (!ok) {
+        statusEl.textContent = 'Search unavailable — please reload.';
+        statusEl.classList.remove('hidden');
+        return;
+      }
+
+      const isTagSearch = rawQuery.startsWith('#');
+      let results;
+
+      if (isTagSearch) {
+        const tagQ = norm(rawQuery.slice(1));
+        if (!tagQ) { renderResults([], rawQuery); return; }
+        results = fuseItems.filter(item =>
+          (item.tags || []).some(t => norm(t).includes(tagQ))
         );
       } else {
-        statusEl!.textContent = 'Search unavailable — please try again.';
-        statusEl!.classList.remove('hidden');
+        const q = norm(rawQuery);
+        results = fuse.search(q).slice(0, 25).map(r => fuseItems[r.item._idx]);
       }
+
+      renderResults(results.slice(0, 25), rawQuery);
     }
 
-    // ── Wire up events ────────────────────────────────────────────────────────
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (paneEl.classList.contains('hidden')) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = Math.min(selectedIndex + 1, currentItems.length - 1);
+        setSelected(next);
+        resultsEl.querySelectorAll('.result-item')[next]?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = Math.max(selectedIndex - 1, 0);
+        setSelected(prev);
+        resultsEl.querySelectorAll('.result-item')[prev]?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter' && document.activeElement === queryInput) {
+        const active = resultsEl.querySelectorAll('.result-item')[selectedIndex];
+        if (active?.href) window.location.href = active.href;
+      }
+    });
+
     queryInput.addEventListener('input', () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => doSearch(queryInput.value), 300);
+      debounceTimer = setTimeout(() => doSearch(queryInput.value), 250);
     });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        queryInput.value = '';
+        doSearch('');
+        queryInput.focus();
+      });
+    }
 
     if (form) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const q = queryInput.value.trim();
-        const url = new URL(window.location.href);
-        if (q) { url.searchParams.set('q', q); } else { url.searchParams.delete('q'); }
-        window.history.replaceState({}, '', url.toString());
+        clearTimeout(debounceTimer);
         doSearch(queryInput.value);
       });
     }
 
-    // Auto-search on load if ?q= is present
+    // Auto-search on load if ?q= present
     const initialQuery = new URLSearchParams(window.location.search).get('q');
     if (initialQuery) {
       queryInput.value = initialQuery;
@@ -240,12 +442,7 @@ const seoData = {
 </script>
 
 <style>
-  /* Pagefind highlight marks */
   mark {
     background-color: transparent;
-    color: inherit;
-    font-weight: 600;
-    text-decoration: underline;
-    text-decoration-color: rgb(var(--color-highlight-500) / 0.6);
   }
 </style>

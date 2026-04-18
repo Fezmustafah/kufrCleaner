@@ -25,7 +25,7 @@ aliases:
 
 ## Overview
 
-All plugins, key bindings, and the theme can be customized to your liking, but this is what's on by default.
+New to the theme? Start with the [[Getting Started]] guide first, then return here for vault-specific details. All plugins, key bindings, and the theme can be customized to your liking, but this is what's on by default.
 
 ## Philosophy 
 

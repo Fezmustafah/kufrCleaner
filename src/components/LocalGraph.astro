@@ -27,31 +27,45 @@ const shouldShowGraph = true;
 ---
 
 {shouldShowGraph && (
-  <div id="local-graph-container" class="relative w-full bg-primary-50 dark:bg-primary-800 rounded-xl border border-primary-200 dark:border-primary-700 shadow-lg backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95 overflow-hidden" style="width: 280px; max-width: 280px; height: 280px;">
-
-    <!-- Icons in top right corner -->
-    <div class="absolute top-3 right-3 z-20 flex items-center gap-2">
-      <!-- Global graph modal button -->
-      <button 
-        id="local-graph-modal-btn"
-        class="p-1 text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-200 transition-colors pointer-events-auto"
-        title="Global Graph"
-      >
-        <Icon name="git-fork" class="w-4 h-4" />
-      </button>
-      <!-- Fullscreen button -->
-      <button 
-        id="local-graph-fullscreen-btn"
-        class="p-1 text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-200 transition-colors pointer-events-auto"
-        title="Expand"
-      >
-        <Icon name="arrow-up-right" class="w-4 h-4" />
-      </button>
+  <div class="local-graph-widget">
+    <!-- Header with toggle -->
+    <div class="graph-header" id="local-graph-header">
+      <svg class="graph-header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><line x1="12" y1="7" x2="5" y2="17"/><line x1="12" y1="7" x2="19" y2="17"/></svg>
+      <span class="graph-header-title">Connections</span>
+      <div class="graph-header-actions">
+        <button
+          id="local-graph-modal-btn"
+          class="graph-action-btn"
+          title="Global Graph"
+        >
+          <Icon name="git-fork" class="w-3.5 h-3.5" />
+        </button>
+        <button
+          id="local-graph-fullscreen-btn"
+          class="graph-action-btn"
+          title="Expand"
+        >
+          <Icon name="arrow-up-right" class="w-3.5 h-3.5" />
+        </button>
+        <button
+          id="local-graph-toggle-btn"
+          class="graph-action-btn graph-toggle-btn"
+          title="Toggle graph"
+          aria-expanded="true"
+        >
+          <Icon name="chevron-up" class="w-3.5 h-3.5 graph-chevron" />
+        </button>
+      </div>
     </div>
-    
-    <!-- Graph content -->
-    <div id="local-graph-content" class="w-full h-full">
-      <!-- Graph will be rendered here -->
+
+    <!-- Collapsible body -->
+    <div class="graph-body" id="local-graph-body">
+      <div id="local-graph-container" class="relative w-full overflow-hidden">
+        <!-- Graph content -->
+        <div id="local-graph-content" class="w-full h-full">
+          <!-- Graph will be rendered here -->
+        </div>
+      </div>
     </div>
   </div>
 )}
@@ -837,22 +851,155 @@ const shouldShowGraph = true;
     }, 300);
   });
 
+  // ── Graph toggle (collapse/expand) ─────────────────────────────────────
+  function initGraphToggle() {
+    const widget = document.querySelector<HTMLElement>('.local-graph-widget');
+    const btn    = document.getElementById('local-graph-toggle-btn');
+    const header = document.getElementById('local-graph-header');
+    if (!widget || !btn || !header) return;
+
+    const STORAGE_KEY = 'kufrCleaner:graphCollapsed';
+    // Default collapsed; only expand if user explicitly opened it before
+    const isCollapsed = localStorage.getItem(STORAGE_KEY) !== 'false';
+    if (isCollapsed) widget.classList.add('is-collapsed');
+    btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+
+    function toggle(e: Event) {
+      // Don't toggle when clicking the other action buttons
+      if ((e.target as Element).closest('#local-graph-modal-btn, #local-graph-fullscreen-btn')) return;
+      const collapsed = widget!.classList.toggle('is-collapsed');
+      btn!.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      localStorage.setItem(STORAGE_KEY, String(collapsed));
+
+      // When expanding, scroll widget into view after transition completes
+      if (!collapsed) {
+        setTimeout(() => {
+          widget!.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 260); // matches the max-height transition duration
+      }
+    }
+
+    if ((header as any)._graphToggleBound) return;
+    (header as any)._graphToggleBound = true;
+    header.addEventListener('click', toggle);
+  }
+
   // Make functions globally available for BaseLayout integration
   (window as any).initializeLocalGraph = initializeLocalGraph;
   (window as any).setupLocalGraphButtons = setupLocalGraphButtons;
   (window as any).resetLocalGraph = resetLocalGraph;
   (window as any).openLocalGraphFullscreen = openLocalGraphFullscreen;
+
+  document.addEventListener('DOMContentLoaded', initGraphToggle);
+  document.addEventListener('swup:page:view', initGraphToggle);
 </script>
 
 <style>
+  /* ── Widget card shell (matches TOC styling) ──────────────────────────── */
+  .local-graph-widget {
+    background: rgb(var(--color-base-50));
+    border: 1px solid rgb(var(--color-primary-200) / 0.7);
+    border-radius: 0.875rem;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.5rem;
+  }
+  :global(.dark) .local-graph-widget {
+    background: rgb(var(--color-primary-900));
+    border-color: rgb(var(--color-primary-700) / 0.6);
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────────── */
+  .graph-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem 0.5rem;
+    border-bottom: 1px solid rgb(var(--color-primary-200) / 0.5);
+    cursor: pointer;
+    user-select: none;
+  }
+  :global(.dark) .graph-header {
+    border-bottom-color: rgb(var(--color-primary-700) / 0.4);
+  }
+  .graph-header-icon {
+    width: 0.9rem;
+    height: 0.9rem;
+    color: rgb(var(--color-highlight-600));
+    flex-shrink: 0;
+  }
+  :global(.dark) .graph-header-icon {
+    color: rgb(var(--color-highlight-400));
+  }
+  .graph-header-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-600));
+    flex: 1;
+  }
+  :global(.dark) .graph-header-title {
+    color: rgb(var(--color-primary-400));
+  }
+
+  .graph-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+  }
+  .graph-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.375rem;
+    color: rgb(var(--color-primary-400));
+    transition: color 0.15s ease, background 0.15s ease;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .graph-action-btn:hover {
+    color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-100));
+  }
+  :global(.dark) .graph-action-btn:hover {
+    color: rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-700));
+  }
+
+  /* Toggle chevron rotation */
+  .graph-chevron {
+    transition: transform 0.2s ease;
+  }
+  .local-graph-widget.is-collapsed .graph-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* ── Collapsible body ────────────────────────────────────────────────────── */
+  .graph-body {
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 300px;
+    opacity: 1;
+  }
+  .local-graph-widget.is-collapsed .graph-body {
+    max-height: 0;
+    opacity: 0;
+  }
+
+  /* ── Graph canvas ────────────────────────────────────────────────────────── */
   #local-graph-container {
-    min-height: 280px;
-    height: 280px;
-    width: 280px;
+    height: 240px;
+    width: 100%;
     position: relative;
     overflow: hidden;
   }
-  
+
   #local-graph-content {
     width: 100%;
     height: 100%;
@@ -867,22 +1014,14 @@ const shouldShowGraph = true;
   #local-graph-fullscreen-container {
     touch-action: none;
   }
-  
+
   .animate-spin {
     animation: spin 1s linear infinite;
   }
-  
+
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-  }
-  
-  @media (max-width: 768px) {
-    #local-graph-container {
-      min-height: 240px;
-      height: 240px;
-      width: 240px;
-    }
   }
 
   @keyframes fade-in {

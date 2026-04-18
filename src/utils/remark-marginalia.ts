@@ -73,6 +73,20 @@ export function remarkMarginalia(userOpts: MarginaliaOptions = {}) {
     async function processChildren(
       nodes: RootContent[],
     ): Promise<RootContent[]> {
+      // Normalize MDX escape placeholders (⟪ → {{ and ⟫ → }}) in text nodes.
+      // The mdx-escape-marginalia Vite plugin replaces {{...}} with ⟪...⟫ so
+      // MDX's acorn parser doesn't reject them. After MDX parses the file,
+      // ⟪ and ⟫ may be in DIFFERENT text nodes (split by em/strong/img nodes),
+      // so we normalize all text nodes here before the buffer-collection loop,
+      // which already handles openers/closers in different nodes.
+      for (const node of nodes) {
+        if (node.type === "text") {
+          (node as Text).value = (node as Text).value
+            .replace(/\u27ea/g, "{{")
+            .replace(/\u27eb/g, "}}");
+        }
+      }
+
       const newChildren: RootContent[] = [];
       let buffer: RootContent[] | null = null;
 
@@ -98,7 +112,7 @@ export function remarkMarginalia(userOpts: MarginaliaOptions = {}) {
 
         marginaliaEntries.push({ id, content: markdownContent, html });
 
-        const htmlMarker = `<span class="marginalia-marker" data-marginalia-id="${id}" id="marginalia-ref-${id}"><a href="#marginalia-${id}"><sup class="marginalia-ref">${id}</sup></a><span class="marginalia-content">${html}</span></span>`;
+        const htmlMarker = `<span class="footnote-container"><label for="fn-${id}" class="margin-toggle footnote-number"></label><input type="checkbox" id="fn-${id}" class="margin-toggle" /><span id="fn-note-${id}" class="footnote">${html}</span></span>`;
 
         newChildren.push({ type: "html", value: htmlMarker } as Html);
         buffer = null;

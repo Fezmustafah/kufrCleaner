@@ -23,6 +23,7 @@ export const GET: APIRoute = async () => {
       date: post.data.date,
       tags: post.data.tags || [],
       category: post.data.category || null,
+      content: post.body || '',
     }));
 
     // Sort by date (newest first)

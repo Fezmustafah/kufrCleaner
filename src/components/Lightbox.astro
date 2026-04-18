@@ -324,7 +324,12 @@ import Icon from './Icon.astro';
     private init() {
       // Event listeners
       window.addEventListener('openLightbox', (e: any) => {
-        this.collectImages(e.detail.button);
+        if (e.detail.images) {
+          // Caller supplied an explicit image list (e.g. footnote single-image)
+          this.images = e.detail.images;
+        } else {
+          this.collectImages(e.detail.button);
+        }
         this.open(e.detail.index || 0);
       });
     }

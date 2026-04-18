@@ -5,6 +5,9 @@ description: ""
 tags:
   - Muhammad
   - ProphetMuhammad
+  - seerah
+  - orientalism
+  - scholarship
 image: ""
 imageAlt: ""
 imageOG: false
@@ -13,6 +16,7 @@ hideTOC: false
 targetKeyword: ""
 draft: false
 aliases: []
+category: Islam
 modified: 2026-04-12T12:03:46+04:00
 created: 2026-04-12T12:00:08+04:00
 ---

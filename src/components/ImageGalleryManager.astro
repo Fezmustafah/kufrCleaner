@@ -26,7 +26,7 @@ import { siteConfig } from '../config';
     paragraphs.forEach((para, index) => {
       const images = Array.from(para.querySelectorAll('img'));
       // Filter out linked images (images inside <a> tags)
-      const nonLinkedImages = images.filter(img => !img.closest('a'));
+      const nonLinkedImages = images.filter(img => !img.closest('a') && !img.closest('.footnote') && !img.closest('.masonry-gallery') && !img.dataset.lightboxWired);
       if (nonLinkedImages.length > 0) {
         imageParagraphs.push({ paragraph: para, index: index, imageCount: nonLinkedImages.length });
       }
@@ -55,7 +55,7 @@ import { siteConfig } from '../config';
         // Get all non-linked images from this paragraph
         const allImages = Array.from(paragraph.querySelectorAll('img'));
         // Filter out linked images AND manually-sized (Obsidian) images
-        const images = allImages.filter(img => !img.closest('a') && !img.classList.contains('obsidian-sized'));
+        const images = allImages.filter(img => !img.closest('a') && !img.classList.contains('obsidian-sized') && !img.closest('.footnote') && !img.closest('.masonry-gallery') && !img.dataset.lightboxWired);
 
         // Skip processing if all images were manually sized
         if (images.length === 0) {
@@ -160,6 +160,67 @@ import { siteConfig } from '../config';
           nextParagraphBody.parentNode.removeChild(nextParagraphBody);
         }
       }
+    });
+
+    // Wire lightbox for raw <img> tags (e.g. hand-written HTML in markdown)
+    // These are not inside <p> so the gallery loop above never touches them.
+    // Uses the exact same DOM structure as the gallery above.
+    const allProseImgs = Array.from(contentElement.querySelectorAll<HTMLImageElement>('img'));
+    allProseImgs.forEach(img => {
+      if (
+        img.closest('.image-grid') ||
+        img.closest('a') ||
+        img.closest('.footnote') ||
+        img.closest('.masonry-gallery') ||
+        img.dataset.lightboxWired
+      ) return;
+
+      img.dataset.lightboxWired = '1';
+
+      const explicitWidth = img.getAttribute('width');
+
+      const grid = document.createElement('div');
+      grid.className = 'image-grid image-grid-1 my-2';
+      if (explicitWidth) grid.style.maxWidth = `${explicitWidth}px`;
+
+      const imageItem = document.createElement('div');
+      imageItem.className = 'image-item';
+
+      const button = document.createElement('button');
+      button.className = 'image-button w-full h-full group cursor-pointer';
+      button.setAttribute('data-lightbox', 'gallery');
+      button.setAttribute('aria-label', `View ${img.alt} in full size`);
+
+      const imgClone = img.cloneNode(true) as HTMLImageElement;
+      imgClone.className = 'w-full h-full object-cover rounded-lg transition-all duration-300 group-hover:shadow-lg group-hover:scale-[1.02]';
+      imgClone.loading = 'lazy';
+      imgClone.setAttribute('data-lightbox', 'gallery');
+
+      const overlay = document.createElement('div');
+      overlay.className = 'absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 rounded-lg flex items-center justify-center';
+
+      const zoomIcon = document.createElement('div');
+      zoomIcon.className = 'w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+      zoomIcon.innerHTML = `
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+        </svg>
+      `;
+
+      overlay.appendChild(zoomIcon);
+      button.appendChild(imgClone);
+      button.appendChild(overlay);
+      imageItem.appendChild(button);
+      grid.appendChild(imageItem);
+
+      button.addEventListener('click', () => {
+        window.dispatchEvent(new CustomEvent('openLightbox', {
+          detail: { images: [{ src: imgClone.src, alt: imgClone.alt || '' }], index: 0 }
+        }));
+      });
+
+      img.parentNode!.insertBefore(grid, img);
+      img.parentNode!.removeChild(img);
     });
   }
 

@@ -1388,6 +1388,10 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
             if (typeof window['initializeImageGalleries'] === 'function') {
               window['initializeImageGalleries']();
             }
+            // Initialize marginalia hover/popover
+            if (typeof window['initializeMarginalia'] === 'function') {
+              window['initializeMarginalia']();
+            }
             // Initialize category filtering
             if (typeof window['initializeCategoryFiltering'] === 'function') {
               window['initializeCategoryFiltering']();
@@ -1435,6 +1439,10 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
             // Initialize category filtering
             if (typeof window['initializeCategoryFiltering'] === 'function') {
               window['initializeCategoryFiltering']();
+            }
+            // Initialize marginalia hover/popover
+            if (typeof window['initializeMarginalia'] === 'function') {
+              window['initializeMarginalia']();
             }
             // Initialize table of contents
             if (window.initializeTableOfContents) {

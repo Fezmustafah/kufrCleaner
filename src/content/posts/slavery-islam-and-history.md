@@ -5,6 +5,8 @@ description: ""
 tags:
   - academia
   - slavery
+  - history
+  - comparative-religion
 image: ""
 imageAlt: ""
 imageOG: false
@@ -15,7 +17,7 @@ draft: false
 aliases: []
 modified: 2026-04-12T11:37:58+04:00
 created: 2026-04-11T20:01:05+04:00
-category: Christianity
+category: Islam
 ---
 
 # Slavery Was a Reality before Islam in Various Sources

@@ -1,0 +1,147 @@
+---
+import ImageWrapper from '@/components/ImageWrapper.astro';
+import Icon from '@/components/Icon.astro';
+
+export interface Props {
+  imageSrc?: string;
+  imageBasePath?: string;
+}
+
+const { imageSrc, imageBasePath } = Astro.props;
+const hasImage = !!imageSrc;
+---
+
+<div class="post-banner" id="post-banner">
+
+  <!-- Parallax background layer — taller than banner so translateY has travel room -->
+  <div class="post-banner-bg" id="post-banner-bg">
+    {hasImage ? (
+      <ImageWrapper
+        src={imageSrc!}
+        basePath={imageBasePath}
+        alt=""
+        class="w-full h-full"
+        width={1600}
+        height={600}
+        format="webp"
+        quality={85}
+        loading="eager"
+        fetchpriority="high"
+      />
+    ) : (
+      <div class="post-banner-gradient w-full h-full"></div>
+    )}
+  </div>
+
+  <!-- Scrim: subtle vignette only — metadata lives in the card below -->
+  <div class="post-banner-scrim" aria-hidden="true"></div>
+
+</div>
+
+<script>
+  function initParallax() {
+    const banner = document.getElementById('post-banner');
+    const bg     = document.getElementById('post-banner-bg');
+    if (!banner || !bg) return;
+    if (window.innerWidth < 768) return;
+
+    const prev = (window as any).__bannerParallaxCleanup;
+    if (prev) prev();
+
+    // Cinematic: start slightly zoomed-in, drift down + zoom out as user scrolls.
+    // At scroll=0   → translateY(0)   scale(1.08)  — compressed, dramatic
+    // At scroll=500 → translateY(150) scale(1.04)  — pulling back, panning
+    // At scroll=max → translateY(…)   scale(1.0)   — fully revealed, stable
+    const DRIFT       = 0.30;         // vertical travel speed (px/px)
+    const SCALE_INIT  = 1.08;         // zoom at page load
+    const SCALE_RATE  = 0.00008;      // zoom reduction per px scrolled
+    const SCALE_FLOOR = 1.0;          // never zoom out past 1:1
+
+    let ticking = false;
+    const limit = banner.offsetHeight + 200;
+
+    function apply(scrollY: number) {
+      const translate = scrollY * DRIFT;
+      const scale = Math.max(SCALE_FLOOR, SCALE_INIT - scrollY * SCALE_RATE);
+      bg!.style.transform = `translateY(${translate}px) scale(${scale})`;
+    }
+
+    // Apply initial state immediately (no scroll needed)
+    apply(window.scrollY);
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        if (window.scrollY <= limit) apply(window.scrollY);
+        ticking = false;
+      });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    (window as any).__bannerParallaxCleanup = () =>
+      window.removeEventListener('scroll', onScroll);
+  }
+
+  document.addEventListener('DOMContentLoaded', initParallax);
+  document.addEventListener('swup:page:view', () => {
+    const prev = (window as any).__bannerParallaxCleanup;
+    if (prev) prev();
+    initParallax();
+  });
+</script>
+
+<style>
+  /* ── Full-bleed: breaks out of max-width container ───────────────────── */
+  .post-banner {
+    position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    height: clamp(260px, 44vh, 520px);
+    overflow: hidden;
+    background: rgb(var(--color-primary-900));
+  }
+
+  /* ── Background parallax layer ───────────────────────────────────────── */
+  /* Extends 20% above/below the visible banner area so scrolling translateY
+     never shows an edge. Parent overflow:hidden clips the excess.          */
+  .post-banner-bg {
+    position: absolute;
+    top: -25%;
+    left: 0;
+    right: 0;
+    bottom: -25%;
+    will-change: transform;
+    transform: scale(1.08); /* JS applies full transform; this is the static fallback */
+  }
+
+  /* ImageWrapper renders <div class="w-full h-full overflow-hidden relative">
+     which already fills post-banner-bg correctly.                           */
+
+  /* ── Gradient fallback ───────────────────────────────────────────────── */
+  .post-banner-gradient {
+    width: 100%;
+    height: 100%;
+    background:
+      radial-gradient(ellipse 90% 70% at 60% 30%, rgb(var(--color-highlight-700) / 0.75) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 90% at 20% 75%, rgb(var(--color-highlight-800) / 0.5) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 50% at 85% 80%, rgb(var(--color-primary-700) / 0.6) 0%, transparent 50%),
+      linear-gradient(160deg, rgb(var(--color-primary-900)) 0%, rgb(var(--color-highlight-900)) 50%, rgb(var(--color-primary-800)) 100%);
+  }
+
+  /* ── Scrim: clear top → dark bottom ──────────────────────────────────── */
+  .post-banner-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 100% 100% at 50% 50%, transparent 50%, rgba(0,0,0,0.22) 100%),
+      linear-gradient(to bottom,
+        rgba(0,0,0,0.04) 0%,
+        rgba(0,0,0,0.08) 35%,
+        rgba(0,0,0,0.48) 70%,
+        rgba(0,0,0,0.70) 100%
+      );
+    pointer-events: none;
+  }
+
+</style>

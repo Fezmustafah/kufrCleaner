@@ -84,7 +84,7 @@ if (!existsSync(OUTPUT_DIR)) {
 function generateNodeId(filePath, collectionType) {
   // Remove collection prefix and extension
   let id = filePath.replace(`src/content/${collectionType}/`, "");
-  id = id.replace(".md", "");
+  id = id.replace(/\.mdx?$/, "");
   id = id.replace("/index", ""); // Handle folder-based posts
 
   // Clean up the ID: lowercase, replace spaces/special chars with hyphens
@@ -160,7 +160,7 @@ function extractStandardLinks(content) {
           linkText.startsWith("posts/") ||
           url.startsWith("/posts/") ||
           url.startsWith("posts/") ||
-          url.endsWith(".md") ||
+          url.endsWith(".md") || url.endsWith(".mdx") ||
           (!linkText.includes("/") && !url.startsWith("/"));
 
         if (isPostLink) {
@@ -206,7 +206,7 @@ function isInternalLink(url) {
   // - Starts with /posts/ or posts/ (post relative URLs)
   // - Is just a slug (no slashes) - assumes posts for backward compatibility
   const isInternal =
-    url.endsWith(".md") ||
+    url.endsWith(".md") || url.endsWith(".mdx") ||
     url.startsWith("/posts/") ||
     url.startsWith("posts/") ||
     !url.includes("/");
@@ -227,7 +227,7 @@ function extractLinkTextFromUrl(url) {
 
   // Handle posts/ prefixed links
   if (link.startsWith("posts/")) {
-    let linkText = link.replace("posts/", "").replace(/\.md$/, "");
+    let linkText = link.replace("posts/", "").replace(/\.mdx?$/, "");
     // Remove /index for folder-based posts
     if (linkText.endsWith("/index") && linkText.split("/").length === 2) {
       linkText = linkText.replace("/index", "");
@@ -240,7 +240,7 @@ function extractLinkTextFromUrl(url) {
 
   // Handle /posts/ URLs (relative links)
   if (link.startsWith("/posts/")) {
-    let linkText = link.replace("/posts/", "").replace(/\.md$/, "");
+    let linkText = link.replace("/posts/", "").replace(/\.mdx?$/, "");
     // Remove /index for folder-based posts
     if (linkText.endsWith("/index") && linkText.split("/").length === 2) {
       linkText = linkText.replace("/index", "");
@@ -251,9 +251,9 @@ function extractLinkTextFromUrl(url) {
     };
   }
 
-  // Handle .md files
-  if (link.endsWith(".md")) {
-    let linkText = link.replace(/\.md$/, "");
+  // Handle .md / .mdx files
+  if (link.endsWith(".md") || link.endsWith(".mdx")) {
+    let linkText = link.replace(/\.mdx?$/, "");
     // Remove /index for folder-based posts
     if (linkText.endsWith("/index") && linkText.split("/").length === 1) {
       linkText = linkText.replace("/index", "");
@@ -289,19 +289,21 @@ function readContentFiles(dirPath) {
       const stat = statSync(itemPath);
 
       if (stat.isDirectory()) {
-        // Handle folder-based posts
-        const indexPath = join(itemPath, "index.md");
-        if (existsSync(indexPath)) {
+        // Handle folder-based posts (index.md or index.mdx)
+        const indexMd  = join(itemPath, "index.md");
+        const indexMdx = join(itemPath, "index.mdx");
+        const indexPath = existsSync(indexMd) ? indexMd : existsSync(indexMdx) ? indexMdx : null;
+        if (indexPath) {
           const content = readFileSync(indexPath, "utf-8");
           const parsed = parseMarkdownFile(content, item);
           if (parsed) {
             posts.push(parsed);
           }
         }
-      } else if (item.endsWith(".md")) {
+      } else if (item.endsWith(".md") || item.endsWith(".mdx")) {
         // Handle single-file posts
         const content = readFileSync(itemPath, "utf-8");
-        const slug = item.replace(".md", "");
+        const slug = item.replace(/\.mdx?$/, "");
         const parsed = parseMarkdownFile(content, slug);
         if (parsed) {
           posts.push(parsed);

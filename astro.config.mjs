@@ -23,6 +23,7 @@ import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import { siteConfig } from './src/config.ts';
 import { remarkMarginalia } from './src/utils/remark-marginalia.ts';
+import { escapeMarginaliaForMdx } from './src/integrations/escape-marginalia-mdx.ts';
 import swup from '@swup/astro';
 import refreshContentOnChange from './src/integrations/refresh-content-on-change.ts';
 import { fileURLToPath } from 'node:url';
@@ -102,11 +103,10 @@ image: {
         limitInputPixels: false,
       }
     },
-    remotePatterns: [{
-      protocol: 'https'
-    }]
+    remotePatterns: []
   },
   integrations: [
+    escapeMarginaliaForMdx(), // Must be FIRST — escapes {{...}} in .mdx before @astrojs/mdx sees them
     refreshContentOnChange(),
     tailwind(),
     sitemap(),
@@ -138,7 +138,7 @@ image: {
       remarkInternalLinks,
       remarkInlineTags,
       remarkObsidianComments, // Remove Obsidian comments (%%...%%) early in processing
-      remarkMarginalia,       // Parse {{marginalia}} side notes
+      remarkMarginalia,       // Parse {{marginalia}} side notes (⟪...⟫ in .mdx normalized internally)
       remarkFolderImages,
       remarkObsidianEmbeds,
       // Bases directive (table-only v1)

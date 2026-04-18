@@ -1,0 +1,175 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import BaseToolbar from '@/components/base/BaseToolbar.astro';
+import TableView from '@/components/base/TableView.astro';
+import CardView from '@/components/base/CardView.astro';
+import { getCollection } from 'astro:content';
+import { parseBaseFile, combineFilters } from '@/utils/bases/parser';
+import { filterNotes } from '@/utils/bases/filter';
+import { slugifyPath } from '@/utils/bases/slugify';
+import { shouldShowPost } from '@/utils/markdown';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import type { SEOData } from '@/types';
+import type { Note } from '@/utils/bases/types';
+
+export async function getStaticPaths() {
+  // Scan src/content/posts/ for .base files
+  const contentPath = join(process.cwd(), 'src/content/posts');
+
+  async function scanForBaseFiles(
+    dir: string,
+    basePath: string = '',
+  ): Promise<Array<{ id: string; content: string }>> {
+    const bases: Array<{ id: string; content: string }> = [];
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return bases;
+    }
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      const relativePath = basePath ? `${basePath}/${entry.name}` : entry.name;
+      if (entry.isDirectory() && !entry.name.startsWith('.')) {
+        const sub = await scanForBaseFiles(fullPath, relativePath);
+        bases.push(...sub);
+      } else if (entry.isFile() && entry.name.endsWith('.base')) {
+        const content = await readFile(fullPath, 'utf-8');
+        bases.push({ id: relativePath, content });
+      }
+    }
+    return bases;
+  }
+
+  const baseFiles = await scanForBaseFiles(contentPath);
+  const paths = [];
+
+  for (const baseFile of baseFiles) {
+    let config;
+    try {
+      config = parseBaseFile(baseFile.content);
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn(`Failed to parse base file ${baseFile.id}:`, e);
+      continue;
+    }
+
+    const baseSlug = slugifyPath(baseFile.id.replace(/\.base$/, ''));
+
+    for (let i = 0; i < config.views.length; i++) {
+      const view = config.views[i];
+      const viewSlug = slugifyPath(view.name);
+      paths.push({
+        params: { base: `${baseSlug}/${viewSlug}` },
+        props: {
+          baseId: baseFile.id,
+          config,
+          view,
+          viewIndex: i,
+          baseSlug,
+          viewSlug,
+        },
+      });
+    }
+  }
+
+  return paths;
+}
+
+const { baseId: _baseId, config, view, baseSlug, viewSlug: _viewSlug } = Astro.props;
+
+// Fetch posts and convert to Note[]
+const isDev = import.meta.env.DEV;
+const posts = await getCollection('posts');
+const visiblePosts = posts.filter((p: any) => shouldShowPost(p, isDev));
+
+const notes: Note[] = visiblePosts.map((entry: any) => ({
+  id: entry.id,
+  data: entry.data as Record<string, any>,
+  body: entry.body,
+}));
+
+// Apply filters
+const combinedFilter = combineFilters(config.filters, view.filters);
+const filterResult = filterNotes(notes, combinedFilter, view.limit);
+
+// Build SEO data
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
+const seoData: SEOData = {
+  title: `${view.name} | ${baseSlug}`,
+  description: `Base view: ${view.name}`,
+  canonical: `${siteUrl}/base/${baseSlug}/${slugifyPath(view.name)}`,
+  ogType: 'website',
+};
+---
+
+<BaseLayout seoData={seoData}>
+  <div class="base-page">
+    <div class="base-header">
+      <div class="base-title-row">
+        <h1 class="base-title">{baseSlug}</h1>
+      </div>
+      <BaseToolbar
+        views={config.views}
+        currentView={view}
+        baseName={baseSlug}
+        resultCount={filterResult.filteredCount}
+      />
+    </div>
+
+    <div class="base-content">
+      {view.type === 'table' && (
+        <TableView notes={filterResult.notes} view={view} />
+      )}
+
+      {view.type === 'cards' && (
+        <CardView notes={filterResult.notes} view={view} />
+      )}
+
+      {view.type !== 'table' && view.type !== 'cards' && (
+        <div class="unsupported-view">
+          <p>View type "{view.type}" is not yet supported.</p>
+        </div>
+      )}
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .base-page {
+    min-height: 60vh;
+  }
+
+  .base-header {
+    border-bottom: 1px solid rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-50));
+  }
+
+  .base-title-row {
+    padding: 1.25rem 1.5rem 0.75rem;
+  }
+
+  .base-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: rgb(var(--color-primary-800));
+    margin: 0;
+    text-transform: capitalize;
+  }
+
+  .base-content {
+    padding: 0 1rem;
+  }
+
+  .unsupported-view {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: rgb(var(--color-primary-400));
+    font-style: italic;
+  }
+
+  @media (min-width: 640px) {
+    .base-content { padding: 0 1.5rem; }
+  }
+</style>

@@ -2,7 +2,7 @@
 import type { Post, Heading } from '@/types';
 import { siteConfig } from '@/config';
 import { generatePostSEO } from '@/utils/seo';
-import { optimizePostImagePath, getOptimizedFormat } from '@/utils/images';
+import { getOptimizedFormat } from '@/utils/images';
 import { processWikilinksInHTML } from '@/utils/internallinks';
 import { getCollection } from 'astro:content';
 import { shouldShowPost, processPost, calculateReadingTime, generateTOC, getAdjacentPosts, formatDate, formatDateMobile, getReadingTimeMobile } from '@/utils/markdown';
@@ -13,13 +13,12 @@ import LocalGraph from '@/components/LocalGraph.astro';
 import GiscusComments from '@/components/GiscusComments.astro';
 import Lightbox from '@/components/Lightbox.astro';
 import Icon from '@/components/Icon.astro';
+import CategoryBar from '@/components/CategoryBar.astro';
+import PostBanner from '@/components/PostBanner.astro';
 import ImageWrapper from '@/components/ImageWrapper.astro';
 import { devConfig } from '@/config/dev';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import Marginalia from '@/components/Marginalia.astro';
-import MarginaliaDesktop from '@/components/MarginaliaDesktop.astro';
-import type { MarginaliaEntry } from '@/utils/remark-marginalia';
 
 export interface Props {
   post: Post;
@@ -74,12 +73,39 @@ const hideTOC = post.data.hideTOC === true;
 const shouldShowTOC = !hideTOC && siteConfig.tableOfContents.enabled && headings.length > 0;
 const toc = shouldShowTOC ? await generateTOC(headings) : [];
 
-// Extract marginalia from the remark plugin's frontmatter output
-const marginalia: MarginaliaEntry[] = remarkPluginFrontmatter?.marginalia ?? [];
-const hasMarginaliaData = marginalia.length > 0;
-
 // Get adjacent posts for navigation
 const { prev: prevPost, next: nextPost } = getAdjacentPosts(visiblePosts, post.id);
+
+// ── Resolve post image path (used by both banner and cover image) ────────────
+let resolvedImageSrc: string | undefined;
+let resolvedImageBasePath: string | undefined;
+
+if (post.data.image) {
+  let rawImage = post.data.image;
+  if (Array.isArray(rawImage)) rawImage = rawImage[0];
+
+  let cleanImagePath = typeof rawImage === 'string' ? rawImage : '';
+  if (cleanImagePath.startsWith('[[') && cleanImagePath.endsWith(']]')) {
+    cleanImagePath = cleanImagePath.slice(2, -2);
+  }
+
+  if (typeof cleanImagePath === 'string' && cleanImagePath.startsWith('http')) {
+    resolvedImageSrc = cleanImagePath;
+    resolvedImageBasePath = '';
+  } else {
+    const isFileBased = typeof cleanImagePath === 'string' && cleanImagePath.startsWith('attachments/');
+    if (isFileBased) {
+      resolvedImageSrc = cleanImagePath.replace('attachments/', '');
+      resolvedImageBasePath = '/posts/attachments/';
+    } else {
+      resolvedImageSrc = cleanImagePath.startsWith('images/') || cleanImagePath.startsWith('attachments/')
+        ? cleanImagePath.replace(/^(images|attachments)\//, '')
+        : cleanImagePath;
+      resolvedImageBasePath = post.id ? `/posts/${post.id}/` : '/posts/attachments/';
+    }
+  }
+  resolvedImageSrc = getOptimizedFormat(resolvedImageSrc);
+}
 
 // Check if current post has connections for LocalGraph
 let hasLocalGraphConnections = false;
@@ -108,25 +134,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
     <!-- Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
-    <!-- Preload post cover image - only for posts that will definitely show the image immediately -->
-    {(() => {
-      if (!post.data.image || post.data.hideCoverImage === true) return false;
-
-      const showCoverImages = siteConfig.postOptions.showPostCardCoverImages;
-      // Only preload for posts that are likely to show the image immediately
-      // Skip preload for complex posts that might have delayed rendering
-      const shouldPreload = ['all', 'posts', 'featured-and-posts'].includes(showCoverImages) &&
-                           post.id !== 'formatting-reference';
-
-      return shouldPreload;
-    })() && (
-      <link
-        rel="preload"
-        as="image"
-        href={post.data.image?.startsWith('http') ? post.data.image : (post.data.image ? optimizePostImagePath(post.data.image, post.id, post.id) : '')}
-        fetchpriority="high"
-      />
-    )}
+    <!-- Banner image is preloaded via fetchpriority="high" on the ImageWrapper -->
 
     <!-- Post-specific meta tags -->
     {post.data.targetKeyword && (
@@ -134,177 +142,112 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
     )}
   </Fragment>
 
-  <div class="py-8 relative">
-    <div class:list={["mx-auto px-4 sm:px-6 lg:px-8 relative", hasMarginaliaData && "has-marginalia"]} style={hasMarginaliaData ? undefined : `max-width: ${siteConfig.layout.contentWidth}`}>
+  <!-- Full-width atmospheric banner (decorative only — metadata lives in the card) -->
+  <PostBanner
+    imageSrc={resolvedImageSrc}
+    imageBasePath={resolvedImageBasePath}
+  />
 
-      <!-- Category breadcrumb -->
-      <nav class="flex items-center gap-1.5 text-sm text-primary-500 dark:text-primary-400 mb-4" aria-label="Breadcrumb">
-        <a href="/posts" class="hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors">
-          Posts
-        </a>
-        {(post.data as any).category && (
-          <>
-            <Icon name="chevron-right" class="w-3.5 h-3.5 shrink-0 text-primary-300 dark:text-primary-600" />
-            <a
-              href={`/posts/category/${encodeURIComponent((post.data as any).category)}`}
-              class="hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
-            >
-              {(post.data as any).category}
-            </a>
-          </>
-        )}
-        <Icon name="chevron-right" class="w-3.5 h-3.5 shrink-0 text-primary-300 dark:text-primary-600" />
-        <span class="text-primary-700 dark:text-primary-200 font-medium truncate max-w-xs" aria-current="page">
-          {post.data.title}
-        </span>
-      </nav>
+  <div class="post-banner-overlap py-8">
+    <div
+      class:list={["post-layout-grid", (shouldShowTOC || hasLocalGraphConnections) && "has-sidebar"]}
+      style={`--contentWidth: ${siteConfig.layout.contentWidth}`}
+    >
 
       <!-- Main content -->
-      <article class={`bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm ${siteConfig.postOptions.showPostCardCoverImages !== 'none' && post.data.image && post.data.hideCoverImage !== true ? 'overflow-hidden' : ''}`}>
-        {/* Cover image - shown if global config allows and not hidden by frontmatter */}
-        {siteConfig.postOptions.showPostCardCoverImages !== 'none' && post.data.image && post.data.hideCoverImage !== true && (() => {
-          // Process image path similar to PostCard
-          let rawImage = post.data.image;
-          if (Array.isArray(rawImage)) {
-            rawImage = rawImage[0];
-          }
-          
-          // Clean Obsidian brackets
-          let cleanImagePath = typeof rawImage === 'string' ? rawImage : '';
-          if (cleanImagePath.startsWith('[[') && cleanImagePath.endsWith(']]')) {
-            cleanImagePath = cleanImagePath.slice(2, -2);
-          }
-          
-          // Determine src and basePath for ImageWrapper
-          let imageSrc = cleanImagePath;
-          let imageBasePath = '';
-          
-          if (typeof cleanImagePath === 'string' && cleanImagePath.startsWith('http')) {
-            // External URL - pass as-is
-            imageSrc = cleanImagePath;
-            imageBasePath = '';
-          } else {
-            // Detect folder-based vs file-based: if image path starts with 'attachments/',
-            // it's a single-file post (shared attachments folder)
-            const isFileBased = typeof cleanImagePath === 'string' && cleanImagePath.startsWith('attachments/');
-            
-            if (isFileBased) {
-              // Single-file post - remove attachments/ prefix
-              imageSrc = cleanImagePath.replace('attachments/', '');
-              imageBasePath = '/posts/attachments/';
-            } else {
-              // Folder-based post - sync script copies images to post folder root
-              // Remove 'images/' or 'attachments/' prefixes if present (sync script removes them)
-              if (cleanImagePath.startsWith('images/') || cleanImagePath.startsWith('attachments/')) {
-                imageSrc = cleanImagePath.replace(/^(images|attachments)\//, '');
-              } else {
-                imageSrc = cleanImagePath;
-              }
-              // Safety check: ensure post.id exists before using it
-              if (post.id) {
-                imageBasePath = `/posts/${post.id}/`;
-              } else {
-                // Fallback to attachments directory if post.id is undefined
-                imageBasePath = '/posts/attachments/';
-              }
-            }
-          }
-          
-          // Convert to WebP if applicable (sync-images.js creates WebP versions)
-          imageSrc = getOptimizedFormat(imageSrc);
-          
-          return (
-            <div class="h-40 sm:h-48 md:h-56 lg:h-64 overflow-hidden rounded-t-lg bg-primary-100 dark:bg-primary-800">
-              <ImageWrapper
-                src={imageSrc}
-                basePath={imageBasePath}
-                alt={post.data.imageAlt || `Featured image for post: ${post.data.title}`}
-                class="w-full h-full"
-                width={800}
-                height={450}
-                format="webp"
-                quality={85}
-                loading="eager"
-                fetchpriority="high"
-              />
-            </div>
-          );
-        })()}
+      <article class="post-layout-article bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm">
 
         <!-- Post content wrapper -->
-        <div class={`p-6 ${siteConfig.postOptions.showPostCardCoverImages !== 'none' && post.data.image && post.data.hideCoverImage !== true ? 'rounded-b-lg' : 'rounded-lg'}`}>
-          <!-- Post header -->
-          <header class="mb-4">
-          <h1 class="text-xl font-bold text-primary-900 dark:text-primary-50 mb-6 leading-tight">
-            {post.data.title}
-          </h1>
+        <div class="post-content-wrapper px-6 md:px-9 pt-6 pb-4 rounded-lg">
+          <!-- Post header — Fuwari layout: stats → title → meta -->
+          <header class="mb-6">
 
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-primary-600 dark:text-primary-300 mb-6">
-            <time datetime={post.data.date.toISOString()} class="font-medium">
-              <span class="hidden sm:inline">
-                {formatDate(post.data.date)}
-              </span>
-              <span class="sm:hidden">
-                {formatDateMobile(post.data.date)}
-              </span>
-            </time>
-
-            {siteConfig.postOptions.readingTime && readingTime && (
-              <>
-                <span class="text-primary-300 dark:text-primary-600 hidden sm:inline">•</span>
-                <span class="text-primary-300 dark:text-primary-600 sm:hidden">•</span>
-                <span>
-                  <span class="hidden sm:inline">{readingTime.text && readingTime.text !== 'read0' && readingTime.text !== '' ? readingTime.text : '1 min read'}</span>
-                  <span class="sm:hidden">{getReadingTimeMobile(readingTime)}</span>
-                </span>
-              </>
-            )}
-
-            {siteConfig.postOptions.wordCount && wordCount !== undefined && (
-              <>
-                <span class="text-primary-300 dark:text-primary-600 hidden sm:inline">•</span>
-                <span class="text-primary-300 dark:text-primary-600 sm:hidden">•</span>
-                <span class="min-w-0">
-                  <span class="hidden sm:inline">{wordCount === 1 ? '1 word' : `${wordCount} words`}</span>
-                  <span class="sm:hidden">{wordCount === 1 ? '1 word' : `${wordCount.toLocaleString()} words`}</span>
-                </span>
-              </>
-            )}
-          </div>
-
-          {siteConfig.postOptions.categories && (post.data as any).category && (
-            <div class="flex flex-wrap gap-2 mb-3">
-              <a
-                href={`/posts/category/${encodeURIComponent((post.data as any).category)}`}
-                class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-200 dark:hover:bg-highlight-800/40 transition-colors"
-              >
-                <Icon name="folder" class="w-3 h-3" />
-                {(post.data as any).category}
-              </a>
+            <!-- Row 1: word count + reading time (muted icon boxes, Fuwari style) -->
+            <div class="flex flex-row gap-5 mb-3 text-primary-400/60 dark:text-primary-500/50">
+              {siteConfig.postOptions.wordCount && wordCount !== undefined && (
+                <div class="flex items-center">
+                  <div class="meta-icon-sm">
+                    <Icon name="file-text" class="w-3.5 h-3.5" />
+                  </div>
+                  <span class="text-sm">{wordCount} words</span>
+                </div>
+              )}
+              {siteConfig.postOptions.readingTime && readingTime && (
+                <div class="flex items-center">
+                  <div class="meta-icon-sm">
+                    <Icon name="clock" class="w-3.5 h-3.5" />
+                  </div>
+                  <span class="text-sm">
+                    {readingTime.text && readingTime.text !== 'read0' ? readingTime.text : '1 min read'}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
 
-          {siteConfig.postOptions.tags && post.data.tags && post.data.tags.length > 0 && (
-            <div class="flex flex-wrap gap-2 mb-8">
-              {post.data.tags.map(tag => (
-                <a
-                  href={`/posts/tag/${encodeURIComponent(tag)}`}
-                  class="text-xs text-primary-600 dark:text-primary-300 bg-primary-100 dark:bg-primary-800 px-2.5 py-1 rounded-full border border-primary-200 dark:border-primary-700 transition-colors hover:bg-highlight-100 dark:hover:bg-highlight-800"
-                >
-                  {tag}
-                </a>
-              ))}
+            <!-- Row 2: title with left accent bar -->
+            <div class="relative mb-4">
+              <div class="post-title-accent"></div>
+              <h1 class="text-3xl md:text-[2.25rem]/[2.75rem] font-bold text-primary-900 dark:text-primary-50 leading-tight">
+                {post.data.title}
+              </h1>
             </div>
-          )}
-        </header>
+
+            <!-- Row 3: date · category · tags — Fuwari icon-box style -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-primary-500 dark:text-primary-400">
+
+              <!-- Date -->
+              <div class="flex items-center">
+                <div class="meta-icon">
+                  <Icon name="calendar" class="w-4 h-4" />
+                </div>
+                <time datetime={post.data.date.toISOString()} class="text-sm font-medium">
+                  {formatDate(post.data.date)}
+                </time>
+              </div>
+
+              <!-- Category — catalogue label (always shown) -->
+              {siteConfig.postOptions.categories && (post.data as any).category && (
+                <div class="flex items-center">
+                  <div class="meta-icon">
+                    <Icon name="folder" class="w-4 h-4" />
+                  </div>
+                  <a
+                    href={`/posts/category/${encodeURIComponent((post.data as any).category)}`}
+                    class="text-sm font-medium hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
+                  >
+                    {(post.data as any).category}
+                  </a>
+                </div>
+              )}
+
+              <!-- Tags — concept labels (hidden on mobile like Fuwari) -->
+              {siteConfig.postOptions.tags && post.data.tags && post.data.tags.length > 0 && (
+                <div class="hidden md:flex items-center">
+                  <div class="meta-icon">
+                    <Icon name="tag" class="w-4 h-4" />
+                  </div>
+                  <div class="flex flex-row flex-wrap items-center gap-x-1">
+                    {post.data.tags.map((tag, i) => (
+                      <>
+                        {i > 0 && <span class="text-primary-300 dark:text-primary-600 text-sm select-none">/</span>}
+                        <a
+                          href={`/posts/tag/${encodeURIComponent(tag)}`}
+                          class="text-sm font-medium hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors whitespace-nowrap"
+                        >
+                          {tag}
+                        </a>
+                      </>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </header>
 
         <!-- Article content -->
         <div class="prose dark:prose-dark max-w-none" id="post-content">
           <Content />
         </div>
-
-        <!-- Mobile marginalia footnotes (hidden at ≥1280px via CSS) -->
-        {hasMarginaliaData && <Marginalia marginalia={marginalia} />}
 
         {siteConfig.postOptions.linkedMentions.enabled && (
           <LinkedMentions currentSlug={post.id} />
@@ -362,30 +305,255 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         </div>
       </article>
 
-      <!-- Desktop marginalia column (≥1640px, second grid track of .has-marginalia) -->
-      {hasMarginaliaData && <MarginaliaDesktop marginalia={marginalia} />}
-
-      <!-- Desktop Left Sidebar - Graph (top left) -->
-      {hasLocalGraphConnections && (
-        <div class="hidden xl:block absolute top-0 right-full mr-1 w-[280px] h-full">
-          <div class="sticky top-24 pb-6" id="graph-sidebar">
-            <LocalGraph currentSlug={post.id} />
-          </div>
-        </div>
-      )}
-
-      <!-- Desktop Right Sidebar - TOC -->
-      {shouldShowTOC && (
-        <div class="hidden xl:block absolute top-0 left-full ml-1 w-[280px] h-full">
-          <div class="sticky top-24 pb-6" id="toc-sidebar">
-            <TableOfContents headings={toc} />
-          </div>
-        </div>
+      <!-- Left sidebar: TOC + LocalGraph (graph collapsed by default) -->
+      {(shouldShowTOC || hasLocalGraphConnections) && (
+        <aside class="post-layout-left-col" id="post-left-sidebar">
+          {shouldShowTOC && <TableOfContents headings={toc} />}
+          {hasLocalGraphConnections && <LocalGraph currentSlug={post.id} />}
+        </aside>
       )}
     </div>
   </div>
+  </div>
+
+  <!-- Category bar footer -->
+  <div class="post-category-footer">
+    <CategoryBar currentCategory={(post.data as any).category} />
+  </div>
 
   <Fragment slot="scripts">
+    <!-- Marginalia: hover highlighting + popover (<1100px) + scroll+hash (≥1100px) -->
+    <script>
+      // Clear any stale reader mode state from previous sessions
+      localStorage.removeItem('kufrCleaner:readerMode');
+      document.body.classList.remove('reading-mode');
+
+      const _lightboxZoomSVG = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>`;
+
+      function wrapImgWithLightboxOverlay(img: HTMLImageElement, beforeDispatch?: (e: MouseEvent) => void) {
+        if ((img as any)._lightboxWired) return;
+        (img as any)._lightboxWired = true;
+
+        // If already wrapped by ImageGalleryManager, just wire the existing button
+        const existingBtn = img.closest<HTMLButtonElement>('.image-button');
+        if (existingBtn) {
+          existingBtn.addEventListener('click', (e) => {
+            beforeDispatch?.(e);
+            window.dispatchEvent(new CustomEvent('openLightbox', {
+              detail: { images: [{ src: img.src, alt: img.alt || '' }], index: 0 }
+            }));
+          });
+          return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'image-grid image-grid-1 my-2';
+
+        const imageItem = document.createElement('div');
+        imageItem.className = 'image-item';
+
+        const button = document.createElement('button');
+        button.className = 'image-button w-full h-full group cursor-pointer';
+        button.setAttribute('data-lightbox', 'gallery');
+
+        const imgClone = img.cloneNode(true) as HTMLImageElement;
+        imgClone.className = 'w-full h-full object-cover rounded-lg transition-all duration-300 group-hover:shadow-lg group-hover:scale-[1.02]';
+        imgClone.loading = 'lazy';
+        imgClone.setAttribute('data-lightbox', 'gallery');
+
+        const overlay = document.createElement('div');
+        overlay.className = 'absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 rounded-lg flex items-center justify-center';
+
+        const zoomIcon = document.createElement('div');
+        zoomIcon.className = 'w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+        zoomIcon.innerHTML = _lightboxZoomSVG;
+
+        overlay.appendChild(zoomIcon);
+        button.appendChild(imgClone);
+        button.appendChild(overlay);
+        imageItem.appendChild(button);
+        grid.appendChild(imageItem);
+
+        button.addEventListener('click', (e) => {
+          beforeDispatch?.(e);
+          window.dispatchEvent(new CustomEvent('openLightbox', {
+            detail: { images: [{ src: imgClone.src, alt: imgClone.alt || '' }], index: 0 }
+          }));
+        });
+
+        img.parentNode!.insertBefore(grid, img);
+        img.parentNode!.removeChild(img);
+      }
+
+      function initMarginalia() {
+        const containers = document.querySelectorAll<HTMLElement>('.footnote-container');
+        if (!containers.length) return;
+
+        // Whether the floated sidebar notes are visible
+        const floatsVisible = () => window.innerWidth >= 1100;
+
+        // ── Abort stale listeners from previous page navigation ────────────
+        // Each initMarginalia() call would stack more mouseenter/mouseleave on
+        // the persistent pop element, causing multiple independent hideTimers
+        // that cancelHide() from the current run cannot cancel. AbortController
+        // wipes all of them cleanly on the next call.
+        const prevAC = (window as any)._marginaliaAC as AbortController | undefined;
+        if (prevAC) prevAC.abort();
+        const ac = new AbortController();
+        (window as any)._marginaliaAC = ac;
+        const sig = ac.signal;
+
+        // ── Recreate popover fresh (removes stale cloned listeners) ────────
+        const oldPop = document.getElementById('marginalia-popover');
+        if (oldPop) oldPop.remove();
+        const pop = document.createElement('div');
+        pop.id = 'marginalia-popover';
+        pop.className = 'marginalia-popover';
+        pop.setAttribute('role', 'tooltip');
+        document.body.appendChild(pop);
+
+        let hideTimer: ReturnType<typeof setTimeout> | null = null;
+        const scheduleHide = () => { hideTimer = setTimeout(() => pop.classList.remove('is-visible'), 200); };
+        const cancelHide   = () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } };
+
+        const reposition = (anchor: HTMLElement) => {
+          const rect = anchor.getBoundingClientRect();
+          const pw = 260;
+          // measure after content set, fall back to 0 if not yet rendered
+          const ph = pop.offsetHeight || 0;
+          const gap = 8;
+          const top = (rect.top - ph - gap > 16) ? rect.top - ph - gap : rect.bottom + gap;
+          const left = Math.max(8, Math.min(rect.left, window.innerWidth - pw - 8));
+          pop.style.top  = `${top}px`;
+          pop.style.left = `${left}px`;
+        };
+
+        const showPopoverFor = (anchor: HTMLElement, container: HTMLElement) => {
+          cancelHide();
+          const noteEl  = container.querySelector<HTMLElement>('.footnote');
+          const labelEl = container.querySelector<HTMLElement>('.footnote-number');
+          if (!noteEl || !labelEl) return;
+
+          const allLabels = Array.from(document.querySelectorAll<HTMLElement>('.footnote-number'));
+          const idx = allLabels.indexOf(labelEl) + 1;
+
+          pop.innerHTML = `<span class="marginalia-popover-num">${idx}.</span><span class="marginalia-popover-text">${noteEl.innerHTML}</span>`;
+          // Wire lightbox on images cloned into popover
+          pop.querySelectorAll<HTMLImageElement>('img').forEach(img => {
+            wrapImgWithLightboxOverlay(img, (e) => { e.stopPropagation(); });
+          });
+          // Reserve space for images so reposition() gets correct height before load
+          const imgs = pop.querySelectorAll<HTMLImageElement>('img');
+          if (imgs.length) pop.style.minHeight = '160px';
+
+          requestAnimationFrame(() => {
+            reposition(anchor);
+            pop.classList.add('is-visible');
+            imgs.forEach(img => {
+              if (img.complete) {
+                pop.style.minHeight = '';
+              } else {
+                img.addEventListener('load',  () => { pop.style.minHeight = ''; reposition(anchor); }, { once: true });
+                img.addEventListener('error', () => { pop.style.minHeight = ''; }, { once: true });
+              }
+            });
+          });
+        };
+
+        pop.addEventListener('mouseenter', cancelHide, { signal: sig });
+        pop.addEventListener('mouseleave', scheduleHide, { signal: sig });
+
+        // ── Per-container wiring ───────────────────────────────────────────
+        containers.forEach(container => {
+          const noteEl  = container.querySelector<HTMLElement>('.footnote');
+          const labelEl = container.querySelector<HTMLElement>('.footnote-number');
+          if (!labelEl) return;
+
+          // ── Hover highlighting (bidirectional, relatedTarget-safe) ───────
+          // The float takes .footnote visually outside .footnote-container's
+          // layout box, so mouseleave fires when crossing into the float.
+          // We check relatedTarget to suppress false negatives.
+          const highlight   = () => container.classList.add('is-highlighted');
+          const unhighlight = (e: MouseEvent) => {
+            const rt = e.relatedTarget as Node | null;
+            if (rt && container.contains(rt)) return; // still inside
+            container.classList.remove('is-highlighted');
+          };
+
+          container.addEventListener('mouseenter', highlight, { signal: sig });
+          container.addEventListener('mouseleave', unhighlight as EventListener, { signal: sig });
+          if (noteEl) {
+            noteEl.addEventListener('mouseenter', highlight, { signal: sig });
+            noteEl.addEventListener('mouseleave', unhighlight as EventListener, { signal: sig });
+          }
+
+          // ── Click behaviour ──────────────────────────────────────────────
+          labelEl.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent document dismiss handler from closing the popover we just opened
+
+            if (floatsVisible()) {
+              // Desktop: scroll floated note into view + update URL hash
+              if (!noteEl) return;
+              const noteId = noteEl.id; // fn-note-N
+              if (noteId) {
+                history.replaceState(null, '', `#${noteId}`);
+              }
+              noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Flash highlight
+              container.classList.add('is-highlighted');
+              setTimeout(() => container.classList.remove('is-highlighted'), 1500);
+            } else {
+              // <1100px: show popover
+              showPopoverFor(labelEl, container);
+            }
+          }, { signal: sig });
+
+          // ── Popover on hover (<1100px) ────────────────────────────────────
+          container.addEventListener('mouseenter', () => {
+            if (!floatsVisible()) showPopoverFor(labelEl, container);
+          }, { signal: sig });
+          container.addEventListener('mouseleave', () => {
+            if (!floatsVisible()) scheduleHide();
+          }, { signal: sig });
+        });
+
+        // ── Lightbox for images inside .footnote ──────────────────────────
+        // Dispatch explicit image data so Lightbox doesn't fall back to
+        // querySelectorAll('img') which would also pick up #lightbox-image itself.
+        document.querySelectorAll<HTMLImageElement>('.footnote img').forEach(img => {
+          wrapImgWithLightboxOverlay(img, (e) => { e.stopPropagation(); });
+        });
+
+        // ── Global dismiss ─────────────────────────────────────────────────
+        document.addEventListener('click', e => {
+          if (!pop.contains(e.target as Node) && !(e.target as Element).closest?.('.footnote-container')) {
+            pop.classList.remove('is-visible');
+          }
+        }, { signal: sig });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') pop.classList.remove('is-visible'); }, { signal: sig });
+
+        // ── Dismiss popover when crossing the 1100px float/popover threshold ──
+        // (e.g. user zooms in/out, changing which mode is active)
+        let lastWasFloats = floatsVisible();
+        window.addEventListener('resize', () => {
+          const nowFloats = floatsVisible();
+          if (nowFloats !== lastWasFloats) {
+            pop.classList.remove('is-visible');
+            document.querySelectorAll('.footnote-container.is-highlighted').forEach(c => c.classList.remove('is-highlighted'));
+            lastWasFloats = nowFloats;
+          }
+        }, { signal: sig, passive: true });
+      }
+
+      // Expose globally so BaseLayout's Swup hooks can call it on navigation
+      window['initializeMarginalia'] = initMarginalia;
+
+      document.addEventListener('DOMContentLoaded', initMarginalia);
+      // bfcache restore: browser back/forward skips DOMContentLoaded
+      window.addEventListener('pageshow', (e) => { if (e.persisted) initMarginalia(); });
+    </script>
+
     <script define:vars={{ posts: visiblePosts, commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id }}>
 
       // Process wikilinks - unified logic for all wikilink types
@@ -394,12 +562,12 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
 
         wikilinks.forEach(link => {
           const linkText = link.dataset.wikilink;
-          
+
           // Skip same-page anchors (empty data-wikilink) - they're already properly formatted
           if (!linkText || linkText === '') {
             return;
           }
-          
+
           const displayOverride = link.dataset.displayOverride;
           const currentDisplayText = link.textContent;
 
@@ -421,7 +589,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
 
           // First try exact id match (Astro v6 uses id, not slug)
           let post = posts.find(p => p.id === slug);
-          
+
           // If not found, try title match (for wikilinks that use post titles)
           if (!post) {
             post = posts.find(p => createSlugFromTitle(p.data.title) === slug);
@@ -432,17 +600,12 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             const currentHref = link.href || link.getAttribute('href') || '';
             const anchorMatch = currentHref.match(/#(.+)$/);
             const anchor = anchorMatch ? anchorMatch[1] : null;
-            
+
             if (anchor) {
               link.href = `/posts/${post.id}#${anchor}`;
             } else {
               link.href = `/posts/${post.id}`;
             }
-
-            // Simple logic:
-            // - If displayOverride exists and is not null, it's a wikilink with custom text [[link|display]] - use it
-            // - If displayOverride is null/undefined, it's a standard markdown link [text](url) - NEVER change the text
-            // - If displayOverride is empty string, it's a naked wikilink [[link]] - use post title
 
             if (displayOverride && displayOverride !== 'null' && displayOverride !== 'undefined') {
               // Wikilink with custom display: [[link|display]]
@@ -482,4 +645,137 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
   </Fragment>
 
   <!-- Lightbox is handled globally by BaseLayout -->
+
+  <style>
+    /* ── Banner overlap: content slides up over banner bottom ───────────── */
+    .post-banner-overlap {
+      margin-top: -3.5rem;
+      position: relative;
+      z-index: 10;
+    }
+
+
+    /* ── Firefly title left accent bar ──────────────────────────────────── */
+    .post-title-accent {
+      position: absolute;
+      left: -1.5rem;
+      top: 0.75rem;
+      width: 0.25rem;
+      height: 1.25rem;
+      border-radius: 0.25rem;
+      background: rgb(var(--color-highlight-600));
+    }
+    @media (min-width: 768px) {
+      .post-title-accent { left: -2.25rem; }
+    }
+    :global(.dark) .post-title-accent {
+      background: rgb(var(--color-highlight-400));
+    }
+
+    /* ── Post metadata icon boxes ────────────────────────────────────────── */
+    /* Row 1: word count / reading time — small, very muted */
+    .meta-icon-sm {
+      height: 1.5rem;
+      width: 1.5rem;
+      border-radius: 0.375rem;
+      background: rgba(0, 0, 0, 0.05);
+      color: rgb(var(--color-primary-400));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.4rem;
+      flex-shrink: 0;
+    }
+    :global(.dark) .meta-icon-sm {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgb(var(--color-primary-500));
+    }
+    /* Row 3: date / category / tags — slightly larger */
+    .meta-icon {
+      height: 1.75rem;
+      width: 1.75rem;
+      border-radius: 0.375rem;
+      background: rgba(0, 0, 0, 0.05);
+      color: rgb(var(--color-primary-500));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.45rem;
+      flex-shrink: 0;
+    }
+    :global(.dark) .meta-icon {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgb(var(--color-primary-400));
+    }
+
+    /* ── Break out of BaseLayout's max-width when sidebar is present ────── */
+    :global(#main-content:has(.post-layout-grid.has-sidebar)) {
+      max-width: none !important;
+    }
+
+    /* ── Base grid: mobile / no-sidebar ─────────────────────────────────── */
+    .post-layout-grid {
+      display: grid;
+      grid-template-columns: minmax(0, var(--contentWidth));
+      justify-content: center;
+      padding: 0 1rem;
+    }
+
+    /* ── Category footer ─────────────────────────────────────────────────── */
+    .post-category-footer {
+      max-width: min(98vw, 1800px);
+      margin: 1.5rem auto 0;
+      padding: 0 1.5rem;
+    }
+
+    .post-layout-article {
+      min-width: 0;
+      overflow: visible; /* must not clip floated notes */
+    }
+
+    .post-layout-left-col {
+      display: none;
+    }
+
+    /*
+     * ≥1100px: [240px sidebar] [1fr article]          — no right gutter yet
+     * ≥1100px: [240px sidebar] [1fr article] [200px]  — gutter for marginalia floats
+     *
+     * The 200px gutter column only appears when marginalia are active (≥1100px).
+     * Below that breakpoint article fills all remaining space — no wasted column.
+     */
+    @media (min-width: 1100px) {
+      /*
+       * 3-col grid from 1100px: [240px sidebar] [1fr article] [200px gutter]
+       * The 200px gutter is always present so marginalia floats work from 1100px.
+       * Article fills 1fr — remaining space after sidebar + gutter + gaps.
+       */
+      .post-layout-grid.has-sidebar {
+        grid-template-columns: 240px 1fr 200px;
+        column-gap: 0.75rem;
+        max-width: min(98vw, 1800px);
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0 1.5rem;
+      }
+
+      .post-layout-left-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        grid-column: 1;
+        grid-row: 2;
+        position: sticky;
+        top: 5rem;
+        align-self: start;
+        height: fit-content;
+        padding-top: 1rem;
+      }
+
+      .post-layout-grid.has-sidebar .post-layout-article {
+        grid-column: 2;
+        grid-row: 2;
+      }
+    }
+  </style>
 </BaseLayout>

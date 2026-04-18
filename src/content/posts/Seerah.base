@@ -1,0 +1,15 @@
+views:
+  - type: cards
+    name: All Cards
+    filters:
+      and:
+        - file.tags.contains("seerah")
+    order:
+      - file.name
+      - description
+      - file.tags
+      - file.mtime
+    image: image
+    imageFit: cover
+    imageAspectRatio: 0.6
+    cardSize: 280

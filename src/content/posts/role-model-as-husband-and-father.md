@@ -7,6 +7,9 @@ tags:
   - ProphetMuhammad
   - womeninislam
   - women
+  - seerah
+  - family
+  - character
 image: ""
 imageAlt: ""
 imageOG: false

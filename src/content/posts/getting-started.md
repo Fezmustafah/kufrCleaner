@@ -15,6 +15,8 @@ hideCoverImage: false
 hideTOC: false
 draft: false
 category: Tutorial
+modified: 2026-04-15T21:23:29-04:00
+created: 2026-04-13T16:08:14-04:00
 ---
 Welcome to Astro Modular! This quick start guide will get your blog running in minutes. Choose your preferred workflow [below](posts/getting-started.md#Choose%20Your%20Workflow).
 
@@ -60,7 +62,7 @@ Perfect! Astro Modular is designed specifically for Obsidian users.
 - **Preconfigured plugins & hotkeys**: all optimized for blogging
 
 **Next Steps:**
-- Read the [Obsidian Vault Guide](vault-cms-guide.md) for detailed setup
+- Read the [[Vault CMS Guide]] for detailed setup
 - Use the **Astro Modular Settings** plugin to customize your theme and preferences
 - Start writing your first post with the included templates
 

@@ -141,6 +141,20 @@ const specialCollection = defineCollection({
   }),
 });
 
+// Define schema for tag description pages
+const tagsCollection = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/tags' }),
+  schema: z.object({
+    title: z.string().optional(),
+    description: z.string().nullable().optional(),
+    date: z.coerce.date().optional(),
+    modified: z.coerce.date().optional(),
+    created: z.coerce.date().optional(),
+    image: z.string().nullable().optional(),
+    imageAlt: z.string().nullable().optional(),
+  }),
+});
+
 // Export collections
 export const collections = {
   posts: postsCollection,
@@ -148,5 +162,6 @@ export const collections = {
   projects: projectsCollection,
   docs: docsCollection,
   special: specialCollection,
+  tags: tagsCollection,
 };
 

@@ -1,0 +1,47 @@
+---
+import type { BaseView } from '@/utils/bases/types';
+import ViewSelector from './ViewSelector.astro';
+
+interface Props {
+  views: BaseView[];
+  currentView: BaseView;
+  baseName: string;
+  resultCount: number;
+}
+
+const { views, currentView, baseName, resultCount } = Astro.props;
+---
+
+<div class="base-toolbar">
+  <div class="toolbar-left">
+    <ViewSelector views={views} currentView={currentView} baseName={baseName} />
+  </div>
+  <div class="toolbar-right">
+    <span class="result-count">{resultCount} {resultCount === 1 ? 'result' : 'results'}</span>
+  </div>
+</div>
+
+<style>
+  .base-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 36px;
+    padding: 0 12px;
+    background: rgb(var(--color-primary-50));
+    border-bottom: 1px solid rgb(var(--color-primary-200));
+    margin-bottom: 0;
+  }
+
+  .toolbar-left, .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .result-count {
+    font-size: 0.8125rem;
+    color: rgb(var(--color-primary-400));
+    font-weight: 500;
+  }
+</style>

@@ -6,596 +6,643 @@ import Icon from './Icon.astro';
 const showProfilePicture = siteConfig.profilePicture.enabled && siteConfig.profilePicture.placement === 'header';
 const profilePicture = siteConfig.profilePicture;
 
-// Style classes for profile picture in header
 const getHeaderProfilePictureClasses = (style: string) => {
   switch (style) {
-    case 'circle': return 'w-8 h-8 rounded-full object-cover border-2 border-primary-200 dark:border-primary-700';
-    case 'square': return 'w-8 h-8 rounded-lg object-cover border-2 border-primary-200 dark:border-primary-700';
-    default: return 'h-8 object-contain'; // none - height constrained, width flexible
+    case 'circle': return 'w-8 h-8 rounded-full object-cover border-2 border-primary-200/60 dark:border-primary-700/60';
+    case 'square':  return 'w-8 h-8 rounded-lg object-cover border-2 border-primary-200/60 dark:border-primary-700/60';
+    default:        return 'h-8 object-contain';
   }
 };
 
-// Check if shortcut is defined and not empty
 const hasShortcut = siteConfig.commandPalette.shortcut && siteConfig.commandPalette.shortcut.trim();
-
-// Extract the key from the shortcut (e.g., 'ctrl+k' -> 'K')
-const shortcutKey = hasShortcut ? siteConfig.commandPalette.shortcut.split('+').pop()?.toUpperCase() || 'K' : '';
-
-// Check if all command palette sections are disabled
-const allSectionsDisabled = !siteConfig.commandPalette.sections.quickActions && 
-                            !siteConfig.commandPalette.sections.pages && 
-                            !siteConfig.commandPalette.sections.social;
-
-// Choose icon based on whether all sections are disabled (for no shortcut case)
+const shortcutKey = hasShortcut
+  ? siteConfig.commandPalette.shortcut.split('+').pop()?.toUpperCase() || 'K'
+  : '';
+const allSectionsDisabled =
+  !siteConfig.commandPalette.sections.quickActions &&
+  !siteConfig.commandPalette.sections.pages &&
+  !siteConfig.commandPalette.sections.social;
 const paletteIcon = allSectionsDisabled ? 'search' : 'command';
+
+// Active link detection
+const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/';
+function isActive(url: string) {
+  if (!url) return false;
+  const clean = url.replace(/\/$/, '') || '/';
+  if (clean === '/') return currentPath === '/';
+  return currentPath === clean || currentPath.startsWith(clean + '/');
+}
 ---
 
-<header id="main-header" class="sticky top-0 z-40 w-full bg-white dark:bg-primary-950 transition-shadow duration-200">
-  <div class="mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
-    <div class="flex items-center justify-between h-16">
-      <!-- Logo / Site Title / Profile Picture -->
-      <div class="flex items-center">
-        <a href="/" class="hover:opacity-75 transition-opacity">
-          {showProfilePicture ? (
-            <img
-              src={profilePicture.image}
-              alt={profilePicture.alt}
-              class={getHeaderProfilePictureClasses(profilePicture.style)}
-            />
-          ) : (
-            <span class="font-semibold text-primary-900 dark:text-primary-50">
-              {siteConfig.title}
-            </span>
-          )}
-        </a>
-      </div>
+<header id="main-header" class="navbar-root">
+  <div class="navbar-inner">
 
-      <!-- Center area with smart navigation -->
-      <div class={`flex-1 flex items-center ${ siteConfig.navigation.style === 'minimal' ? 'justify-end' : 'justify-center' }`}> 
-        <!-- Smart Navigation (single system with style variants) -->
-        {siteConfig.navigation.showNavigation && (  
-    <nav class={`nav-desktop-audit-visible flex items-center ${  
-      siteConfig.navigation.style === 'minimal' ? `space-x-5 ${siteConfig.featureButton === 'none' && !siteConfig.commandPalette.enabled ? '' : 'mr-4'}` : 'space-x-5' }`} aria-label="Main navigation">
-            {siteConfig.navigation.pages.map((page, index) => {
-              const hasChildren = page.children && page.children.length > 0;
-              const hasUrl = page.url && page.url.trim() !== '';
-              
-              if (hasChildren) {
-                // Parent item with children - dropdown menu
-                return (
-                  <div class="relative nav-dropdown-container" data-nav-index={index}>
-                    {hasUrl ? (
-                      // Clickable parent with dropdown
-                      <a 
-                        href={page.url}
-                        class={
-                          siteConfig.navigation.style === 'minimal' 
-                            ? `flex items-center space-x-1 text-xs font-normal transition-colors hover:text-highlight-600 dark:hover:text-highlight-400 text-primary-500 dark:text-primary-400`
-                            : `flex items-center space-x-1 text-sm font-medium transition-colors hover:text-highlight-600 dark:hover:text-highlight-400 text-primary-600 dark:text-primary-300`
-                        }
-                        target={page.url.startsWith('http') ? '_blank' : undefined}
-                        aria-label={`Navigate to ${page.title}`}
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                      >
-                        <span>{siteConfig.navigation.style === 'minimal' ? page.title.toLowerCase() : page.title}</span>
-                        {page.url.startsWith('http') && (
-                          <Icon name="external-link" class="w-3 h-3 text-primary-400 dark:text-primary-500" />
-                        )}
-                        <Icon name="chevron-down" class="w-3 h-3 ml-1 text-primary-400 dark:text-primary-500" title={page.title} />
-                      </a>
-                    ) : (
-                      // Dropdown-only parent (non-clickable trigger)
-                      <button
-                        class={
-                          siteConfig.navigation.style === 'minimal' 
-                            ? `flex items-center space-x-1 text-xs font-normal transition-colors hover:text-highlight-600 dark:hover:text-highlight-400 text-primary-500 dark:text-primary-400`
-                            : `flex items-center space-x-1 text-sm font-medium transition-colors hover:text-highlight-600 dark:hover:text-highlight-400 text-primary-600 dark:text-primary-300`
-                        }
-                        aria-label={`${page.title} menu`}
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                      >
-                        <span>{siteConfig.navigation.style === 'minimal' ? page.title.toLowerCase() : page.title}</span>
-                        <Icon name="chevron-down" class="w-3 h-3 ml-1 text-primary-400 dark:text-primary-500" title={page.title} />
-                      </button>
-                    )}
-                    {/* Dropdown menu */}
-                    <div class="nav-dropdown-menu absolute top-full left-0 mt-1 hidden bg-white dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-lg py-2 min-w-[200px] z-50">
-                      {page.children.map(child => (
-                        <a
-                          href={child.url || '#'}
-                          class="block px-4 py-2 text-sm text-primary-700 dark:text-primary-200 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
-                          target={child.url?.startsWith('http') ? '_blank' : undefined}
-                          aria-label={`Navigate to ${child.title}`}
-                        >
-                          {child.title}
-                          {child.url?.startsWith('http') && (
-                            <Icon name="external-link" class="w-3 h-3 ml-2 inline text-primary-400 dark:text-primary-500" />
-                          )}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                );
-              } else {
-                // Regular navigation item without children
-                return (
-                  <a 
-                    href={page.url || '#'}
-                    class={
-                      siteConfig.navigation.style === 'minimal' 
-                        ? `flex items-center space-x-1 text-xs font-normal transition-colors hover:text-highlight-600 dark:hover:text-highlight-400 text-primary-500 dark:text-primary-400`
-                        : `flex items-center space-x-1 text-sm font-medium transition-colors hover:text-highlight-600 dark:hover:text-highlight-400 text-primary-600 dark:text-primary-300`
-                    }
-                    target={page.url?.startsWith('http') ? '_blank' : undefined}
-                    aria-label={`Navigate to ${page.title}`}
-                  >
-                    <span>{siteConfig.navigation.style === 'minimal' ? page.title.toLowerCase() : page.title}</span>
-                    {page.url?.startsWith('http') && (
-                      <Icon name="external-link" class="w-3 h-3 text-primary-400 dark:text-primary-500" />
-                    )}
-                  </a>
-                );
-              }
-            })}
-          </nav>
-        )}
-      </div>
+    <!-- Left: logo / site title -->
+    <a href="/" class="navbar-logo" aria-label="Home">
+      {showProfilePicture ? (
+        <img
+          src={profilePicture.image}
+          alt={profilePicture.alt}
+          class={getHeaderProfilePictureClasses(profilePicture.style)}
+        />
+      ) : (
+        <span class="navbar-title">{siteConfig.title}</span>
+      )}
+    </a>
 
-      <!-- Action buttons -->
-      <div class="flex items-center space-x-4">
-        <!-- Feature Button -->
-        {siteConfig.featureButton === "mode" && <ThemeToggle />}
-        {siteConfig.featureButton === "graph" && siteConfig.postOptions.graphView.enabled && (
-          <button
-            id="header-graph-button"
-            class="p-2 text-primary-500 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors duration-200"
-            aria-label="Open graph view"
-          >
-            <Icon name="git-fork" class="w-5 h-5" />
-          </button>
-        )}
-        {siteConfig.featureButton === "theme" && (
-          <button
-            id="header-theme-button"
-            class="p-2 text-primary-500 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors duration-200"
-            aria-label="Change theme"
-          >
-            <Icon name="palette" class="w-5 h-5" />
-          </button>
-        )}
-        <!-- Command palette trigger -->
-        {siteConfig.commandPalette.enabled && (
-          hasShortcut ? (
-            <button
-              id="command-palette-trigger"
-              class="flex items-center space-x-2 px-3 py-2 text-sm text-primary-500 dark:text-primary-400 bg-primary-50 dark:bg-primary-800 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-700 transition-colors"
-              aria-label="Open command palette"
-            >
-              <Icon name={paletteIcon} class="w-5 h-5" />
-              <kbd class="text-xs font-medium text-primary-600 dark:text-primary-300">
-                {shortcutKey}
-              </kbd>
-            </button>
-          ) : (
-            <button
-              id="command-palette-trigger"
-              class="p-2 text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
-              aria-label="Open command palette"
-            >
-              <Icon name={paletteIcon} class="w-5 h-5" />
-            </button>
-          )
-        )}
+    <!-- Center: desktop nav links -->
+    <nav class="navbar-nav nav-desktop" aria-label="Main navigation">
+      {siteConfig.navigation.showNavigation && siteConfig.navigation.pages.map((page, index) => {
+        const hasChildren = page.children && page.children.length > 0;
+        const hasUrl = page.url && page.url.trim() !== '';
+        const active = isActive(page.url || '');
 
-        <!-- Mobile menu button (if navigation and mobile menu are enabled) -->
-        {siteConfig.navigation.showNavigation && siteConfig.navigation.showMobileMenu && (
-          <button
-            id="mobile-menu-toggle"
-            class="md:hidden p-2 text-primary-500 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors"
-            aria-label="Toggle mobile navigation menu"
-            aria-expanded="false"
-          >
-            <Icon name="menu" class="w-5 h-5 menu-icon" />
-            <Icon name="x" class="w-5 h-5 close-icon hidden" />
-          </button>
-        )}
-      </div>
-    </div>
-
-    <!-- Mobile navigation menu -->
-    {siteConfig.navigation.showNavigation && siteConfig.navigation.showMobileMenu && (
-      <div id="mobile-menu" class="md:hidden hidden py-4 border-t border-primary-200 dark:border-primary-700" role="dialog"
-          aria-modal="true"
-          aria-label="Mobile navigation menu">
-        <nav class="flex flex-col space-y-1">
-          {siteConfig.navigation.pages.map((page, index) => {
-            const hasChildren = page.children && page.children.length > 0;
-            const hasUrl = page.url && page.url.trim() !== '';
-            
-            if (hasChildren) {
-              // Parent item with children - accordion
-              return (
-                <div class="mobile-nav-parent" data-mobile-nav-index={index}>
-                  <div class="flex items-center justify-between">
-                    {hasUrl ? (
-                      // Clickable parent with expand button
-                      <a 
-                        href={page.url}
-                        class="flex-1 flex items-center justify-between px-3 py-2 text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 hover:bg-primary-50 dark:hover:bg-primary-800 transition-colors font-medium rounded-md"
-                        target={page.url.startsWith('http') ? '_blank' : undefined}
-                        aria-label={`Navigate to ${page.title}`}
-                      >
-                        <span>{page.title}</span>
-                        {page.url.startsWith('http') && (
-                          <Icon name="external-link" class="w-3 h-3 text-primary-400 dark:text-primary-500" />
-                        )}
-                      </a>
-                    ) : (
-                      // Non-clickable parent (just title)
-                      <span class="flex-1 px-3 py-2 text-primary-600 dark:text-primary-300 font-medium">
-                        {page.title}
-                      </span>
-                    )}
-                    <button
-                      class="mobile-nav-toggle px-3 py-2 text-primary-500 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-md transition-colors"
-                      aria-label={`Toggle ${page.title} submenu`}
-                      aria-expanded="false"
-                      data-toggle-index={index}
-                    >
-                      <Icon name="chevron-down" class="w-4 h-4 transition-transform" title={page.title} />
-                    </button>
-                  </div>
-                  {/* Children menu (collapsed by default) */}
-                  <div class="mobile-nav-children hidden pl-4 pt-1">
-                    {page.children.map(child => (
-                      <a
-                        href={child.url || '#'}
-                        class="block px-3 py-2 text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 hover:bg-primary-50 dark:hover:bg-primary-800 transition-colors font-medium rounded-md"
-                        target={child.url?.startsWith('http') ? '_blank' : undefined}
-                        aria-label={`Navigate to ${child.title}`}
-                      >
-                        {child.title}
-                        {child.url?.startsWith('http') && (
-                          <Icon name="external-link" class="w-3 h-3 ml-2 inline text-primary-400 dark:text-primary-500" />
-                        )}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              );
-            } else {
-              // Regular navigation item without children
-              return (
-                <a 
-                  href={page.url || '#'}
-                  class="flex items-center justify-between px-3 py-2 text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 hover:bg-primary-50 dark:hover:bg-primary-800 transition-colors font-medium rounded-md"
-                  target={page.url?.startsWith('http') ? '_blank' : undefined}
-                  aria-label={`Navigate to ${page.title}`}
+        if (hasChildren) {
+          return (
+            <div class="nav-dropdown-container" data-nav-index={index}>
+              {hasUrl ? (
+                <a
+                  href={page.url}
+                  class:list={['nav-link', active && 'nav-link-active']}
+                  target={page.url.startsWith('http') ? '_blank' : undefined}
+                  aria-haspopup="true" aria-expanded="false"
                 >
                   <span>{page.title}</span>
-                  {page.url?.startsWith('http') && (
-                    <Icon name="external-link" class="w-3 h-3 text-primary-400 dark:text-primary-500" />
-                  )}
+                  {page.url.startsWith('http') && <Icon name="external-link" class="w-3 h-3 opacity-50" />}
+                  <Icon name="chevron-down" class="w-3 h-3 opacity-40 ml-0.5" />
                 </a>
-              );
-            }
-          })}
-        </nav>
-      </div>
-    )}
+              ) : (
+                <button
+                  class:list={['nav-link', active && 'nav-link-active']}
+                  aria-haspopup="true" aria-expanded="false"
+                >
+                  <span>{page.title}</span>
+                  <Icon name="chevron-down" class="w-3 h-3 opacity-40 ml-0.5" />
+                </button>
+              )}
+              <div class="nav-dropdown">
+                {page.children.map(child => (
+                  <a
+                    href={child.url || '#'}
+                    class="nav-dropdown-item"
+                    target={child.url?.startsWith('http') ? '_blank' : undefined}
+                  >
+                    {child.title}
+                    {child.url?.startsWith('http') && <Icon name="external-link" class="w-3 h-3 ml-1.5 opacity-50 inline" />}
+                  </a>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <a
+            href={page.url || '#'}
+            class:list={['nav-link', active && 'nav-link-active']}
+            target={page.url?.startsWith('http') ? '_blank' : undefined}
+            aria-label={`Navigate to ${page.title}`}
+          >
+            <span>{page.title}</span>
+            {page.url?.startsWith('http') && <Icon name="external-link" class="w-3 h-3 opacity-50" />}
+          </a>
+        );
+      })}
+    </nav>
+
+    <!-- Right: action buttons -->
+    <div class="navbar-actions">
+      {siteConfig.featureButton === 'mode' && <ThemeToggle />}
+
+      {siteConfig.featureButton === 'graph' && siteConfig.postOptions.graphView.enabled && (
+        <button id="header-graph-button" class="navbar-btn" aria-label="Open graph view">
+          <Icon name="git-fork" class="w-5 h-5" />
+        </button>
+      )}
+
+      {siteConfig.featureButton === 'theme' && (
+        <button id="header-theme-button" class="navbar-btn" aria-label="Change theme">
+          <Icon name="palette" class="w-5 h-5" />
+        </button>
+      )}
+
+      {siteConfig.commandPalette.enabled && (
+        hasShortcut ? (
+          <button id="command-palette-trigger" class="navbar-btn navbar-btn-kbd" aria-label="Open command palette">
+            <Icon name={paletteIcon} class="w-4 h-4" />
+            <kbd class="navbar-kbd">{shortcutKey}</kbd>
+          </button>
+        ) : (
+          <button id="command-palette-trigger" class="navbar-btn" aria-label="Open command palette">
+            <Icon name={paletteIcon} class="w-5 h-5" />
+          </button>
+        )
+      )}
+
+      {siteConfig.navigation.showNavigation && siteConfig.navigation.showMobileMenu && (
+        <button id="mobile-menu-toggle" class="navbar-btn md:hidden" aria-label="Toggle menu" aria-expanded="false">
+          <Icon name="menu" class="w-5 h-5 menu-icon" />
+          <Icon name="x" class="w-5 h-5 close-icon hidden" />
+        </button>
+      )}
+    </div>
   </div>
+
+  <!-- Mobile menu panel -->
+  {siteConfig.navigation.showNavigation && siteConfig.navigation.showMobileMenu && (
+    <div id="mobile-menu" class="mobile-menu hidden" role="dialog" aria-modal="true" aria-label="Navigation">
+      <nav class="mobile-nav">
+        {siteConfig.navigation.pages.map((page, index) => {
+          const hasChildren = page.children && page.children.length > 0;
+          const hasUrl = page.url && page.url.trim() !== '';
+          const active = isActive(page.url || '');
+
+          if (hasChildren) {
+            return (
+              <div class="mobile-nav-parent" data-mobile-nav-index={index}>
+                <div class="flex items-center">
+                  {hasUrl ? (
+                    <a
+                      href={page.url}
+                      class:list={['mobile-nav-link flex-1', active && 'mobile-nav-link-active']}
+                      target={page.url.startsWith('http') ? '_blank' : undefined}
+                    >
+                      {page.title}
+                      {page.url.startsWith('http') && <Icon name="external-link" class="w-3 h-3 ml-1.5 opacity-50 inline" />}
+                    </a>
+                  ) : (
+                    <span class:list={['mobile-nav-link flex-1 cursor-default', active && 'mobile-nav-link-active']}>
+                      {page.title}
+                    </span>
+                  )}
+                  <button
+                    class="mobile-nav-toggle navbar-btn"
+                    aria-label={`Toggle ${page.title}`}
+                    aria-expanded="false"
+                    data-toggle-index={index}
+                  >
+                    <Icon name="chevron-down" class="w-4 h-4 transition-transform duration-200" />
+                  </button>
+                </div>
+                <div class="mobile-nav-children hidden">
+                  {page.children.map(child => (
+                    <a
+                      href={child.url || '#'}
+                      class="mobile-nav-link mobile-nav-child"
+                      target={child.url?.startsWith('http') ? '_blank' : undefined}
+                    >
+                      {child.title}
+                      {child.url?.startsWith('http') && <Icon name="external-link" class="w-3 h-3 ml-1.5 opacity-50 inline" />}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <a
+              href={page.url || '#'}
+              class:list={['mobile-nav-link', active && 'mobile-nav-link-active']}
+              target={page.url?.startsWith('http') ? '_blank' : undefined}
+            >
+              {page.title}
+              {page.url?.startsWith('http') && <Icon name="external-link" class="w-3 h-3 ml-1.5 opacity-50 inline" />}
+            </a>
+          );
+        })}
+      </nav>
+    </div>
+  )}
 </header>
 
 <script>
-  // Mobile menu toggle
-  document.addEventListener('DOMContentLoaded', () => {
+  function initNavbar() {
+    // ── Scroll-hide (Fuwari style) ───────────────────────────────────────
+    const header = document.getElementById('main-header');
+    if (header) {
+      let lastY = window.scrollY;
+      let hidden = false;
+      const THRESHOLD = 80;
+
+      function onScroll() {
+        const y = window.scrollY;
+        if (y > THRESHOLD && y > lastY && !hidden) {
+          header.classList.add('navbar-hidden');
+          hidden = true;
+        } else if ((y < lastY || y <= THRESHOLD) && hidden) {
+          header.classList.remove('navbar-hidden');
+          hidden = false;
+        }
+        header.classList.toggle('navbar-scrolled', y > 10);
+        lastY = y;
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
+    // ── Desktop dropdowns ────────────────────────────────────────────────
+    document.querySelectorAll<HTMLElement>('.nav-dropdown-container').forEach(container => {
+      const trigger = container.querySelector<HTMLElement>('a, button');
+      const dropdown = container.querySelector<HTMLElement>('.nav-dropdown');
+      if (!trigger || !dropdown) return;
+
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const show = () => { if (timer) clearTimeout(timer); dropdown.classList.add('open'); trigger.setAttribute('aria-expanded', 'true'); };
+      const hide = () => { timer = setTimeout(() => { dropdown.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); }, 150); };
+
+      container.addEventListener('mouseenter', show);
+      container.addEventListener('mouseleave', hide);
+      trigger.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dropdown.classList.contains('open') ? hide() : show(); }
+        if (e.key === 'Escape') { hide(); (trigger as HTMLElement).focus(); }
+      });
+    });
+
+    // ── Mobile menu toggle ───────────────────────────────────────────────
     const menuToggle = document.getElementById('mobile-menu-toggle');
     const mobileMenu = document.getElementById('mobile-menu');
 
+    function closeMobileMenu() {
+      if (!mobileMenu || mobileMenu.classList.contains('hidden')) return;
+      mobileMenu.classList.add('hidden');
+      if (menuToggle) {
+        menuToggle.querySelector('.menu-icon')?.classList.remove('hidden');
+        menuToggle.querySelector('.close-icon')?.classList.add('hidden');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      }
+    }
+
     if (menuToggle && mobileMenu) {
       menuToggle.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
+        const open = mobileMenu.classList.toggle('hidden');
+        menuToggle.querySelector('.menu-icon')?.classList.toggle('hidden', !open);
+        menuToggle.querySelector('.close-icon')?.classList.toggle('hidden', open);
+        menuToggle.setAttribute('aria-expanded', String(!open));
+      });
 
-        // Update menu icon and ARIA attribute
-        const menuIcon = menuToggle.querySelector('.menu-icon');
-        const closeIcon = menuToggle.querySelector('.close-icon');
-        if (menuIcon && closeIcon) {
-          if (mobileMenu.classList.contains('hidden')) {
-            menuIcon.classList.remove('hidden');
-            closeIcon.classList.add('hidden');
-            menuToggle.setAttribute('aria-expanded', 'false');
-          } else {
-            menuIcon.classList.add('hidden');
-            closeIcon.classList.remove('hidden');
-            menuToggle.setAttribute('aria-expanded', 'true');
-          }
-        }
+      mobileMenu.querySelectorAll('nav a').forEach(a => a.addEventListener('click', closeMobileMenu));
+
+      document.addEventListener('click', e => {
+        if (!(e.target as Element).closest('#mobile-menu-toggle, #mobile-menu')) closeMobileMenu();
       });
     }
 
-    // Desktop dropdown menu hover behavior
-    const dropdownContainers = document.querySelectorAll('.nav-dropdown-container');
-    let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    dropdownContainers.forEach(container => {
-      const trigger = container.querySelector('a, button');
-      const dropdown = container.querySelector('.nav-dropdown-menu') as HTMLElement;
-      
-      if (!trigger || !dropdown) return;
-
-      const showDropdown = () => {
-        if (hoverTimeout) {
-          clearTimeout(hoverTimeout);
-          hoverTimeout = null;
-        }
-        dropdown.classList.remove('hidden');
-        trigger.setAttribute('aria-expanded', 'true');
-      };
-
-      const hideDropdown = () => {
-        hoverTimeout = window.setTimeout(() => {
-          dropdown.classList.add('hidden');
-          trigger.setAttribute('aria-expanded', 'false');
-        }, 150); // Small delay to prevent accidental closes
-      };
-
-      // Show on hover
-      container.addEventListener('mouseenter', showDropdown);
-      container.addEventListener('mouseleave', hideDropdown);
-
-      // Keyboard navigation
-      trigger.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          if (dropdown.classList.contains('hidden')) {
-            showDropdown();
-          } else {
-            hideDropdown();
-          }
-        } else if (e.key === 'Escape') {
-          hideDropdown();
-          trigger.focus();
-        }
+    // ── Mobile accordion ─────────────────────────────────────────────────
+    document.querySelectorAll<HTMLElement>('.mobile-nav-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parent = btn.closest('.mobile-nav-parent');
+        const children = parent?.querySelector<HTMLElement>('.mobile-nav-children');
+        const icon = btn.querySelector('svg');
+        if (!children) return;
+        const open = children.classList.toggle('hidden');
+        icon?.classList.toggle('rotate-180', !open);
+        btn.setAttribute('aria-expanded', String(!open));
       });
     });
 
-    // Mobile accordion functionality
-    const mobileNavToggles = document.querySelectorAll('.mobile-nav-toggle');
-    mobileNavToggles.forEach(toggle => {
-      toggle.addEventListener('click', () => {
-        const index = toggle.getAttribute('data-toggle-index');
-        const parent = toggle.closest('.mobile-nav-parent');
-        const children = parent?.querySelector('.mobile-nav-children') as HTMLElement;
-        const icon = toggle.querySelector('svg');
-        
-        if (!children || !icon) return;
-
-        const isExpanded = !children.classList.contains('hidden');
-        
-        if (isExpanded) {
-          children.classList.add('hidden');
-          icon.classList.remove('rotate-180');
-          toggle.setAttribute('aria-expanded', 'false');
-        } else {
-          children.classList.remove('hidden');
-          icon.classList.add('rotate-180');
-          toggle.setAttribute('aria-expanded', 'true');
-        }
-      });
+    // ── Command palette triggers ─────────────────────────────────────────
+    ['command-palette-trigger', 'command-palette-trigger-mobile'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () =>
+        window.dispatchEvent(new CustomEvent('openCommandPalette'))
+      );
     });
 
-    // Function to close mobile menu
-    function closeMobileMenu() {
-      if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
-        mobileMenu.classList.add('hidden');
-        
-        // Update menu icon and ARIA attribute
-        if (menuToggle) {
-          const menuIcon = menuToggle.querySelector('.menu-icon');
-          const closeIcon = menuToggle.querySelector('.close-icon');
-          if (menuIcon && closeIcon) {
-            menuIcon.classList.remove('hidden');
-            closeIcon.classList.add('hidden');
-            menuToggle.setAttribute('aria-expanded', 'false');
-          }
-        }
+    // ── Feature buttons ──────────────────────────────────────────────────
+    document.getElementById('header-graph-button')?.addEventListener('click', () => {
+      if ((window as any).openGraphModal) (window as any).openGraphModal();
+    });
+
+    document.getElementById('header-theme-button')?.addEventListener('click', () => {
+      if ((window as any).siteConfig?.commandPalette?.enabled) {
+        window.dispatchEvent(new CustomEvent('openCommandPalette'));
+      } else {
+        (window as any).themeSelectorInstance?.open?.();
       }
-    }
-
-    // Close mobile menu when navigation links are clicked
-    const mobileMenuLinks = mobileMenu?.querySelectorAll('nav a');
-    mobileMenuLinks?.forEach(link => {
-      link.addEventListener('click', () => {
-        closeMobileMenu();
-      });
     });
 
-    // Make closeMobileMenu globally accessible for other components
+    // ── Desktop nav tab order on resize ─────────────────────────────────
+    function syncTabOrder() {
+      const nav = document.querySelector('.nav-desktop');
+      nav?.querySelectorAll<HTMLAnchorElement>('a').forEach(a => {
+        a.tabIndex = window.innerWidth < 768 ? -1 : 0;
+      });
+    }
+    syncTabOrder();
+    window.addEventListener('resize', syncTabOrder);
+
+    // ── Global close helper ──────────────────────────────────────────────
     (window as any).closeMobileMenu = closeMobileMenu;
+  }
 
-    // Close mobile menu when clicking outside of it
-    document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      const isMenuToggle = target.closest('#mobile-menu-toggle');
-      const isMobileMenu = target.closest('#mobile-menu');
-      
-      // If clicking outside the menu and toggle button, close the menu
-      if (!isMenuToggle && !isMobileMenu && mobileMenu && !mobileMenu.classList.contains('hidden')) {
-        closeMobileMenu();
-      }
-    });
-
-    // Command palette triggers
-    const triggers = [
-      document.getElementById('command-palette-trigger'),
-      document.getElementById('command-palette-trigger-mobile')
-    ].filter(Boolean);
-
-    triggers.forEach(trigger => {
-      trigger?.addEventListener('click', () => {
-        const event = new CustomEvent('openCommandPalette');
-        window.dispatchEvent(event);
-      });
-    });
-
-    // Theme toggle and command palette shortcuts are handled in BaseLayout
-
-    // Header feature button handlers
-    const headerGraphButton = document.getElementById('header-graph-button');
-    if (headerGraphButton) {
-      headerGraphButton.addEventListener('click', () => {
-        if ((window as any).openGraphModal) {
-          (window as any).openGraphModal();
-        } else {
-          // Try to initialize GraphModal if it's not available
-          if ((window as any).initializeGraphModal) {
-            (window as any).initializeGraphModal();
-            // Try again after initialization
-            setTimeout(() => {
-              if ((window as any).openGraphModal) {
-                (window as any).openGraphModal();
-              }
-            }, 100);
-          }
-        }
-      });
-    }
-
-    const headerThemeButton = document.getElementById('header-theme-button');
-    if (headerThemeButton) {
-      headerThemeButton.addEventListener('click', () => {
-        // Check if command palette is enabled
-        const commandPaletteEnabled = (window as any).siteConfig?.commandPalette?.enabled;
-        
-        if (commandPaletteEnabled) {
-          // Use command palette for theme selection
-          const event = new CustomEvent('openCommandPalette');
-          window.dispatchEvent(event);
-          
-          // After a brief delay, trigger theme selection
-          setTimeout(() => {
-            const commandPalette = (window as any).commandPaletteInstance;
-            if (commandPalette && commandPalette.executeAction) {
-              commandPalette.executeAction('change-theme');
-            }
-          }, 100);
-        } else {
-          // Use standalone theme selector
-          const themeSelector = (window as any).themeSelectorInstance;
-          if (themeSelector && themeSelector.open) {
-            themeSelector.open();
-          }
-        }
-      });
-    }
-
-    // Nav links: remove from tab order when viewport < md so hidden nav is not focusable
-    function updateNavLinksTabIndex() {
-      const nav = document.querySelector('.nav-desktop-audit-visible');
-      if (!nav) return;
-      const links = nav.querySelectorAll('a');
-      const narrow = window.innerWidth < 768;
-      links.forEach((link: HTMLAnchorElement) => {
-        if (narrow) link.setAttribute('tabindex', '-1');
-        else link.removeAttribute('tabindex');
-      });
-    }
-    updateNavLinksTabIndex();
-    window.addEventListener('resize', updateNavLinksTabIndex);
-
-    // Header shadow on scroll
-    const header = document.getElementById('main-header');
-    if (header) {
-      let isScrolled = false;
-      
-      
-      const updateHeaderShadow = () => {
-        const scrollY = window.scrollY;
-        const shouldHaveShadow = scrollY > 0;
-        
-        if (shouldHaveShadow !== isScrolled) {
-          isScrolled = shouldHaveShadow;
-          if (shouldHaveShadow) {
-            header.classList.add('shadow-sm');
-          } else {
-            header.classList.remove('shadow-sm');
-          }
-        }
-      };
-
-      // Initial check
-      updateHeaderShadow();
-      
-      // Listen for scroll events
-      window.addEventListener('scroll', updateHeaderShadow, { passive: true });
-    }
-  });
+  document.addEventListener('DOMContentLoaded', initNavbar);
+  document.addEventListener('swup:page:view', initNavbar);
 </script>
 
 <style>
-  /* Keep nav in DOM for audit innerText; visually hidden on small viewports; tab order fixed via JS */
-  .nav-desktop-audit-visible {
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    clip-path: inset(50%);
+  /* ── Root: sticky, full-width, frosted glass ─────────────────────────── */
+  .navbar-root {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    width: 100%;
+    background: rgb(var(--color-base-50) / 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgb(var(--color-primary-200) / 0.5);
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.2s ease;
   }
-  @media (min-width: 768px) {
-    .nav-desktop-audit-visible {
-      position: static;
-      width: auto;
-      height: auto;
-      overflow: visible;
-      clip: auto;
-      clip-path: none;
-    }
+  :global(.dark) .navbar-root {
+    background: rgb(var(--color-primary-950, var(--color-primary-900)) / 0.88);
+    border-bottom-color: rgb(var(--color-primary-800) / 0.5);
   }
 
-  /* Dropdown menu styles */
-  .nav-dropdown-container {
+  /* Scroll-hide state */
+  .navbar-root.navbar-hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Shadow once scrolled */
+  .navbar-root.navbar-scrolled {
+    box-shadow: 0 1px 12px rgb(0 0 0 / 0.07);
+  }
+  :global(.dark) .navbar-root.navbar-scrolled {
+    box-shadow: 0 1px 12px rgb(0 0 0 / 0.25);
+  }
+
+  /* ── Inner: constrained width, flex row ──────────────────────────────── */
+  .navbar-inner {
+    display: flex;
+    align-items: center;
+    height: 4.5rem;
+    max-width: min(96vw, 1600px);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    gap: 1rem;
+  }
+
+  /* ── Logo ────────────────────────────────────────────────────────────── */
+  .navbar-logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+  .navbar-logo:hover { opacity: 0.75; }
+
+  .navbar-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(var(--color-primary-900));
+    letter-spacing: -0.01em;
+  }
+  :global(.dark) .navbar-title { color: rgb(var(--color-primary-50)); }
+
+  /* ── Desktop nav ─────────────────────────────────────────────────────── */
+  .navbar-nav {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+
+  .nav-desktop { display: none; }
+  @media (min-width: 768px) { .nav-desktop { display: flex; } }
+
+  /* ── Nav links — expand-animation hover (Fuwari style) ──────────────── */
+  .nav-link {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--color-primary-600));
+    text-decoration: none;
+    transition: color 0.15s;
+    white-space: nowrap;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+  :global(.dark) .nav-link { color: rgb(var(--color-primary-300)); }
+
+  /* Expand-animation: pseudo bg grows from 85% → 100% on hover */
+  .nav-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgb(var(--color-primary-100));
+    transform: scale(0.85);
+    opacity: 0;
+    transition: transform 0.2s ease, opacity 0.15s ease;
+  }
+  :global(.dark) .nav-link::before { background: rgb(var(--color-primary-800)); }
+
+  .nav-link:hover::before,
+  .nav-link:focus-visible::before {
+    transform: scale(1);
+    opacity: 1;
+  }
+  .nav-link > * { position: relative; z-index: 1; }
+
+  .nav-link:hover,
+  .nav-link:focus-visible {
+    color: rgb(var(--color-highlight-600));
+  }
+  :global(.dark) .nav-link:hover,
+  :global(.dark) .nav-link:focus-visible {
+    color: rgb(var(--color-highlight-400));
   }
 
-  .nav-dropdown-menu {
-    min-width: 200px;
-    max-width: 300px;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  /* Active state */
+  .nav-link-active {
+    color: rgb(var(--color-highlight-600));
+    font-weight: 600;
+  }
+  :global(.dark) .nav-link-active { color: rgb(var(--color-highlight-400)); }
+  .nav-link-active::before { transform: scale(1); opacity: 1; }
+
+  /* ── Dropdown ────────────────────────────────────────────────────────── */
+  .nav-dropdown-container { position: relative; }
+
+  .nav-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    min-width: 12rem;
+    background: rgb(var(--color-base-50));
+    border: 1px solid rgb(var(--color-primary-200) / 0.7);
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.1);
+    padding: 0.375rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 60;
+  }
+  :global(.dark) .nav-dropdown {
+    background: rgb(var(--color-primary-900));
+    border-color: rgb(var(--color-primary-700) / 0.6);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
+  }
+  .nav-dropdown.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
   }
 
-  .dark .nav-dropdown-menu {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+  .nav-dropdown-item {
+    display: block;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: rgb(var(--color-primary-600));
+    text-decoration: none;
+    transition: background 0.12s, color 0.12s;
+  }
+  :global(.dark) .nav-dropdown-item { color: rgb(var(--color-primary-300)); }
+  .nav-dropdown-item:hover {
+    background: rgb(var(--color-primary-100));
+    color: rgb(var(--color-highlight-600));
+  }
+  :global(.dark) .nav-dropdown-item:hover {
+    background: rgb(var(--color-primary-800));
+    color: rgb(var(--color-highlight-400));
   }
 
-  /* Mobile accordion styles */
-  .mobile-nav-parent {
-    margin-bottom: 0.25rem;
+  /* ── Action buttons ──────────────────────────────────────────────────── */
+  .navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .navbar-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: transparent;
+    color: rgb(var(--color-primary-500));
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  :global(.dark) .navbar-btn { color: rgb(var(--color-primary-400)); }
+
+  /* Expand-animation on action buttons too */
+  .navbar-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgb(var(--color-primary-100));
+    transform: scale(0.8);
+    opacity: 0;
+    transition: transform 0.2s ease, opacity 0.15s ease;
+  }
+  :global(.dark) .navbar-btn::before { background: rgb(var(--color-primary-800)); }
+  .navbar-btn:hover::before { transform: scale(1); opacity: 1; }
+  .navbar-btn:hover { color: rgb(var(--color-highlight-600)); }
+  :global(.dark) .navbar-btn:hover { color: rgb(var(--color-highlight-400)); }
+  .navbar-btn > * { position: relative; z-index: 1; }
+
+  /* Keyboard shortcut badge variant */
+  .navbar-btn-kbd {
+    padding: 0.35rem 0.6rem;
+    gap: 0.35rem;
+  }
+  .navbar-kbd {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgb(var(--color-primary-500));
+    background: rgb(var(--color-primary-100));
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 0.3rem;
+    padding: 0.1em 0.35em;
+    font-family: ui-monospace, monospace;
+  }
+  :global(.dark) .navbar-kbd {
+    color: rgb(var(--color-primary-400));
+    background: rgb(var(--color-primary-800));
+    border-color: rgb(var(--color-primary-700));
+  }
+
+  /* ── Mobile menu panel ───────────────────────────────────────────────── */
+  .mobile-menu {
+    border-top: 1px solid rgb(var(--color-primary-200) / 0.5);
+    background: rgb(var(--color-base-50) / 0.97);
+    backdrop-filter: blur(16px);
+  }
+  :global(.dark) .mobile-menu {
+    border-top-color: rgb(var(--color-primary-800) / 0.5);
+    background: rgb(var(--color-primary-950, var(--color-primary-900)) / 0.97);
+  }
+
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem 1.5rem 1rem;
+    gap: 0.125rem;
+  }
+
+  .mobile-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgb(var(--color-primary-600));
+    text-decoration: none;
+    transition: background 0.12s, color 0.12s;
+  }
+  :global(.dark) .mobile-nav-link { color: rgb(var(--color-primary-300)); }
+  .mobile-nav-link:hover {
+    background: rgb(var(--color-primary-100));
+    color: rgb(var(--color-highlight-600));
+  }
+  :global(.dark) .mobile-nav-link:hover {
+    background: rgb(var(--color-primary-800));
+    color: rgb(var(--color-highlight-400));
+  }
+  .mobile-nav-link-active {
+    color: rgb(var(--color-highlight-600));
+    background: rgb(var(--color-highlight-50));
+    font-weight: 600;
+  }
+  :global(.dark) .mobile-nav-link-active {
+    color: rgb(var(--color-highlight-400));
+    background: rgb(var(--color-highlight-900) / 0.25);
+  }
+
+  .mobile-nav-child {
+    padding-left: 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 400;
   }
 
   .mobile-nav-children {
-    padding-left: 1rem;
-    margin-top: 0.25rem;
+    padding-left: 0.5rem;
     border-left: 2px solid rgb(var(--color-primary-200));
+    margin-left: 0.75rem;
+    margin-top: 0.125rem;
+    margin-bottom: 0.25rem;
   }
-
-  .dark .mobile-nav-children {
+  :global(.dark) .mobile-nav-children {
     border-left-color: rgb(var(--color-primary-700));
-  }
-
-  .mobile-nav-toggle svg {
-    transition: transform 0.2s ease;
-  }
-
-  .mobile-nav-toggle svg.rotate-180 {
-    transform: rotate(180deg);
-  }
-
-  /* Command palette grouped navigation styles */
-  .command-palette-nav-group {
-    margin-bottom: 0.5rem;
   }
 </style>

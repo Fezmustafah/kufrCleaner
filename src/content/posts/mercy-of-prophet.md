@@ -5,6 +5,9 @@ description: ""
 tags:
   - Muhammad
   - ProphetMuhammad
+  - seerah
+  - mercy
+  - character
 image: ""
 imageAlt: ""
 imageOG: false

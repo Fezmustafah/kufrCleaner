@@ -2,7 +2,10 @@
 title: God created Adam in His image
 date: 2026-04-11
 description: ""
-tags: []
+tags:
+  - aqidah
+  - theology
+  - creation
 image: ""
 imageAlt: ""
 imageOG: false
@@ -11,6 +14,7 @@ hideTOC: false
 targetKeyword: ""
 draft: false
 aliases: []
+category: Islam
 modified: 2026-04-11T22:54:29+04:00
 created: 2026-04-11T21:48:08+04:00
 ---
