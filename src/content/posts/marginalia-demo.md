@@ -125,10 +125,10 @@ Include inline code {{Use `const x = 42` for constants}} or technical terms {{Th
 
 ### Images
 
-You can even include images in marginalia {{![FCnU1qbWQAM CV5 f18b49207c5f01b5](https://pub-7bca7524425e4a1b8efbb7265e7ec52e.r2.dev/attachments/FCnU1qbWQAM-CV5-f18b49207c5f01b5.png)}}. They'll be constrained to the margin column width automatically.
+You can even include images in marginalia {{![[posts/attachments/88acf6563f174e9268b08f386fdbfd38_MD5.png]]}}. They'll be constrained to the margin column width automatically.
 
 another image
-{{![FCnVIs8WUAktsXD 9dcadfa94bae1697](https://pub-7bca7524425e4a1b8efbb7265e7ec52e.r2.dev/attachments/FCnVIs8WUAktsXD-9dcadfa94bae1697.png)}}.
+{{![[posts/attachments/094866a0ec7e285b7b71803275f0aae2_MD5.png]]}}.
 ## Conclusion
 
 Marginalia provide a elegant way to add commentary {{Without breaking flow}} to your digital garden. They're especially effective on wide screens {{Where space is plentiful}} and gracefully degrade on mobile {{Becoming numbered notes}}.
