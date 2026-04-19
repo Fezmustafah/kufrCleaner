@@ -1631,3 +1631,103 @@ svg:has(text:contains("mermaid version")) {
   outline: 2px solid;
   outline-offset: 2px;
 }
+
+/* ── Fuwari-compatible CSS vars ──────────────────────────────────────────── */
+:root {
+  --page-width: 75rem;
+  --primary: rgb(var(--color-highlight-600));
+  --card-bg: white;
+  --btn-plain-bg-hover: rgb(var(--color-primary-100));
+  --btn-plain-bg-active: rgb(var(--color-primary-200));
+  --radius-large: 1rem;
+  --float-panel-bg: white;
+}
+.dark {
+  --primary: rgb(var(--color-highlight-400));
+  --card-bg: rgb(var(--color-primary-900));
+  --btn-plain-bg-hover: rgb(var(--color-primary-800));
+  --btn-plain-bg-active: rgb(var(--color-primary-700));
+  --float-panel-bg: rgb(var(--color-primary-900));
+}
+
+/* ── Fuwari utility classes (plain CSS — @apply pseudo-element variants are unreliable) ── */
+.btn-plain {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: rgb(0 0 0 / 0.75);
+  transition: color 0.15s ease;
+  cursor: pointer;
+  border: none;
+}
+.dark .btn-plain { color: rgb(255 255 255 / 0.75); }
+.btn-plain:hover { color: var(--primary); }
+
+.btn-plain:not(.scale-animation):hover { background-color: var(--btn-plain-bg-hover); }
+.btn-plain:not(.scale-animation):active { background-color: var(--btn-plain-bg-active); }
+
+/* expand-animation: pseudo-bg grows 85%→100% on hover */
+.btn-plain.scale-animation {
+  z-index: 0;
+}
+.btn-plain.scale-animation::before {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  inset: 0;
+  z-index: -1;
+  transform: scale(0.85);
+  transition: transform 0.2s ease-out, background-color 0.15s ease-out;
+}
+.btn-plain.scale-animation:hover::before {
+  background-color: var(--btn-plain-bg-hover);
+  transform: scale(1);
+}
+.btn-plain.scale-animation:active::before {
+  background-color: var(--btn-plain-bg-active);
+}
+
+.card-base {
+  border-radius: var(--radius-large);
+  overflow: hidden;
+  background-color: var(--card-bg);
+  transition: background-color 0.2s ease;
+}
+
+.float-panel {
+  top: 5.25rem;
+  border-radius: var(--radius-large);
+  overflow: hidden;
+  background-color: var(--float-panel-bg);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 20px 40px rgb(0 0 0 / 0.12);
+}
+.dark .float-panel { box-shadow: none; }
+
+.float-panel-closed {
+  transform: translateY(-0.25rem);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* navbar-hidden: fuwari scroll-past-banner hide */
+.navbar-hidden {
+  opacity: 0;
+  transform: translateY(-4rem);
+}
+
+/* ── Onload animation ────────────────────────────────────────────────────── */
+@keyframes fade-in-up {
+  0% { transform: translateY(2rem); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.onload-animation {
+  opacity: 0;
+  animation: 300ms fade-in-up;
+  animation-fill-mode: forwards;
+}
+#navbar {
+  animation-delay: 0ms;
+}

@@ -2,11 +2,9 @@
 import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
 import { siteConfig } from '@/config';
-import { shouldShowPost, sortPostsByDate, extractCategories, extractTags } from '@/utils/markdown';
+import { shouldShowPost, sortPostsByDate, extractCategories } from '@/utils/markdown';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
-import Categories from '@/components/Categories.astro';
-import Tags from '@/components/Tags.astro';
 import Pagination from '@/components/Pagination.astro';
 import Icon from '@/components/Icon.astro';
 
@@ -21,17 +19,16 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
     return allCategories.map(category => ({
       params: { category },
-      props: { category, allPosts: sortedPosts, allCategories }
+      props: { category, allPosts: sortedPosts }
     }));
   } catch (error) {
     return [];
   }
 };
 
-const { category, allPosts, allCategories } = Astro.props as {
+const { category, allPosts } = Astro.props as {
   category: string;
   allPosts: any[];
-  allCategories: string[];
 };
 const isDev = import.meta.env.DEV;
 
@@ -44,9 +41,6 @@ const filteredPosts = allPosts.filter((post: any) => {
   const cat = post.data.category;
   return cat && typeof cat === 'string' && cat.trim() === category.trim();
 });
-
-// Extract tags for sidebar
-const allTags = extractTags(allPosts);
 
 // Pagination
 const postsPerPage = siteConfig.postOptions.postsPerPage;
@@ -148,27 +142,6 @@ const pagination = {
           )}
         </div>
 
-        <!-- Mobile sidebar -->
-        <div class="xl:hidden mt-12 space-y-6">
-          {siteConfig.postOptions.categories && allCategories.length > 0 && (
-            <Categories categories={allCategories} currentCategory={category} />
-          )}
-          {siteConfig.postOptions.tags && allTags.length > 0 && (
-            <Tags tags={allTags} />
-          )}
-        </div>
-
-        <!-- Desktop sidebar -->
-        <div class="hidden xl:block absolute top-0 left-full ml-8 w-64">
-          <div class="sticky top-24 space-y-3 max-h-[calc(100vh-12rem)] overflow-y-auto pb-6">
-            {siteConfig.postOptions.categories && allCategories.length > 0 && (
-              <Categories categories={allCategories} currentCategory={category} />
-            )}
-            {siteConfig.postOptions.tags && allTags.length > 0 && (
-              <Tags tags={allTags} />
-            )}
-          </div>
-        </div>
       </div>
     </div>
   </div>

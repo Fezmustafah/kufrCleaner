@@ -99,7 +99,14 @@ export interface SiteConfig {
     pages: NavigationItem[];
     social: Array<{ title: string; url: string; icon: string }>;
   };
-  
+
+  // Banner
+  banner: {
+    enable: boolean;
+    src: string;
+    position: 'top' | 'center' | 'bottom';
+  };
+
   // Home Options
   homeOptions: {
     featuredPost: {
@@ -251,6 +258,16 @@ export const siteConfig: SiteConfig = {
     platform: "netlify", // "netlify" | "vercel" | "github-pages" | "cloudflare-workers" - sets redirect configuration for the chosen platform (Cloudflare Workers uses Workers-compatible config)
   },
 
+  // Banner
+  banner: {
+    // [CONFIG:BANNER_ENABLE]
+    enable: true,
+    // [CONFIG:BANNER_SRC] Path to banner image (place file in public/)
+    src: '/open-graph.png',
+    // [CONFIG:BANNER_POSITION] CSS object-position: 'top' | 'center' | 'bottom'
+    position: 'center',
+  },
+
   // Command Palette
   commandPalette: {
     // [CONFIG:COMMAND_PALETTE_ENABLED]
@@ -318,16 +335,13 @@ export const siteConfig: SiteConfig = {
     // [CONFIG:NAVIGATION_PAGES]
     pages: [
       { title: "Posts", url: "/posts/" },
-      { title: "Bases", url: "/base/" },
-      { title: "Projects", url: "/projects/" },
-      { title: "Manuscripts", url: "/manuscripts/" },
-      { title: "Bibliography", url: "/bibliography/" },
-      { title: "Docs", url: "/docs/" },
+      { title: "Tags", url: "/posts/tag/" },
+      { title: "Categories", url: "/posts/category/" },
+      { title: "Search", url: "/search/" },
       { title: "About", url: "/about/",
         children: [
           { title: "Privacy Policy", url: "/privacy-policy/" }
         ] },
-      { title: "GitHub", url: "https://github.com/davidvkimball/astro-modular" }
     ],
     // [CONFIG:NAVIGATION_SOCIAL]
     social: [

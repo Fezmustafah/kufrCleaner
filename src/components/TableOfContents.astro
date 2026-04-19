@@ -1,6 +1,5 @@
 ---
 import type { Heading } from '@/types';
-import Icon from './Icon.astro';
 import { getTableOfContentsDepth } from '@/config';
 
 export interface Props {
@@ -28,11 +27,6 @@ const processedHeadings = filteredHeadings.map(h => {
 
 {shouldShowTOC && (
   <nav class="toc-nav" data-max-depth={maxDepth}>
-    <div class="toc-header">
-      <Icon name="list" class="toc-header-icon" />
-      <span class="toc-header-title">Contents</span>
-    </div>
-
     <div class="toc-scroll-container" id="toc-scroll-container">
       <div class="toc-content" id="toc-content-list">
         {processedHeadings.map(h => (
@@ -54,7 +48,6 @@ const processedHeadings = filteredHeadings.map(h => {
             <span class={`toc-label ${h.isTop ? 'toc-label-primary' : h.level === 2 ? 'toc-label-primary' : 'toc-label-secondary'}`}>{h.text}</span>
           </a>
         ))}
-        <!-- Indicator inside toc-content so getBoundingClientRect is relative to it -->
         <div class="toc-active-indicator" id="toc-active-indicator"></div>
       </div>
     </div>
@@ -78,7 +71,6 @@ const processedHeadings = filteredHeadings.map(h => {
 
     if (scrollContainer) scrollContainer.style.maxHeight = 'calc(100vh - 20rem)';
 
-    // Collect content headings
     const maxDepth = parseInt(nav.dataset.maxDepth || '6', 10);
     const selectors: string[] = [];
     for (let i = 2; i <= Math.min(maxDepth, 6); i++) selectors.push(`h${i}`);
@@ -92,26 +84,25 @@ const processedHeadings = filteredHeadings.map(h => {
     }
     if (!headings.length) return;
 
-    // ── Exact Firefly getVisibleHeadingIds from toc-utils.ts ────────────────
     function getVisibleHeadingIds(): string[] {
       const visibleHeadingIds: string[] = [];
 
       headings.forEach(heading => {
         if (heading.id) {
           const rect = heading.getBoundingClientRect();
-          const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-          if (isVisible) visibleHeadingIds.push(heading.id);
+          if (rect.top < window.innerHeight && rect.bottom > 0) {
+            visibleHeadingIds.push(heading.id);
+          }
         }
       });
 
-      // Fallback: no visible headings — find closest to top of screen
+      // Fallback: no visible headings — find closest to viewport top (last heading scrolled past)
       if (visibleHeadingIds.length === 0 && headings.length > 0) {
         let closestHeading: string | null = null;
         let minDistance = Number.POSITIVE_INFINITY;
         headings.forEach(heading => {
           if (heading.id) {
-            const rect = heading.getBoundingClientRect();
-            const distance = Math.abs(rect.top);
+            const distance = Math.abs(heading.getBoundingClientRect().top);
             if (distance < minDistance) {
               minDistance = distance;
               closestHeading = heading.id;
@@ -124,27 +115,32 @@ const processedHeadings = filteredHeadings.map(h => {
       return visibleHeadingIds;
     }
 
-    // ── Firefly: scroll TOC sidebar to center the active item ───────────────
-    function scrollToActiveItem(activeItem: HTMLElement): void {
-      if (!scrollContainer) return;
+    // Fuwari-style autoscroll: if all active items fit in 90% of TOC → scroll to topmost;
+    // otherwise scroll bottommost to 80% down.
+    function scrollToActiveItem(activeItems: HTMLAnchorElement[]): void {
+      if (!scrollContainer || !activeItems.length) return;
       if (scrollTimeout) clearTimeout(scrollTimeout);
 
       scrollTimeout = window.setTimeout(() => {
-        const containerRect = scrollContainer.getBoundingClientRect();
-        const itemRect = activeItem.getBoundingClientRect();
-        const isVisible = itemRect.top >= containerRect.top && itemRect.bottom <= containerRect.bottom;
+        const topmost = activeItems[0];
+        const bottommost = activeItems[activeItems.length - 1];
+        const tocHeight = scrollContainer.clientHeight;
+        const contentOffset = tocContent ? tocContent.offsetTop : 0;
 
-        if (!isVisible) {
-          // activeItem.offsetTop is relative to tocContent (its offsetParent).
-          // Add tocContent.offsetTop to get position relative to scrollContainer.
-          const contentOffset = tocContent ? tocContent.offsetTop : 0;
-          const targetScroll = contentOffset + activeItem.offsetTop - scrollContainer.clientHeight / 2 + activeItem.clientHeight / 2;
-          scrollContainer.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+        let top: number;
+        if (
+          bottommost.getBoundingClientRect().bottom -
+          topmost.getBoundingClientRect().top < 0.9 * tocHeight
+        ) {
+          top = contentOffset + topmost.offsetTop - 32;
+        } else {
+          top = contentOffset + bottommost.offsetTop - tocHeight * 0.8;
         }
+
+        scrollContainer.scrollTo({ top: Math.max(0, top), left: 0, behavior: 'smooth' });
       }, 100);
     }
 
-    // ── Firefly: position indicator using getBoundingClientRect ─────────────
     function updateActiveIndicator(activeItems: HTMLAnchorElement[]): void {
       if (!indicator || !tocContent) return;
       if (activeItems.length === 0) { indicator.style.opacity = '0'; return; }
@@ -153,33 +149,27 @@ const processedHeadings = filteredHeadings.map(h => {
       const firstRect = activeItems[0].getBoundingClientRect();
       const lastRect  = activeItems[activeItems.length - 1].getBoundingClientRect();
 
-      const top    = firstRect.top - contentRect.top;
-      const height = lastRect.bottom - firstRect.top;
-
-      indicator.style.top    = `${top}px`;
-      indicator.style.height = `${height}px`;
+      indicator.style.top    = `${firstRect.top - contentRect.top}px`;
+      indicator.style.height = `${lastRect.bottom - firstRect.top}px`;
       indicator.style.opacity = '1';
 
-      scrollToActiveItem(activeItems[0]);
+      scrollToActiveItem(activeItems);
     }
 
-    // ── Firefly: update all active states ───────────────────────────────────
     function updateActiveState(): void {
       if (!tocItems.length) return;
       const visibleIds = getVisibleHeadingIds();
 
       tocItems.forEach(item => item.classList.remove('visible'));
 
-      const activeItems = tocItems.filter(item => {
-        const id = item.getAttribute('data-heading') || '';
-        return visibleIds.includes(id);
-      });
+      const activeItems = tocItems.filter(item =>
+        visibleIds.includes(item.getAttribute('data-heading') || '')
+      );
 
       activeItems.forEach(item => item.classList.add('visible'));
       updateActiveIndicator(activeItems);
     }
 
-    // ── IntersectionObserver just triggers a recalc (Firefly pattern) ───────
     if (tocObserver) tocObserver.disconnect();
 
     tocObserver = new IntersectionObserver(() => {
@@ -190,8 +180,6 @@ const processedHeadings = filteredHeadings.map(h => {
     });
 
     headings.forEach(h => tocObserver!.observe(h));
-
-    // Initial state
     updateActiveState();
   }
 
@@ -205,62 +193,36 @@ const processedHeadings = filteredHeadings.map(h => {
 </script>
 
 <style>
-  /* ── Container ─────────────────────────────────────────────────────────── */
+  /* ── Container — no card, matches fuwari's clean list ─────────────────── */
   .toc-nav {
-    background: rgb(var(--color-base-50));
-    border: 1px solid rgb(var(--color-primary-200) / 0.7);
-    border-radius: 0.875rem;
-    overflow: hidden;
     width: 100%;
     box-sizing: border-box;
-    margin-top: 1rem;
-  }
-  :global(.dark) .toc-nav {
-    background: rgb(var(--color-primary-900));
-    border-color: rgb(var(--color-primary-700) / 0.6);
   }
 
-  /* ── Header ────────────────────────────────────────────────────────────── */
-  .toc-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem 0.5rem;
-    border-bottom: 1px solid rgb(var(--color-primary-200) / 0.5);
-  }
-  :global(.dark) .toc-header {
-    border-bottom-color: rgb(var(--color-primary-700) / 0.4);
-  }
-  .toc-header-icon {
-    width: 0.9rem;
-    height: 0.9rem;
-    color: rgb(var(--color-highlight-600));
-    flex-shrink: 0;
-  }
-  :global(.dark) .toc-header-icon {
-    color: rgb(var(--color-highlight-400));
-  }
-  .toc-header-title {
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: rgb(var(--color-primary-500));
-  }
-  :global(.dark) .toc-header-title {
-    color: rgb(var(--color-primary-400));
-  }
-
-  /* ── Scroll container ──────────────────────────────────────────────────── */
+  /* ── Scroll container — fade mask at top/bottom (fuwari toc-inner-wrapper) */
   .toc-scroll-container {
     position: relative;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
-    padding: 0.25rem 0.125rem 1.25rem;
+    padding: 0.5rem 0.125rem 1.5rem;
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--color-primary-300) / 0.5) transparent;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black 1.5rem,
+      black calc(100% - 1.5rem),
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black 1.5rem,
+      black calc(100% - 1.5rem),
+      transparent
+    );
   }
   :global(.dark) .toc-scroll-container {
     scrollbar-color: rgb(var(--color-primary-600) / 0.4) transparent;
@@ -275,7 +237,7 @@ const processedHeadings = filteredHeadings.map(h => {
     background: rgb(var(--color-primary-600) / 0.4);
   }
 
-  /* ── Content list — exact Firefly toc.css ─────────────────────────────── */
+  /* ── Content list ─────────────────────────────────────────────────────── */
   .toc-content {
     display: flex;
     flex-direction: column;
@@ -312,7 +274,6 @@ const processedHeadings = filteredHeadings.map(h => {
     padding: 0.48rem 0.62rem;
     min-height: 2.2rem;
   }
-
   .toc-item:hover {
     background: rgb(var(--color-primary-100) / 0.84);
     transform: translateX(1px);
@@ -321,29 +282,41 @@ const processedHeadings = filteredHeadings.map(h => {
     background: rgb(var(--color-primary-800) / 0.84);
   }
 
-  /* Indentation — 0-based levels matching Firefly */
+  /* Indentation */
   .toc-level-0 { padding-left: 0.62rem; }
   .toc-level-1 { padding-left: 1.08rem; }
   .toc-level-2 { padding-left: 1.62rem; }
 
-  /* ── Active indicator — exact Firefly toc.css ──────────────────────────── */
+  /* ── Active indicator — fuwari style: no shadow, hover = dashed border ── */
   .toc-active-indicator {
     position: absolute;
     left: 0;
     right: 0;
     background: rgb(var(--color-primary-100) / 0.78);
     border-radius: 0.875rem;
-    transition: top 0.18s ease, height 0.18s ease, opacity 0.14s ease;
-    box-shadow: 0 6px 18px -14px rgb(var(--color-highlight-600) / 0.55);
+    border: 2px dashed transparent;
+    transition:
+      top 0.18s ease,
+      height 0.18s ease,
+      opacity 0.14s ease,
+      background-color 0.14s ease,
+      border-color 0.14s ease;
     z-index: -1;
     pointer-events: none;
   }
   :global(.dark) .toc-active-indicator {
     background: rgb(var(--color-primary-800) / 0.78);
-    box-shadow: 0 6px 18px -14px rgb(var(--color-highlight-400) / 0.55);
+  }
+  /* Hover: transparent fill + visible dashed border (fuwari group-hover effect) */
+  .toc-nav:hover .toc-active-indicator {
+    background: transparent;
+    border-color: rgb(var(--color-primary-400) / 0.8);
+  }
+  :global(.dark) .toc-nav:hover .toc-active-indicator {
+    border-color: rgb(var(--color-primary-500) / 0.8);
   }
 
-  /* ── Badge — exact Firefly toc.css ─────────────────────────────────────── */
+  /* ── Badge ─────────────────────────────────────────────────────────────── */
   .toc-badge {
     display: grid;
     place-items: center;
@@ -355,7 +328,6 @@ const processedHeadings = filteredHeadings.map(h => {
     font-weight: 700;
     line-height: 1;
   }
-
   .toc-badge-index {
     background: rgb(var(--color-primary-100));
     color: rgb(var(--color-primary-600));
@@ -364,7 +336,6 @@ const processedHeadings = filteredHeadings.map(h => {
     background: rgb(var(--color-primary-800));
     color: rgb(var(--color-primary-300));
   }
-
   .toc-badge-dot {
     display: block;
     width: 0.48rem;
@@ -376,7 +347,6 @@ const processedHeadings = filteredHeadings.map(h => {
   :global(.dark) .toc-badge-dot {
     background: rgb(var(--color-primary-600));
   }
-
   .toc-badge-dot-sm {
     width: 0.34rem;
     height: 0.34rem;
@@ -386,7 +356,7 @@ const processedHeadings = filteredHeadings.map(h => {
     background: rgb(var(--color-primary-700));
   }
 
-  /* ── Active state — exact Firefly toc.css ──────────────────────────────── */
+  /* ── Active state ──────────────────────────────────────────────────────── */
   .toc-item.visible .toc-label {
     color: rgb(var(--color-highlight-600));
     opacity: 1;
@@ -394,7 +364,6 @@ const processedHeadings = filteredHeadings.map(h => {
   :global(.dark) .toc-item.visible .toc-label {
     color: rgb(var(--color-highlight-400));
   }
-
   .toc-item.visible .toc-badge-dot,
   .toc-item.visible .toc-badge-dot-sm {
     background: rgb(var(--color-highlight-500));
@@ -403,7 +372,6 @@ const processedHeadings = filteredHeadings.map(h => {
   :global(.dark) .toc-item.visible .toc-badge-dot-sm {
     background: rgb(var(--color-highlight-400));
   }
-
   .toc-item.visible .toc-badge-index {
     background: rgb(var(--color-highlight-100));
     color: rgb(var(--color-highlight-600));
@@ -413,7 +381,7 @@ const processedHeadings = filteredHeadings.map(h => {
     color: rgb(var(--color-highlight-400));
   }
 
-  /* ── Label — exact Firefly toc.css ─────────────────────────────────────── */
+  /* ── Label ─────────────────────────────────────────────────────────────── */
   .toc-label {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -426,14 +394,12 @@ const processedHeadings = filteredHeadings.map(h => {
     line-height: 1.3;
     letter-spacing: 0.01em;
   }
-
   .toc-label-primary {
     color: rgb(var(--color-primary-600));
   }
   :global(.dark) .toc-label-primary {
     color: rgb(var(--color-primary-300));
   }
-
   .toc-label-secondary {
     color: rgb(var(--color-primary-400));
   }

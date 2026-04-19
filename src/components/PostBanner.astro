@@ -97,6 +97,8 @@ const hasImage = !!imageSrc;
     position: relative;
     width: 100vw;
     margin-left: calc(50% - 50vw);
+    margin-top: -4.5rem; /* pull up to fill space behind sticky navbar */
+    padding-top: 4.5rem; /* keep inner content below navbar */
     height: clamp(260px, 44vh, 520px);
     overflow: hidden;
     background: rgb(var(--color-primary-900));

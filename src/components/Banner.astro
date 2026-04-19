@@ -1,0 +1,27 @@
+---
+import { siteConfig } from '../config';
+
+const { src, position = 'center' } = siteConfig.banner;
+const BANNER_HEIGHT = 65; // vh — matches fuwari's BANNER_HEIGHT_HOME
+---
+
+<div
+  id="banner-wrapper"
+  class="overflow-hidden relative"
+  style={`height: ${BANNER_HEIGHT}vh; z-index: 10; width: 100vw; margin-left: calc(50% - 50vw); margin-top: -4.5rem;`}
+  data-banner-height={BANNER_HEIGHT}
+>
+  <img
+    src={src}
+    alt=""
+    class="w-full h-full object-cover"
+    style={`object-position: ${position}`}
+    loading="eager"
+    fetchpriority="high"
+    onerror="this.style.display='none'"
+  />
+  <!-- Gradient fallback shown behind img (visible if img fails to load) -->
+  <div class="absolute inset-0 bg-gradient-to-br from-primary-800 via-primary-700 to-highlight-700 dark:from-primary-950 dark:via-primary-900 dark:to-highlight-900"></div>
+  <!-- Subtle overlay for readability -->
+  <div class="absolute inset-0 bg-black/10 dark:bg-black/25 pointer-events-none"></div>
+</div>

@@ -7,7 +7,6 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
 import Pagination from '@/components/Pagination.astro';
 import Icon from '@/components/Icon.astro';
-import Breadcrumbs from '@/components/Breadcrumbs.astro';
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const isDev = import.meta.env.DEV;
@@ -80,12 +79,6 @@ const pagination = {
 <BaseLayout seoData={seoData}>
   <div class="py-8">
     <div class="tag-moc-grid" style={`--contentWidth: ${siteConfig.layout.contentWidth}`}>
-
-      <Breadcrumbs
-        postId={`tag/${tag}`}
-        title={tagDisplayTitle}
-        class="moc-breadcrumb mb-4"
-      />
 
       <article class="moc-article bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm overflow-hidden">
 

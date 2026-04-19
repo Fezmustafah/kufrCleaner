@@ -390,19 +390,13 @@ import Icon from './Icon.astro';
           docs: false
         };
 
-        // Get optional content types configuration
-        const optionalContentTypes = (window as any).siteConfig?.optionalContentTypes || {
-          projects: true,
-          docs: true
-        };
-
         const allItems = [];
         const promises = [];
 
         // Load posts if enabled in search config
         if (searchConfig.posts) {
           promises.push(
-            fetch('/api/posts.json').then(response => 
+            fetch('/api/posts.json').then(response =>
               response.ok ? response.json() : []
             )
           );
@@ -415,43 +409,17 @@ import Icon from './Icon.astro';
           promises.push(
             fetch('/api/pages.json').then(response => {
               return response.ok ? response.json() : [];
-            }).catch(error => {
-              return [];
-            })
-          );
-        } else {
-          promises.push(Promise.resolve([]));
-        }
-
-        // Load projects if enabled in search config AND projects content type is enabled
-        if (searchConfig.projects && optionalContentTypes.projects) {
-          promises.push(
-            fetch('/api/projects.json').then(response => 
-              response.ok ? response.json() : []
-            )
-          );
-        } else {
-          promises.push(Promise.resolve([]));
-        }
-
-        // Load documentation if enabled in search config AND docs content type is enabled
-        if (searchConfig.docs && optionalContentTypes.docs) {
-          promises.push(
-            fetch('/api/docs.json').then(response => {
-              return response.ok ? response.json() : [];
-            }).catch(error => {
-              return [];
-            })
+            }).catch(() => [])
           );
         } else {
           promises.push(Promise.resolve([]));
         }
 
         // Wait for all API calls to complete
-        const [posts, pages, projects, docs] = await Promise.all(promises);
+        const [posts, pages] = await Promise.all(promises);
 
         // Add items to the array
-        allItems.push(...posts, ...pages, ...projects, ...docs);
+        allItems.push(...posts, ...pages);
 
         this.items = allItems;
         // Don't initialize Fuse.js immediately - wait until first search

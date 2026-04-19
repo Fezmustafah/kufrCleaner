@@ -62,40 +62,6 @@ const pagesCollection = defineCollection({
   }),
 });
 
-// Define schema for projects
-const projectsCollection = defineCollection({
-  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/bin/projects' }),
-  schema: z.object({
-    title: z.string().default('Untitled Project'),
-    description: z.string().nullable().optional().default('No description provided'),
-    date: z.coerce.date().default(() => new Date()),
-    categories: z.array(z.string()).nullable().optional().default([]),
-    repositoryUrl: z.union([z.string(), z.null(), z.undefined()]).optional().transform(val => val || ''),
-    projectUrl: z.union([z.string(), z.null(), z.undefined()]).optional().transform(val => val || ''),
-    demoUrl: z.union([z.string(), z.null(), z.undefined()]).optional().transform(val => val || ''),
-    demoURL: z.union([z.string(), z.null(), z.undefined()]).optional().transform(val => val || ''),
-    status: z.string().nullable().optional(),
-    image: z.any().nullable().optional().transform((val) => {
-      // Handle various Obsidian syntax formats
-      if (Array.isArray(val)) {
-        // Handle array format from [[...]] syntax - take first element
-        return val[0] || null;
-      }
-      if (typeof val === 'string') {
-        // Handle string format - return as-is
-        return val;
-      }
-      return null;
-    }),
-    imageAlt: z.string().nullable().optional(),
-    hideCoverImage: z.boolean().optional(),
-    hideTOC: z.boolean().optional(),
-    showTOC: z.boolean().optional(),
-    draft: z.boolean().optional(),
-    noIndex: z.boolean().optional(),
-    featured: z.boolean().optional(),
-  }),
-});
 
 // Citation reference schema (reusable)
 const citationReferenceSchema = z.object({
@@ -147,37 +113,6 @@ const manuscriptsCollection = defineCollection({
   }),
 });
 
-// Define schema for docs
-const docsCollection = defineCollection({
-  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/bin/docs' }),
-  schema: z.object({
-    title: z.string().default('Untitled Documentation'),
-    description: z.string().nullable().optional().default('No description provided'),
-    category: z.string().nullable().optional().default('General'),
-    order: z.number().default(0),
-    lastModified: z.coerce.date().optional(),
-    version: z.string().nullable().optional(),
-    image: z.any().nullable().optional().transform((val) => {
-      // Handle various Obsidian syntax formats
-      if (Array.isArray(val)) {
-        // Handle array format from [[...]] syntax - take first element
-        return val[0] || null;
-      }
-      if (typeof val === 'string') {
-        // Handle string format - return as-is
-        return val;
-      }
-      return null;
-    }),
-    imageAlt: z.string().nullable().optional(),
-    hideCoverImage: z.boolean().optional(),
-    hideTOC: z.boolean().optional(),
-    draft: z.boolean().optional(),
-    noIndex: z.boolean().optional(),
-    showTOC: z.boolean().optional(),
-    featured: z.boolean().optional(),
-  }),
-});
 
 // Define schema for special home pages (homepage blurb, 404, projects index, docs index)
 const specialCollection = defineCollection({
@@ -209,9 +144,7 @@ const tagsCollection = defineCollection({
 export const collections = {
   posts: postsCollection,
   pages: pagesCollection,
-  projects: projectsCollection,
   manuscripts: manuscriptsCollection,
-  docs: docsCollection,
   special: specialCollection,
   tags: tagsCollection,
 };

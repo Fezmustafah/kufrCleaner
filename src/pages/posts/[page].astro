@@ -3,10 +3,11 @@ import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
 import { siteConfig } from '@/config';
 import { generatePageSEO } from '@/utils/seo';
-import { shouldShowPost, sortPostsByDate, extractTags } from '@/utils/markdown';
+import { shouldShowPost, sortPostsByDate, extractTags, extractCategories } from '@/utils/markdown';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
 import Tags from '@/components/Tags.astro';
+import Categories from '@/components/Categories.astro';
 import Pagination from '@/components/Pagination.astro';
 import Icon from '@/components/Icon.astro';
 
