@@ -1,0 +1,799 @@
+[build]
+  publish = "dist"
+  command = "pnpm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "8"
+
+# Enable compression for all text-based files
+# Note: Netlify automatically handles gzip/brotli compression based on client support
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, s-maxage=86400"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/*.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/*.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# Handle pre-compressed files
+[[headers]]
+  for = "/*.gz"
+  [headers.values]
+    Content-Encoding = "gzip"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.br"
+  [headers.values]
+    Content-Encoding = "br"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Cross-Origin-Embedder-Policy = "unsafe-none"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://giscus.app https://platform.twitter.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://giscus.app; frame-src 'self' https://www.youtube.com https://giscus.app https://platform.twitter.com; object-src 'none'; base-uri 'self';"
+
+# Static assets with long-term caching
+[[headers]]
+  for = "/_assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.woff"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.ttf"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.eot"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Images with long-term caching
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.jpeg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.gif"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# PDF files - allow iframe embedding
+[[headers]]
+  for = "*.pdf"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    X-Frame-Options = "SAMEORIGIN"
+
+# Favicon files
+[[headers]]
+  for = "/favicon*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[dev]
+  command = "pnpm run dev"
+  port = 5000
+  publish = "dist"
+
+# Generated redirects from content aliases
+
+[[redirects]]
+  from = "/posts/2026-projects"
+  to = "/posts/additional-notes-on-prophet-muhammad-in-bible"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/notes-on-prophet-muhammad-in-bible"
+  to = "/posts/additional-notes-on-prophet-muhammad-in-bible"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/final-academic-response-1351212802366242877"
+  to = "/posts/aisha-marriage-age-historical-evidence-scholarly-sources-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/marriage-with-aisha"
+  to = "/posts/aisha-marriage-age-historical-evidence-scholarly-sources-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-doubt-about-al-zuhris-statement-we-were-informed-that-he-had-recited-a-lot-of-the-quran"
+  to = "/posts/al-zuhris-weak-narration-debunked-no-the-quran-was-never-lost-or-incomplete"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/syriac-borrows-the-name-god-from-arabic-according-to-scientific-and-archaeological-evidence"
+  to = "/posts/allah-is-not-from-syriac-archaeological-proof-the-word-is-originally-arabic"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/and-purify-your-garments"
+  to = "/posts/and-purify-your-garmentsdoes-the-command-to-avoid-idols-mean-that-the-messenger-worshipped-idols"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-2026-1490037128745189496"
+  to = "/posts/anekatah"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/differences-in-quranic-manuscripts-advanced"
+  to = "/posts/are-quranic-manuscript-differences-evidence-of-corruption-a-refutation-of-daniel-brubaker"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/documented-scientific-references"
+  to = "/posts/authors-of-gospels"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/by-sawt-al-haqiqa-ig"
+  to = "/posts/aw-rah-of-slave-women"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/untitled-1319673407654330471"
+  to = "/posts/birth-of-prophet"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/they-steal-when-hungry"
+  to = "/posts/black-people-steal-when-hungry-is-there-any-racism-in-islam"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/by-islamophobes-nightmare-pdf"
+  to = "/posts/by-islamophobes-nightmare-pdf-slavery"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/65-4-surah-talaq-4-child-marriage"
+  to = "/posts/child-marriage-in-islam-main-article"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/circumambulating-the-kaaba"
+  to = "/posts/circumambulating-the-kaaba-is-paganism-the-bible-answers"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-blind-companion-killed-his-wife-or-female-slave-when-she-insulted-the-prophet"
+  to = "/posts/did-a-blind-companion-kill-his-wife-for-insulting-the-prophet-complete-hadith-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/responding-to-the-doubt-about-breastfeeding-an-adult-in-detail"
+  to = "/posts/did-islam-allow-breastfeeding-an-adult-scholarly-refutation-of-the-salim-hadith-misconception"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/ahmad"
+  to = "/posts/did-jesus-prophesy-ahmad-in-john-16-the-greek-arabic-connection-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/khalid-bin-al-walid-may-allah-be-pleased-with-him-was-a-cannibal-who"
+  to = "/posts/did-khalid-ibn-al-walid-commit-cannibalism-refuting-the-slander-full-isnad-analysis-biblical-counter-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/mecca-never-existed"
+  to = "/posts/did-mecca-exist-before-the-4th-century-historical-evidence-that-proves-it-did"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/responding-to-the-suspicion-that-embryology-in-the-quran-is-borrowed-from-aristotle-and-hippocrates"
+  to = "/posts/did-muhammad-copy-embryology-from-greek-science-refuting-the-aristotle-and-hippocrates-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/is-surat-al-fil-borrowed-from-the-poet-rubah-ibn-al-ajaj"
+  to = "/posts/did-prophet-muhammad-borrow-surah-al-fil-refuting-the-rubah-ibn-al-ajjaj-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/muslim-prayer-is-taken-from-the-sumerian-civilization"
+  to = "/posts/did-prophet-muhammad-copy-prayer-from-sumerians-a-complete-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/response-to-the-allegation-that-the-prophet-defecated-and-ate-without-washing-his-hands-or-touching"
+  to = "/posts/did-prophet-muhammad-صلى-الله-عليه-وسلم-eat-with-unclean-hands-full-refutation-of-the-christian-polemic"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/kissed-hassan-hussain"
+  to = "/posts/did-the-prophet-kiss-al-hasan-on-the-lips-context-hadith-analysis-christian-objections-refuted"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/prophet-kissed-hassan-and-hussain"
+  to = "/posts/did-the-prophet-kiss-al-hasan-on-the-lips-context-hadith-analysis-christian-objections-refuted"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/she-died-so-i-slept-with-her"
+  to = "/posts/did-the-prophet-lie-with-fatima-bint-asad-in-her-grave-linguistic-and-hadith-refutation-of-the-christian-allegation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/bani-mustaliq"
+  to = "/posts/did-the-prophet-muhammad-attack-peaceful-people-the-raid-on-banu-al-mustaliq-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/refuting-the-claim-that-the-prophet-peace-and-blessings-be-upon-him-borrowed-from-jabr-and-yasar"
+  to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-learn-from-two-christian-slaves-the-jabr-yasar-accusation-refuted"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/killing-of-kinana-bin-al-rabi-bin-abi-al-haqiq"
+  to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-order-the-torture-of-kinanah-ibn-al-rabi-a-full-isnad-refutation-of-the-khaybar-slander"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/is-the-story-of-luqman-s-advice-to-his-son-transferred"
+  to = "/posts/did-the-quran-borrow-luqmans-wisdom-from-ahiqar-full-refutation-of-the-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/story-of-abraham-and-his-father-in-the-quran-was-quoted-from-the-haggadah"
+  to = "/posts/did-the-quran-copy-abrahams-story-from-the-haggadah-a-complete-refutation-with-historical-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/response-to-the-allegation-that-the-story-of-the-birth-of-christ-was-copied-from-the-apocryphal-go"
+  to = "/posts/did-the-quran-copy-from-the-apocryphal-gospels-a-complete-refutation-with-academic-sources"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/blowing-up-the-talmudic-traditions-in-the-quran"
+  to = "/posts/did-the-quran-copy-the-talmud-a-complete-refutation-of-the-plagiarism-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-1369578720981155840"
+  to = "/posts/do-muslims-worship-the-kaaba-the-qibla-accusation-refuted-with-christian-biblical-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/from-refuting-kufar-recommended"
+  to = "/posts/does-allah-pray-on-the-prophet-the-meaning-of-salawat-in-quran-33-56-christian-objection-refuted"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/allah-prays-scans"
+  to = "/posts/does-allah-pray-on-the-prophet-the-meaning-of-salawat-in-quran-33-56-christian-objection-refuted"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/refuting-the-christians-evidence-of-denying-the-good-news-of-muhammad-in-deuteronomy-18"
+  to = "/posts/does-deuteronomy-18-18-prophesy-muhammad-the-prophet-like-moses-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/prophet-muhammad-in-deuteronomy-18"
+  to = "/posts/does-deuteronomy-18-18-prophesy-muhammad-the-prophet-like-moses-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/book-of-hosea"
+  to = "/posts/does-hosea-9-6-mention-muhammad-by-name-the-hebrew-word-machmas-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-name-of-muhammad-in-hosea-96"
+  to = "/posts/does-hosea-9-6-mention-muhammad-by-name-the-hebrew-word-machmas-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/isa42-even-accepted-by-jews-of-medina"
+  to = "/posts/does-isaiah-42-prophesy-muhammad-the-chosen-servant-prophecy-examined"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/isaiah-42-the-main-prophecy"
+  to = "/posts/does-isaiah-42-prophesy-muhammad-the-chosen-servant-prophecy-examined"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-lie-that-islam-attributes-the-child-of-adultery-to-the-husband"
+  to = "/posts/does-islam-attribute-adultery-children-to-the-husband-refuting-the-child-belongs-to-the-bed"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/trinity-exist-in-islam"
+  to = "/posts/does-the-christian-trinity-exist-in-islam-a-complete-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/1st-doubt"
+  to = "/posts/doubts-regarding-prophet-marriage-with-safiyyah-bint-huyayy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/and-the-clear-miracle"
+  to = "/posts/embroyology-hadith"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/even-if-he-committed-adultery-and-even-if-he-stole"
+  to = "/posts/even-if-he-committed-adultery-and-even-if-he-stole-does-islam-permit-major-sins"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/final-academic-response"
+  to = "/posts/flat-earth-in-islam"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-2026"
+  to = "/posts/he-hastens-to-fulfill-your-desires-v2"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/a-distortion-to-obliterate-the-good-tidings-on-the-tongue-of-christ"
+  to = "/posts/how-scribes-removed-muhammads-prophecies-from-the-gospel-of-john"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/john-7-52-the-prophet-of-end-times"
+  to = "/posts/how-scribes-removed-muhammads-prophecies-from-the-gospel-of-john"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/distortions-in-gospel-of-john-to-obliterate-the-prophecy-on-the-tongue-of-jesus"
+  to = "/posts/how-scribes-removed-muhammads-prophecies-from-the-gospel-of-john"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/moon-god"
+  to = "/posts/is-allah-a-moon-god-the-claim-debunked-and-why-yahweh-has-a-bigger-problem"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-name-of-ahmad-in-isaiah-421"
+  to = "/posts/is-muhammad-ahmad-named-in-isaiah-42-1-the-chosen-one-prophecy-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/response-to-christan-lies"
+  to = "/posts/is-prophet-muhammads-lineage-pure-responding-to-christian-missionary-claims-with-classical-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/response-to-christan-lies-on-geneology"
+  to = "/posts/is-prophet-muhammads-lineage-pure-responding-to-christian-missionary-claims-with-classical-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/response-to-christan-lies-on-geneology-of-prophet"
+  to = "/posts/is-prophet-muhammads-lineage-pure-responding-to-christian-missionary-claims-with-classical-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/desire-of-nations"
+  to = "/posts/is-the-desire-of-all-nations-in-haggai-2-7-a-prophecy-about-muhammad-the-hebrew-hmd-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/hadith-about-the-age-of-flies"
+  to = "/posts/is-the-hadith-about-the-flys-lifespan-being-40-nights-authentic-full-isnad-analysis-scientific-proof"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/captives-of-awtas"
+  to = "/posts/islamic-rules-of-war-captives-the-rape-accusation-a-complete-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/psalms-84"
+  to = "/posts/mecca-in-the-bible-the-hidden-prophecy-of-psalm-84-bakkah"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-hidden-prophecy-of-psalm-84-bakkah"
+  to = "/posts/mecca-in-the-bible-the-hidden-prophecy-of-psalm-84-bakkah"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/untitled-1319706055076220939"
+  to = "/posts/mercy-of-prophet-muhammad"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-prophet-as-mercy-towards-humanity"
+  to = "/posts/mercy-of-prophet-muhammad"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/as-for-my-cousin-he-violated-my-honor"
+  to = "/posts/my-honor-was-violated-does-the-hadith-mean-the-prophet-صلى-الله-عليه-وسلم-was-assaulted"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/prophecies-of-the-end-time-b-prophet"
+  to = "/posts/prophecies"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/prophcies"
+  to = "/posts/prophecies"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/dt-33-2"
+  to = "/posts/prophecy-in-deuteronomy-332"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/revision"
+  to = "/posts/prophets-doubt-in-islam-what-does-yunus-94-really-mean"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/psalms-120"
+  to = "/posts/psalm-120-in-the-tents-of-kedar-and-the-meccan-persecution"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/context"
+  to = "/posts/quran-434-wife-beating-verse-additions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-2026-1468269937515823264"
+  to = "/posts/refuting-the-dirham-anachronism-how-the-quran-accurately-describes-ancient-currency"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/slavery-quick-version"
+  to = "/posts/slavery-in-islam-islamic-law-vs-western-systems-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/from-islamophobes-nightmare-pdf"
+  to = "/posts/slavery-in-islam-islamophobes"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/slavery"
+  to = "/posts/slavery-resources-only"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/sunset"
+  to = "/posts/sun-sets-in-muddy-spring"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-1340956212472320102"
+  to = "/posts/the-camel-urine-hadith-explained-context-science-and-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/muslim-2361"
+  to = "/posts/the-date-palm-pollination-hadith-scholarly-positions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/genealogy-of-muhammad"
+  to = "/posts/the-genealogy-of-prophet-muhammad-صلى-الله-عليه-وسلم-from-ishmael-to-the-final-prophet"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/messenger-applied-light-and-turned-his-pubic-hair-with-his-hand"
+  to = "/posts/the-prophet-صلى-الله-عليه-وسلم-and-depilatory-cream-hadith-analysis-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/untitled-1319706865596371084"
+  to = "/posts/the-prophets-mercy-how-islam-treats-people-of-other-faiths"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/lslam-attitude-towards-non-muslim"
+  to = "/posts/the-prophets-mercy-how-islam-treats-people-of-other-faiths"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/response-to-the-suspicion-that-embryology-in-the-quran-was-borrowed-from-galen-and-al-harith-bin-ka"
+  to = "/posts/the-quran-did-not-copy-galen-embryology-objection-refuted"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-danger-of-usury-testimonials-from-non-muslims"
+  to = "/posts/the-quran-was-right-non-muslim-scholars-economists-us-senate-reports-on-the-harm-of-usury"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/quran-n-hail"
+  to = "/posts/the-qurans-mention-of-hail-and-snow"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/samaritan-error-archeological-error"
+  to = "/posts/the-samaritan-anachronism-debunked-al-samiri-in-the-quran-and-the-true-origins-of-the-samaritans"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/bond-women-awrah"
+  to = "/posts/the-slave-girls-awrah-in-islamic-jurisprudence-a-complete-analysis"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/women-rights"
+  to = "/posts/the-status-of-women-among-islamic-jurists"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/mutah-pleasure-marriage"
+  to = "/posts/the-truth-about-mutah-temporary-marriage-permanently-forbidden-in-quran-sunnah-full-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/untitled-1319671382862200917"
+  to = "/posts/the-unique-characteristics-of-the-prophet-muhammad-صلى-الله-عليه-وسلم-khaṣāiṣ-al-nabī"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/characteristics-of-prophet"
+  to = "/posts/the-unique-characteristics-of-the-prophet-muhammad-صلى-الله-عليه-وسلم-khaṣāiṣ-al-nabī"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/and-indeed-it-is-expanding"
+  to = "/posts/the-universe-is-expanding"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/well-of-buda-dawood-67"
+  to = "/posts/the-well-of-budhaah-hadith-does-islam-permit-ablution-with-filthy-water"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/tirmidhi-2861-jinns-zutt-the-prophet"
+  to = "/posts/the-zutt-and-prophet"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/story-of-people-of-zutt-and-prophet"
+  to = "/posts/the-zutt-and-prophet"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/story-of-dhul-qarnayn-was-borrowed-from-syriac-sources"
+  to = "/posts/was-dhul-qarnayn-borrowed-from-the-alexander-legend-a-refutation-of-the-syriac-source-theory"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/is-hajj-a-pagan-ritual-taken-from-hindus"
+  to = "/posts/was-islamic-hajj-borrowed-from-hinduism-full-refutation-of-the-hindu-ritual-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/non-islamic-sources-regarding-the-prophet-muhammads-saw-being-unlettered"
+  to = "/posts/was-prophet-muhammad-illiterate-non-islamic-sources-on-the-unlettered-prophet"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/untitled-1359074889570455562"
+  to = "/posts/what-has-islam-given-to-the-world"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-lie-that-the-prophet-ordered-the-sucking-of-genitals"
+  to = "/posts/what-is-the-meaning-of-until-he-tastes-her-honey-in-the-halala-hadith-refuting-the-oral-sex-allegation-against-the-prophets-hadith"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/testimonies-of-non-muslims"
+  to = "/posts/what-non-muslims-said-about-prophet-muhammad-testimonies-from-historians-scholars"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/allah-almighty-gave-good-tidings-to-abraham-peace-be-upon-him-of-a-forbearing-boy-and-in-anothe"
+  to = "/posts/which-of-abrahams-two-sons-was-the-forbearing-boy-and-which-was-the-knowledgeable-boy"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/and-then-sends-a-prophet"
+  to = "/posts/why-did-god-leave-people-for-600-years-before-sending-prophet-muhammad"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/we-have-killed-the-messiah-jesus-the-son-of-mary-the-messenger-of-god"
+  to = "/posts/why-did-the-jews-call-jesus-messiah-if-they-didnt-believe-in-him-the-quranic-answer-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deficient-in-religion"
+  to = "/posts/women-are-deficient-in-religio"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/untitled-1319668747341926410"
+  to = "/posts/women-rights-before-islam"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/404"
+  status = 404

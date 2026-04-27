@@ -1,0 +1,217 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { parseBaseFile } from '@/utils/bases/parser';
+import { slugifyPath } from '@/utils/bases/slugify';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import type { SEOData } from '@/types';
+import type { BaseConfig } from '@/utils/bases/types';
+
+interface BaseEntry {
+  id: string;
+  slug: string;
+  config: BaseConfig;
+}
+
+async function scanForBaseFiles(dir: string, basePath: string = ''): Promise<Array<{ id: string; content: string }>> {
+  const bases: Array<{ id: string; content: string }> = [];
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return bases;
+  }
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    const relativePath = basePath ? `${basePath}/${entry.name}` : entry.name;
+    if (entry.isDirectory() && !entry.name.startsWith('.')) {
+      const sub = await scanForBaseFiles(fullPath, relativePath);
+      bases.push(...sub);
+    } else if (entry.isFile() && entry.name.endsWith('.base')) {
+      const content = await readFile(fullPath, 'utf-8');
+      bases.push({ id: relativePath, content });
+    }
+  }
+  return bases;
+}
+
+const contentPath = join(process.cwd(), 'src/content/posts');
+const rawBases = await scanForBaseFiles(contentPath);
+
+const bases: BaseEntry[] = [];
+for (const raw of rawBases) {
+  try {
+    const config = parseBaseFile(raw.content);
+    bases.push({
+      id: raw.id,
+      slug: slugifyPath(raw.id.replace(/\.base$/, '')),
+      config,
+    });
+  } catch {
+    // skip invalid base files
+  }
+}
+
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
+const seoData: SEOData = {
+  title: 'Bases',
+  description: 'Database views of your posts.',
+  canonical: `${siteUrl}/base/`,
+  ogType: 'website',
+};
+
+function getViewTypeIcon(type: string) {
+  if (type === 'cards') return '⊞';
+  return '≡';
+}
+---
+
+<BaseLayout seoData={seoData}>
+  <div class="bases-index">
+    <div class="bases-header">
+      <h1>Bases</h1>
+      <p class="bases-subtitle">Database views of your posts</p>
+    </div>
+
+    {bases.length === 0 ? (
+      <div class="empty">
+        <p>No <code>.base</code> files found in <code>src/content/posts/</code>.</p>
+      </div>
+    ) : (
+      <div class="bases-list">
+        {bases.map(base => (
+          <div class="base-card">
+            <div class="base-card-header">
+              <h2 class="base-name">{base.slug}</h2>
+              <span class="view-count">{base.config.views.length} {base.config.views.length === 1 ? 'view' : 'views'}</span>
+            </div>
+            <div class="views-list">
+              {base.config.views.map(view => {
+                const viewSlug = slugifyPath(view.name);
+                return (
+                  <a href={`/base/${base.slug}/${viewSlug}`} class="view-link">
+                    <span class="view-icon">{getViewTypeIcon(view.type)}</span>
+                    <span class="view-name">{view.name}</span>
+                    <span class="view-type">{view.type}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</BaseLayout>
+
+<style>
+  .bases-index {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .bases-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgb(var(--color-primary-200));
+    padding-bottom: 1.25rem;
+  }
+
+  .bases-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: rgb(var(--color-primary-900));
+    margin: 0 0 0.25rem;
+  }
+
+  .bases-subtitle {
+    color: rgb(var(--color-primary-400));
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+
+  .empty {
+    padding: 3rem;
+    text-align: center;
+    color: rgb(var(--color-primary-400));
+    background: rgb(var(--color-primary-50));
+    border-radius: 0.5rem;
+    border: 1px dashed rgb(var(--color-primary-200));
+  }
+
+  .bases-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .base-card {
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: rgb(var(--color-primary-50));
+  }
+
+  .base-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.25rem;
+    background: rgb(var(--color-primary-100));
+    border-bottom: 1px solid rgb(var(--color-primary-200));
+  }
+
+  .base-name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: rgb(var(--color-primary-800));
+    margin: 0;
+    text-transform: capitalize;
+  }
+
+  .view-count {
+    font-size: 0.8125rem;
+    color: rgb(var(--color-primary-400));
+  }
+
+  .views-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .view-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    text-decoration: none;
+    color: rgb(var(--color-primary-700));
+    border-bottom: 1px solid rgb(var(--color-primary-100));
+    transition: background-color 0.15s;
+    font-size: 0.9375rem;
+  }
+
+  .view-link:last-child { border-bottom: none; }
+
+  .view-link:hover {
+    background: rgb(var(--color-highlight-50));
+    color: rgb(var(--color-highlight-700));
+  }
+
+  .view-icon {
+    font-size: 1rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  .view-name { flex: 1; font-weight: 500; }
+
+  .view-type {
+    font-size: 0.75rem;
+    color: rgb(var(--color-primary-400));
+    background: rgb(var(--color-primary-100));
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    text-transform: capitalize;
+  }
+</style>

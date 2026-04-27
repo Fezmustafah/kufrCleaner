@@ -1,0 +1,202 @@
+---
+import { siteConfig } from '../config';
+import ThemeToggle from './ThemeToggle.astro';
+import Icon from './Icon.astro';
+import NavMenuPanel from './widget/NavMenuPanel.astro';
+
+interface NavLink {
+  name: string;
+  url: string;
+  external?: boolean;
+}
+
+const links: NavLink[] = siteConfig.navigation.pages
+  .filter((p: any) => p.url && p.url.trim() !== '')
+  .map((p: any) => ({
+    name: p.title,
+    url: p.url,
+    external: p.url.startsWith('http'),
+  }));
+
+const hasShortcut = siteConfig.commandPalette.shortcut && siteConfig.commandPalette.shortcut.trim();
+const shortcutKey = hasShortcut
+  ? siteConfig.commandPalette.shortcut.split('+').pop()?.toUpperCase() || 'K'
+  : '';
+const allSectionsDisabled =
+  !siteConfig.commandPalette.sections.quickActions &&
+  !siteConfig.commandPalette.sections.pages &&
+  !siteConfig.commandPalette.sections.social;
+const paletteIcon = allSectionsDisabled ? 'search' : 'command';
+---
+
+<!-- Mirrors fuwari: outer top-row (relative, not sticky) + inner navbar-wrapper (sticky) + inner #navbar (onload-animation) -->
+<div id="top-row" class="h-[4.5rem] z-50 pointer-events-none relative transition-all duration-700">
+  <div id="navbar-wrapper" class="pointer-events-auto fixed top-0 left-0 right-0 z-50">
+    <div id="navbar" class="onload-animation">
+    <div class="absolute h-8 left-0 right-0 -top-8 bg-[var(--card-bg)] transition"></div>
+    <div class="card-base !overflow-visible !rounded-t-none h-[4.5rem] max-w-[var(--page-width)] mx-auto flex items-center justify-between px-4">
+
+      <!-- Home button -->
+      <a href="/" class="btn-plain scale-animation rounded-lg h-[3.25rem] px-5 font-bold active:scale-95" aria-label="Home">
+        <div class="flex flex-row text-[var(--primary)] items-center text-md">
+          <Icon name="home" class="w-7 h-7 mb-0.5 mr-2" />
+          {siteConfig.title}
+        </div>
+      </a>
+
+      <!-- Desktop nav links -->
+      <div class="hidden md:flex">
+        {links.map(l => (
+          <a
+            aria-label={l.name}
+            href={l.url}
+            target={l.external ? '_blank' : null}
+            class="btn-plain scale-animation rounded-lg h-11 font-bold px-5 active:scale-95"
+          >
+            <div class="flex items-center">
+              {l.name}
+              {l.external && (
+                <Icon name="external-link" class="w-3.5 h-3.5 transition -translate-y-px ml-1 opacity-20" />
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <!-- Right actions -->
+      <div class="flex">
+        {siteConfig.featureButton === 'mode' && <ThemeToggle />}
+
+        {siteConfig.featureButton === 'graph' && siteConfig.postOptions.graphView.enabled && (
+          <button id="header-graph-button" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" aria-label="Open graph view">
+            <Icon name="git-fork" class="w-5 h-5" />
+          </button>
+        )}
+
+        {siteConfig.featureButton === 'theme' && (
+          <button id="header-theme-button" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" aria-label="Change theme">
+            <Icon name="palette" class="w-5 h-5" />
+          </button>
+        )}
+
+        {siteConfig.commandPalette.enabled && (
+          hasShortcut ? (
+            <button id="command-palette-trigger" class="btn-plain scale-animation rounded-lg h-11 px-3 gap-1.5 active:scale-90" aria-label="Open command palette">
+              <Icon name={paletteIcon} class="w-4 h-4" />
+              <kbd class="text-[0.7rem] font-mono font-semibold opacity-50 bg-[var(--btn-plain-bg-hover)] border border-[var(--btn-plain-bg-active)] rounded px-1">{shortcutKey}</kbd>
+            </button>
+          ) : (
+            <button id="command-palette-trigger" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" aria-label="Open command palette">
+              <Icon name={paletteIcon} class="w-5 h-5" />
+            </button>
+          )
+        )}
+
+        <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 md:!hidden" id="nav-menu-switch">
+          <Icon name="menu" class="w-5 h-5" />
+        </button>
+      </div>
+
+      <NavMenuPanel links={links} />
+    </div>
+    </div><!-- /#navbar -->
+  </div>
+</div>
+
+<script>
+function loadButtonScript() {
+  // ── Scroll-hide: hides past banner height (fuwari pattern) ───────────────
+  const wrapper = document.getElementById('navbar-wrapper');
+  const banner = document.getElementById('banner-wrapper');
+  if (wrapper) {
+    const NAVBAR_HEIGHT = 72;
+    const MAIN_PANEL_EXCESS_HEIGHT = 3.5 * 16; // 56px — fuwari's MAIN_PANEL_OVERLAPS_BANNER_HEIGHT in px
+    const THRESHOLD_BUFFER = 16;               // fuwari's 16px buffer
+
+    const prev = (window as any)._navbarScroll;
+    if (prev) {
+      window.removeEventListener('scroll', prev);
+      window.removeEventListener('resize', prev);
+    }
+
+    const postBanner = document.getElementById('post-banner');
+
+    if (banner || postBanner) {
+      function scrollFunction() {
+        let threshold: number;
+        if (banner) {
+          // Homepage banner: fuwari formula — bannerHeight - 2*NAVBAR_HEIGHT equivalent
+          const heightVh = parseFloat((banner as HTMLElement).dataset.bannerHeight || '65');
+          threshold = window.innerHeight * (heightVh / 100) - NAVBAR_HEIGHT - MAIN_PANEL_EXCESS_HEIGHT - THRESHOLD_BUFFER;
+        } else {
+          // Post banner: fuwari formula using offsetHeight
+          threshold = (postBanner as HTMLElement).offsetHeight - NAVBAR_HEIGHT - MAIN_PANEL_EXCESS_HEIGHT - THRESHOLD_BUFFER;
+        }
+        threshold = Math.max(threshold, 0);
+        const scrolled = document.documentElement.scrollTop || document.body.scrollTop;
+        if (scrolled >= threshold) {
+          wrapper!.classList.add('navbar-hidden');
+        } else {
+          wrapper!.classList.remove('navbar-hidden');
+        }
+      }
+      (window as any)._navbarScroll = scrollFunction;
+      window.addEventListener('scroll', scrollFunction, { passive: true });
+      window.addEventListener('resize', scrollFunction, { passive: true });
+      requestAnimationFrame(scrollFunction);
+    } else {
+      // No banner: navbar always visible
+      wrapper.classList.remove('navbar-hidden');
+    }
+  }
+
+  // ── Mobile menu ────────────────────────────────────────────────────────
+  const menuBtn = document.getElementById('nav-menu-switch');
+  if (menuBtn) {
+    menuBtn.onclick = function () {
+      document.getElementById('nav-menu-panel')?.classList.toggle('float-panel-closed');
+    };
+  }
+
+  document.addEventListener('click', e => {
+    const panel = document.getElementById('nav-menu-panel');
+    if (panel && !panel.classList.contains('float-panel-closed')) {
+      if (!(e.target as Element).closest('#nav-menu-switch, #nav-menu-panel')) {
+        panel.classList.add('float-panel-closed');
+      }
+    }
+  });
+
+  // ── Feature buttons ────────────────────────────────────────────────────
+  document.getElementById('header-graph-button')?.addEventListener('click', () => {
+    if ((window as any).openGraphModal) (window as any).openGraphModal();
+  });
+
+  document.getElementById('header-theme-button')?.addEventListener('click', () => {
+    if ((window as any).siteConfig?.commandPalette?.enabled) {
+      window.dispatchEvent(new CustomEvent('openCommandPalette'));
+    } else {
+      (window as any).themeSelectorInstance?.open?.();
+    }
+  });
+
+  document.getElementById('command-palette-trigger')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('openCommandPalette'));
+  });
+}
+
+loadButtonScript();
+document.addEventListener('swup:page:view', loadButtonScript);
+</script>
+
+<style>
+  /* navbar-wrapper gets transition only on opacity+transform to avoid width artifacts */
+  #navbar-wrapper {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  #navbar-wrapper.navbar-hidden {
+    opacity: 0;
+    transform: translateY(-4rem);
+    pointer-events: none;
+  }
+</style>

@@ -1,0 +1,781 @@
+---
+import type { Post, Heading } from '@/types';
+import { siteConfig } from '@/config';
+import { generatePostSEO } from '@/utils/seo';
+import { getOptimizedFormat } from '@/utils/images';
+import { processWikilinksInHTML } from '@/utils/internallinks';
+import { getCollection } from 'astro:content';
+import { shouldShowPost, processPost, calculateReadingTime, generateTOC, getAdjacentPosts, formatDate, formatDateMobile, getReadingTimeMobile } from '@/utils/markdown';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import TableOfContents from '@/components/TableOfContents.astro';
+import LinkedMentions from '@/components/LinkedMentions.astro';
+import LocalGraph from '@/components/LocalGraph.astro';
+import GiscusComments from '@/components/GiscusComments.astro';
+import Lightbox from '@/components/Lightbox.astro';
+import Icon from '@/components/Icon.astro';
+import CategoryBar from '@/components/CategoryBar.astro';
+import PostBanner from '@/components/PostBanner.astro';
+import ImageWrapper from '@/components/ImageWrapper.astro';
+import { devConfig } from '@/config/dev';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+export interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+
+// Check if we're in development mode
+const isDev = import.meta.env.DEV;
+
+// Generate SEO data
+const seoData = generatePostSEO(post, import.meta.env.SITE || '');
+
+
+
+// Generate structured data for the post
+const structuredData = {
+  "@context": "https://schema.schema.org",
+  "@type": "BlogPosting",
+  "headline": post.data.title,
+  "description": post.data.description,
+  "author": {
+    "@type": "Person",
+    "name": siteConfig.author
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": siteConfig.title,
+    "logo": {
+      "@type": "ImageObject",
+      "url": siteConfig.site + "/favicon.ico"
+    }
+  },
+  "datePublished": post.data.date.toISOString(),
+  "dateModified": post.data.date.toISOString(),
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": Astro.url.href
+  }
+};
+
+// Get all posts for wikilink resolution
+const allPosts = await getCollection('posts');
+const visiblePosts = allPosts.filter(p => shouldShowPost(p, isDev));
+
+// Process the post content and get processed data including word count
+const { Content, headings, wordCount, remarkPluginFrontmatter } = await processPost(post);
+const readingTime = calculateReadingTime(post.body || '');
+
+// Generate table of contents if enabled
+const hideTOC = post.data.hideTOC === true;
+const shouldShowTOC = !hideTOC && siteConfig.tableOfContents.enabled && headings.length > 0;
+const toc = shouldShowTOC ? await generateTOC(headings) : [];
+
+// Get adjacent posts for navigation
+const { prev: prevPost, next: nextPost } = getAdjacentPosts(visiblePosts, post.id);
+
+// ── Resolve post image path (used by both banner and cover image) ────────────
+let resolvedImageSrc: string | undefined;
+let resolvedImageBasePath: string | undefined;
+
+if (post.data.image) {
+  let rawImage = post.data.image;
+  if (Array.isArray(rawImage)) rawImage = rawImage[0];
+
+  let cleanImagePath = typeof rawImage === 'string' ? rawImage : '';
+  if (cleanImagePath.startsWith('[[') && cleanImagePath.endsWith(']]')) {
+    cleanImagePath = cleanImagePath.slice(2, -2);
+  }
+
+  if (typeof cleanImagePath === 'string' && cleanImagePath.startsWith('http')) {
+    resolvedImageSrc = cleanImagePath;
+    resolvedImageBasePath = '';
+  } else {
+    const isFileBased = typeof cleanImagePath === 'string' && cleanImagePath.startsWith('attachments/');
+    if (isFileBased) {
+      resolvedImageSrc = cleanImagePath.replace('attachments/', '');
+      resolvedImageBasePath = '/posts/attachments/';
+    } else {
+      resolvedImageSrc = cleanImagePath.startsWith('images/') || cleanImagePath.startsWith('attachments/')
+        ? cleanImagePath.replace(/^(images|attachments)\//, '')
+        : cleanImagePath;
+      resolvedImageBasePath = post.id ? `/posts/${post.id}/` : '/posts/attachments/';
+    }
+  }
+  resolvedImageSrc = getOptimizedFormat(resolvedImageSrc);
+}
+
+// Check if current post has connections for LocalGraph
+let hasLocalGraphConnections = false;
+if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView.showInSidebar) {
+  try {
+    // Read the graph data file directly from the file system (works at build time)
+    const graphDataPath = join(process.cwd(), 'public', 'graph', 'graph-data.json');
+    const graphDataContent = readFileSync(graphDataPath, 'utf-8');
+    const graphData = JSON.parse(graphDataContent);
+
+    // Check if current post has any connections (both incoming and outgoing)
+    const matchingConnections = graphData.connections.filter((conn: any) =>
+      conn.source === post.id || conn.target === post.id
+    );
+    
+    hasLocalGraphConnections = matchingConnections.length > 0;
+  } catch (error) {
+    // If we can't read the graph data at build time, don't show the graph
+    hasLocalGraphConnections = false;
+  }
+}
+---
+
+<BaseLayout seoData={seoData}>
+  <Fragment slot="head">
+    <!-- Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+
+    <!-- Banner image is preloaded via fetchpriority="high" on the ImageWrapper -->
+
+    <!-- Post-specific meta tags -->
+    {post.data.targetKeyword && (
+      <meta name="keywords" content={post.data.targetKeyword}>
+    )}
+  </Fragment>
+
+  <!-- Full-width atmospheric banner (decorative only — metadata lives in the card) -->
+  <PostBanner
+    imageSrc={resolvedImageSrc}
+    imageBasePath={resolvedImageBasePath}
+  />
+
+  <div class="post-banner-overlap py-8">
+    <div
+      class:list={["post-layout-grid", (shouldShowTOC || hasLocalGraphConnections) && "has-sidebar"]}
+      style={`--contentWidth: ${siteConfig.layout.contentWidth}`}
+    >
+
+      <!-- Main content -->
+      <article class="post-layout-article bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm">
+
+        <!-- Post content wrapper -->
+        <div class="post-content-wrapper px-6 md:px-9 pt-6 pb-4 rounded-lg">
+          <!-- Post header — Fuwari layout: stats → title → meta -->
+          <header class="mb-6">
+
+            <!-- Row 1: word count + reading time (muted icon boxes, Fuwari style) -->
+            <div class="flex flex-row gap-5 mb-3 text-primary-400/60 dark:text-primary-500/50">
+              {siteConfig.postOptions.wordCount && wordCount !== undefined && (
+                <div class="flex items-center">
+                  <div class="meta-icon-sm">
+                    <Icon name="file-text" class="w-3.5 h-3.5" />
+                  </div>
+                  <span class="text-sm">{wordCount} words</span>
+                </div>
+              )}
+              {siteConfig.postOptions.readingTime && readingTime && (
+                <div class="flex items-center">
+                  <div class="meta-icon-sm">
+                    <Icon name="clock" class="w-3.5 h-3.5" />
+                  </div>
+                  <span class="text-sm">
+                    {readingTime.text && readingTime.text !== 'read0' ? readingTime.text : '1 min read'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <!-- Row 2: title with left accent bar -->
+            <div class="relative mb-4">
+              <div class="post-title-accent"></div>
+              <h1 class="text-3xl md:text-[2.25rem]/[2.75rem] font-bold text-primary-900 dark:text-primary-50 leading-tight">
+                {post.data.title}
+              </h1>
+            </div>
+
+            <!-- Row 3: date · category · tags — Fuwari icon-box style -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-primary-500 dark:text-primary-400">
+
+              <!-- Date -->
+              <div class="flex items-center">
+                <div class="meta-icon">
+                  <Icon name="calendar" class="w-4 h-4" />
+                </div>
+                <time datetime={post.data.date.toISOString()} class="text-sm font-medium">
+                  {formatDate(post.data.date)}
+                </time>
+              </div>
+
+              <!-- Category — catalogue label (always shown) -->
+              {siteConfig.postOptions.categories && (post.data as any).category && (
+                <div class="flex items-center">
+                  <div class="meta-icon">
+                    <Icon name="folder" class="w-4 h-4" />
+                  </div>
+                  <a
+                    href={`/posts/category/${encodeURIComponent((post.data as any).category)}`}
+                    class="text-sm font-medium hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
+                  >
+                    {(post.data as any).category}
+                  </a>
+                </div>
+              )}
+
+              <!-- Tags — concept labels (hidden on mobile like Fuwari) -->
+              {siteConfig.postOptions.tags && post.data.tags && post.data.tags.length > 0 && (
+                <div class="hidden md:flex items-center">
+                  <div class="meta-icon">
+                    <Icon name="tag" class="w-4 h-4" />
+                  </div>
+                  <div class="flex flex-row flex-wrap items-center gap-x-1">
+                    {post.data.tags.map((tag, i) => (
+                      <>
+                        {i > 0 && <span class="text-primary-300 dark:text-primary-600 text-sm select-none">/</span>}
+                        <a
+                          href={`/posts/tag/${encodeURIComponent(tag)}`}
+                          class="text-sm font-medium hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors whitespace-nowrap"
+                        >
+                          {tag}
+                        </a>
+                      </>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </header>
+
+        <!-- Article content -->
+        <div class="prose dark:prose-dark max-w-none" id="post-content">
+          <Content />
+        </div>
+
+        {siteConfig.postOptions.linkedMentions.enabled && (
+          <LinkedMentions currentSlug={post.id} />
+        )}
+
+        <!-- Post navigation -->
+        {siteConfig.postOptions.postNavigation && (prevPost || nextPost) && (
+          <nav class={`mt-8 pt-8 ${siteConfig.postOptions.linkedMentions.enabled ? '' : 'border-t border-primary-200 dark:border-primary-700'}`}>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {prevPost && (
+                <div class="text-left">
+                  <a
+                    href={`/posts/${prevPost.id}`}
+                    class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
+                  >
+                    <h3 class="font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
+                      {prevPost.data.title}
+                    </h3>
+                    <div class="flex justify-start mt-2">
+                      <Icon name="arrow-left" class="w-5 h-5 text-primary-500 dark:text-primary-400 group-hover:text-highlight-500 dark:group-hover:text-highlight-400 transition-colors" />
+                    </div>
+                  </a>
+                </div>
+              )}
+
+              {nextPost && (
+                <div class={`text-right ${!prevPost ? 'md:col-start-2' : ''}`}>
+                  <a
+                    href={`/posts/${nextPost.id}`}
+                    class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
+                  >
+                    <h3 class="font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
+                      {nextPost.data.title}
+                    </h3>
+                    <div class="flex justify-end mt-2">
+                      <Icon name="arrow-right" class="w-5 h-5 text-primary-500 dark:text-primary-400 group-hover:text-highlight-500 dark:group-hover:text-highlight-400 transition-colors" />
+                    </div>
+                  </a>
+                </div>
+              )}
+            </div>
+          </nav>
+        )}
+
+        <!-- Giscus Comments -->
+        {siteConfig.postOptions.comments.enabled && (
+          <div class="mt-16">
+            <GiscusComments
+              postTitle={post.data.title}
+              postSlug={post.id}
+              postUrl={Astro.url.href}
+            />
+          </div>
+        )}
+        </div>
+      </article>
+
+      <!-- Left sidebar: TOC + LocalGraph (graph collapsed by default) -->
+      {(shouldShowTOC || hasLocalGraphConnections) && (
+        <aside class="post-layout-left-col" id="post-left-sidebar">
+          {shouldShowTOC && <TableOfContents headings={toc} />}
+          {hasLocalGraphConnections && <LocalGraph currentSlug={post.id} />}
+        </aside>
+      )}
+    </div>
+  </div>
+  </div>
+
+  <!-- Category bar footer -->
+  <div class="post-category-footer">
+    <CategoryBar currentCategory={(post.data as any).category} />
+  </div>
+
+  <Fragment slot="scripts">
+    <!-- Marginalia: hover highlighting + popover (<1100px) + scroll+hash (≥1100px) -->
+    <script>
+      // Clear any stale reader mode state from previous sessions
+      localStorage.removeItem('kufrCleaner:readerMode');
+      document.body.classList.remove('reading-mode');
+
+      const _lightboxZoomSVG = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>`;
+
+      function wrapImgWithLightboxOverlay(img: HTMLImageElement, beforeDispatch?: (e: MouseEvent) => void) {
+        if ((img as any)._lightboxWired) return;
+        (img as any)._lightboxWired = true;
+
+        // If already wrapped by ImageGalleryManager, just wire the existing button
+        const existingBtn = img.closest<HTMLButtonElement>('.image-button');
+        if (existingBtn) {
+          existingBtn.addEventListener('click', (e) => {
+            beforeDispatch?.(e);
+            window.dispatchEvent(new CustomEvent('openLightbox', {
+              detail: { images: [{ src: img.src, alt: img.alt || '' }], index: 0 }
+            }));
+          });
+          return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'image-grid image-grid-1 my-2';
+
+        const imageItem = document.createElement('div');
+        imageItem.className = 'image-item';
+
+        const button = document.createElement('button');
+        button.className = 'image-button w-full h-full group cursor-pointer';
+        button.setAttribute('data-lightbox', 'gallery');
+
+        const imgClone = img.cloneNode(true) as HTMLImageElement;
+        imgClone.className = 'w-full h-full object-cover rounded-lg transition-all duration-300 group-hover:shadow-lg group-hover:scale-[1.02]';
+        imgClone.loading = 'lazy';
+        imgClone.setAttribute('data-lightbox', 'gallery');
+
+        const overlay = document.createElement('div');
+        overlay.className = 'absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 rounded-lg flex items-center justify-center';
+
+        const zoomIcon = document.createElement('div');
+        zoomIcon.className = 'w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+        zoomIcon.innerHTML = _lightboxZoomSVG;
+
+        overlay.appendChild(zoomIcon);
+        button.appendChild(imgClone);
+        button.appendChild(overlay);
+        imageItem.appendChild(button);
+        grid.appendChild(imageItem);
+
+        button.addEventListener('click', (e) => {
+          beforeDispatch?.(e);
+          window.dispatchEvent(new CustomEvent('openLightbox', {
+            detail: { images: [{ src: imgClone.src, alt: imgClone.alt || '' }], index: 0 }
+          }));
+        });
+
+        img.parentNode!.insertBefore(grid, img);
+        img.parentNode!.removeChild(img);
+      }
+
+      function initMarginalia() {
+        const containers = document.querySelectorAll<HTMLElement>('.footnote-container');
+        if (!containers.length) return;
+
+        // Whether the floated sidebar notes are visible
+        const floatsVisible = () => window.innerWidth >= 1100;
+
+        // ── Abort stale listeners from previous page navigation ────────────
+        // Each initMarginalia() call would stack more mouseenter/mouseleave on
+        // the persistent pop element, causing multiple independent hideTimers
+        // that cancelHide() from the current run cannot cancel. AbortController
+        // wipes all of them cleanly on the next call.
+        const prevAC = (window as any)._marginaliaAC as AbortController | undefined;
+        if (prevAC) prevAC.abort();
+        const ac = new AbortController();
+        (window as any)._marginaliaAC = ac;
+        const sig = ac.signal;
+
+        // ── Recreate popover fresh (removes stale cloned listeners) ────────
+        const oldPop = document.getElementById('marginalia-popover');
+        if (oldPop) oldPop.remove();
+        const pop = document.createElement('div');
+        pop.id = 'marginalia-popover';
+        pop.className = 'marginalia-popover';
+        pop.setAttribute('role', 'tooltip');
+        document.body.appendChild(pop);
+
+        let hideTimer: ReturnType<typeof setTimeout> | null = null;
+        const scheduleHide = () => { hideTimer = setTimeout(() => pop.classList.remove('is-visible'), 200); };
+        const cancelHide   = () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } };
+
+        const reposition = (anchor: HTMLElement) => {
+          const rect = anchor.getBoundingClientRect();
+          const pw = 260;
+          // measure after content set, fall back to 0 if not yet rendered
+          const ph = pop.offsetHeight || 0;
+          const gap = 8;
+          const top = (rect.top - ph - gap > 16) ? rect.top - ph - gap : rect.bottom + gap;
+          const left = Math.max(8, Math.min(rect.left, window.innerWidth - pw - 8));
+          pop.style.top  = `${top}px`;
+          pop.style.left = `${left}px`;
+        };
+
+        const showPopoverFor = (anchor: HTMLElement, container: HTMLElement) => {
+          cancelHide();
+          const noteEl  = container.querySelector<HTMLElement>('.footnote');
+          const labelEl = container.querySelector<HTMLElement>('.footnote-number');
+          if (!noteEl || !labelEl) return;
+
+          const allLabels = Array.from(document.querySelectorAll<HTMLElement>('.footnote-number'));
+          const idx = allLabels.indexOf(labelEl) + 1;
+
+          pop.innerHTML = `<span class="marginalia-popover-num">${idx}.</span><span class="marginalia-popover-text">${noteEl.innerHTML}</span>`;
+          // Wire lightbox on images cloned into popover
+          pop.querySelectorAll<HTMLImageElement>('img').forEach(img => {
+            wrapImgWithLightboxOverlay(img, (e) => { e.stopPropagation(); });
+          });
+          // Reserve space for images so reposition() gets correct height before load
+          const imgs = pop.querySelectorAll<HTMLImageElement>('img');
+          if (imgs.length) pop.style.minHeight = '160px';
+
+          requestAnimationFrame(() => {
+            reposition(anchor);
+            pop.classList.add('is-visible');
+            imgs.forEach(img => {
+              if (img.complete) {
+                pop.style.minHeight = '';
+              } else {
+                img.addEventListener('load',  () => { pop.style.minHeight = ''; reposition(anchor); }, { once: true });
+                img.addEventListener('error', () => { pop.style.minHeight = ''; }, { once: true });
+              }
+            });
+          });
+        };
+
+        pop.addEventListener('mouseenter', cancelHide, { signal: sig });
+        pop.addEventListener('mouseleave', scheduleHide, { signal: sig });
+
+        // ── Per-container wiring ───────────────────────────────────────────
+        containers.forEach(container => {
+          const noteEl  = container.querySelector<HTMLElement>('.footnote');
+          const labelEl = container.querySelector<HTMLElement>('.footnote-number');
+          if (!labelEl) return;
+
+          // ── Hover highlighting (bidirectional, relatedTarget-safe) ───────
+          // The float takes .footnote visually outside .footnote-container's
+          // layout box, so mouseleave fires when crossing into the float.
+          // We check relatedTarget to suppress false negatives.
+          const highlight   = () => container.classList.add('is-highlighted');
+          const unhighlight = (e: MouseEvent) => {
+            const rt = e.relatedTarget as Node | null;
+            if (rt && container.contains(rt)) return; // still inside
+            container.classList.remove('is-highlighted');
+          };
+
+          container.addEventListener('mouseenter', highlight, { signal: sig });
+          container.addEventListener('mouseleave', unhighlight as EventListener, { signal: sig });
+          if (noteEl) {
+            noteEl.addEventListener('mouseenter', highlight, { signal: sig });
+            noteEl.addEventListener('mouseleave', unhighlight as EventListener, { signal: sig });
+          }
+
+          // ── Click behaviour ──────────────────────────────────────────────
+          labelEl.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // prevent document dismiss handler from closing the popover we just opened
+
+            if (floatsVisible()) {
+              // Desktop: scroll floated note into view + update URL hash
+              if (!noteEl) return;
+              const noteId = noteEl.id; // fn-note-N
+              if (noteId) {
+                history.replaceState(null, '', `#${noteId}`);
+              }
+              noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Flash highlight
+              container.classList.add('is-highlighted');
+              setTimeout(() => container.classList.remove('is-highlighted'), 1500);
+            } else {
+              // <1100px: show popover
+              showPopoverFor(labelEl, container);
+            }
+          }, { signal: sig });
+
+          // ── Popover on hover (<1100px) ────────────────────────────────────
+          container.addEventListener('mouseenter', () => {
+            if (!floatsVisible()) showPopoverFor(labelEl, container);
+          }, { signal: sig });
+          container.addEventListener('mouseleave', () => {
+            if (!floatsVisible()) scheduleHide();
+          }, { signal: sig });
+        });
+
+        // ── Lightbox for images inside .footnote ──────────────────────────
+        // Dispatch explicit image data so Lightbox doesn't fall back to
+        // querySelectorAll('img') which would also pick up #lightbox-image itself.
+        document.querySelectorAll<HTMLImageElement>('.footnote img').forEach(img => {
+          wrapImgWithLightboxOverlay(img, (e) => { e.stopPropagation(); });
+        });
+
+        // ── Global dismiss ─────────────────────────────────────────────────
+        document.addEventListener('click', e => {
+          if (!pop.contains(e.target as Node) && !(e.target as Element).closest?.('.footnote-container')) {
+            pop.classList.remove('is-visible');
+          }
+        }, { signal: sig });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') pop.classList.remove('is-visible'); }, { signal: sig });
+
+        // ── Dismiss popover when crossing the 1100px float/popover threshold ──
+        // (e.g. user zooms in/out, changing which mode is active)
+        let lastWasFloats = floatsVisible();
+        window.addEventListener('resize', () => {
+          const nowFloats = floatsVisible();
+          if (nowFloats !== lastWasFloats) {
+            pop.classList.remove('is-visible');
+            document.querySelectorAll('.footnote-container.is-highlighted').forEach(c => c.classList.remove('is-highlighted'));
+            lastWasFloats = nowFloats;
+          }
+        }, { signal: sig, passive: true });
+      }
+
+      // Expose globally so BaseLayout's Swup hooks can call it on navigation
+      window['initializeMarginalia'] = initMarginalia;
+
+      document.addEventListener('DOMContentLoaded', initMarginalia);
+      // bfcache restore: browser back/forward skips DOMContentLoaded
+      window.addEventListener('pageshow', (e) => { if (e.persisted) initMarginalia(); });
+    </script>
+
+    <script define:vars={{ posts: visiblePosts, commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id }}>
+
+      // Process wikilinks - unified logic for all wikilink types
+      function initializeWikilinks() {
+        const wikilinks = document.querySelectorAll('.wikilink[data-wikilink]');
+
+        wikilinks.forEach(link => {
+          const linkText = link.dataset.wikilink;
+
+          // Skip same-page anchors (empty data-wikilink) - they're already properly formatted
+          if (!linkText || linkText === '') {
+            return;
+          }
+
+          const displayOverride = link.dataset.displayOverride;
+          const currentDisplayText = link.textContent;
+
+          // Find the matching post - use id (not slug, which is deprecated in Astro v6)
+          const slug = linkText.toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+          // Helper function to create slug from title (same as resolveWikilink logic)
+          const createSlugFromTitle = (title) => {
+            return title.toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, '')
+              .replace(/\s+/g, '-')
+              .replace(/-+/g, '-')
+              .replace(/^-+|-+$/g, '');
+          };
+
+          // First try exact id match (Astro v6 uses id, not slug)
+          let post = posts.find(p => p.id === slug);
+
+          // If not found, try title match (for wikilinks that use post titles)
+          if (!post) {
+            post = posts.find(p => createSlugFromTitle(p.data.title) === slug);
+          }
+
+          if (post) {
+            // Update href - preserve anchor if present
+            const currentHref = link.href || link.getAttribute('href') || '';
+            const anchorMatch = currentHref.match(/#(.+)$/);
+            const anchor = anchorMatch ? anchorMatch[1] : null;
+
+            if (anchor) {
+              link.href = `/posts/${post.id}#${anchor}`;
+            } else {
+              link.href = `/posts/${post.id}`;
+            }
+
+            if (displayOverride && displayOverride !== 'null' && displayOverride !== 'undefined') {
+              // Wikilink with custom display: [[link|display]]
+              link.textContent = displayOverride;
+            } else if (displayOverride === 'null' || displayOverride === null || displayOverride === 'undefined' || displayOverride === undefined) {
+              // Standard markdown link: [text](url) - NEVER change the display text
+              // Keep currentDisplayText as-is
+            } else {
+              // Naked wikilink: [[link]] - use post title
+              link.textContent = post.data.title;
+            }
+          } else {
+            // Mark as broken link
+            link.classList.add('wikilink-broken');
+            link.title = 'Link not found';
+          }
+        });
+      }
+
+      // Make function globally available for Swup re-initialization
+      window.initializeWikilinks = initializeWikilinks;
+
+      // Process wikilinks and initialize layouts after content loads
+      document.addEventListener('DOMContentLoaded', () => {
+        // Process external links - handled by BaseLayout, but call here as backup for initial load
+        if (window.processExternalLinks) {
+          window.processExternalLinks();
+        }
+
+        // Initialize wikilinks on initial load
+        initializeWikilinks();
+      });
+
+      // External links are now handled globally by BaseLayout Swup hooks
+
+    </script>
+  </Fragment>
+
+  <!-- Lightbox is handled globally by BaseLayout -->
+
+  <style>
+    /* ── Banner overlap: content slides up over banner bottom ───────────── */
+    .post-banner-overlap {
+      margin-top: -3.5rem;
+      position: relative;
+      z-index: 10;
+    }
+
+
+    /* ── Firefly title left accent bar ──────────────────────────────────── */
+    .post-title-accent {
+      position: absolute;
+      left: -1.5rem;
+      top: 0.75rem;
+      width: 0.25rem;
+      height: 1.25rem;
+      border-radius: 0.25rem;
+      background: rgb(var(--color-highlight-600));
+    }
+    @media (min-width: 768px) {
+      .post-title-accent { left: -2.25rem; }
+    }
+    :global(.dark) .post-title-accent {
+      background: rgb(var(--color-highlight-400));
+    }
+
+    /* ── Post metadata icon boxes ────────────────────────────────────────── */
+    /* Row 1: word count / reading time — small, very muted */
+    .meta-icon-sm {
+      height: 1.5rem;
+      width: 1.5rem;
+      border-radius: 0.375rem;
+      background: rgba(0, 0, 0, 0.05);
+      color: rgb(var(--color-primary-400));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.4rem;
+      flex-shrink: 0;
+    }
+    :global(.dark) .meta-icon-sm {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgb(var(--color-primary-500));
+    }
+    /* Row 3: date / category / tags — slightly larger */
+    .meta-icon {
+      height: 1.75rem;
+      width: 1.75rem;
+      border-radius: 0.375rem;
+      background: rgba(0, 0, 0, 0.05);
+      color: rgb(var(--color-primary-500));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.45rem;
+      flex-shrink: 0;
+    }
+    :global(.dark) .meta-icon {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgb(var(--color-primary-400));
+    }
+
+    /* ── Break out of BaseLayout's max-width when sidebar is present ────── */
+    :global(#main-content:has(.post-layout-grid.has-sidebar)) {
+      max-width: none !important;
+    }
+
+    /* ── Base grid: mobile / no-sidebar ─────────────────────────────────── */
+    .post-layout-grid {
+      display: grid;
+      grid-template-columns: minmax(0, var(--contentWidth));
+      justify-content: center;
+      padding: 0 1rem;
+    }
+
+    /* ── Category footer ─────────────────────────────────────────────────── */
+    .post-category-footer {
+      max-width: min(98vw, 1800px);
+      margin: 1.5rem auto 0;
+      padding: 0 1.5rem;
+    }
+
+    .post-layout-article {
+      min-width: 0;
+      overflow: visible; /* must not clip floated notes */
+    }
+
+    .post-layout-left-col {
+      display: none;
+    }
+
+    /*
+     * ≥1100px: [240px sidebar] [1fr article]          — no right gutter yet
+     * ≥1100px: [240px sidebar] [1fr article] [200px]  — gutter for marginalia floats
+     *
+     * The 200px gutter column only appears when marginalia are active (≥1100px).
+     * Below that breakpoint article fills all remaining space — no wasted column.
+     */
+    @media (min-width: 1100px) {
+      /*
+       * 3-col grid from 1100px: [240px sidebar] [1fr article] [200px gutter]
+       * The 200px gutter is always present so marginalia floats work from 1100px.
+       * Article fills 1fr — remaining space after sidebar + gutter + gaps.
+       */
+      .post-layout-grid.has-sidebar {
+        grid-template-columns: 240px 1fr 200px;
+        column-gap: 0.75rem;
+        max-width: var(--page-width);
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0 1.5rem;
+      }
+
+      .post-layout-left-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        grid-column: 1;
+        grid-row: 1;
+        position: sticky;
+        top: 5rem;
+        align-self: start;
+        height: fit-content;
+        padding-top: 2rem;
+      }
+
+      .post-layout-grid.has-sidebar .post-layout-article {
+        grid-column: 2;
+        grid-row: 1;
+      }
+    }
+  </style>
+</BaseLayout>

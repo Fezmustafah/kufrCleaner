@@ -1,0 +1,52 @@
+/**
+ * Swup Page Transition Animations — ported from Firefly
+ *
+ * Swup adds these classes to <html> during navigation:
+ *   is-changing   — transition has started
+ *   is-leaving    — content is animating OUT
+ *   is-animating  — animation is running (leave OR enter phase)
+ *
+ * Leave phase:  is-changing + is-leaving + is-animating → fade+slide UP (exit)
+ * Enter phase:  is-changing + is-animating (no is-leaving) → fade+slide UP (enter)
+ *
+ * Container: #swup-container (configured in astro.config.mjs)
+ */
+
+/* ── Base: set up transitions on the swup container ─────────────────────── */
+#swup-container {
+  transition:
+    opacity 140ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    transform 140ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ── During leave: switch to snappier exit easing ────────────────────────── */
+html.is-leaving #swup-container {
+  transition:
+    opacity 140ms cubic-bezier(0.55, 0.055, 0.675, 0.19),
+    transform 140ms cubic-bezier(0.55, 0.055, 0.675, 0.19);
+}
+
+/* ── Leave animation: slide up + fade out ────────────────────────────────── */
+html.is-animating.is-leaving #swup-container {
+  opacity: 0;
+  transform: translateY(-0.75rem);
+}
+
+/* ── Enter animation: slide up into place + fade in ─────────────────────── */
+html.is-animating:not(.is-leaving) #swup-container {
+  opacity: 0;
+  transform: translateY(0.75rem);
+}
+
+/* ── Sidebar / TOC: fade without transform (they're sticky, not scrolled) ── */
+#left-sidebar-dynamic,
+#right-sidebar-dynamic,
+#floating-toc-wrapper {
+  transition: opacity 140ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+html.is-animating #left-sidebar-dynamic,
+html.is-animating #right-sidebar-dynamic,
+html.is-animating #floating-toc-wrapper {
+  opacity: 0;
+}

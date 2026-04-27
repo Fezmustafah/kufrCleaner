@@ -1,0 +1,146 @@
+---
+import type { BaseView } from '@/utils/bases/types';
+import { slugifyPath } from '@/utils/bases/slugify';
+
+interface Props {
+  views: BaseView[];
+  currentView: BaseView;
+  baseName: string;
+}
+
+const { views, currentView, baseName } = Astro.props;
+const hasMultipleViews = views.length > 1;
+
+function getViewTypeIcon(type: string) {
+  const icons: Record<string, string> = {
+    table: '<path d="M3 3h18v18H3V3zm0 6h18M9 3v18"/>',
+    cards: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+    list: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+  };
+  return icons[type] || icons.table;
+}
+---
+
+<div class="view-selector" data-view-selector>
+  <button type="button" class="view-selector-button" aria-label="Select view" aria-haspopup="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" set:html={getViewTypeIcon(currentView.type)} />
+    <span class="view-name">{currentView.name}</span>
+    {hasMultipleViews && (
+      <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    )}
+  </button>
+
+  {hasMultipleViews && (
+    <div class="view-dropdown hidden" role="menu">
+      {views.map(view => {
+        const viewSlug = slugifyPath(view.name);
+        const isActive = view.name === currentView.name;
+        return (
+          <a
+            href={`/base/${baseName}/${viewSlug}`}
+            class={`view-option ${isActive ? 'active' : ''}`}
+            role="menuitem"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" set:html={getViewTypeIcon(view.type)} />
+            <span>{view.name}</span>
+            {isActive && (
+              <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            )}
+          </a>
+        );
+      })}
+    </div>
+  )}
+</div>
+
+<script>
+  function initViewSelector() {
+    const selector = document.querySelector('[data-view-selector]');
+    if (!selector) return;
+    const button = selector.querySelector('.view-selector-button');
+    const dropdown = selector.querySelector('.view-dropdown');
+    if (!button || !dropdown) return;
+
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('hidden');
+      button.setAttribute('aria-expanded', !dropdown.classList.contains('hidden') ? 'true' : 'false');
+    });
+    document.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      button.setAttribute('aria-expanded', 'false');
+    });
+    dropdown.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  initViewSelector();
+  document.addEventListener('swup:page:view', initViewSelector);
+</script>
+
+<style>
+  .view-selector { position: relative; display: inline-block; }
+
+  .view-selector-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    background: transparent;
+    border: none;
+    color: rgb(var(--color-primary-800));
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    user-select: none;
+    border-radius: 4px;
+  }
+
+  .view-selector-button:hover { background: rgb(var(--color-primary-100)); }
+  .view-name { white-space: nowrap; }
+
+  .chevron-icon {
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: transform 0.2s;
+  }
+
+  .view-selector-button[aria-expanded="true"] .chevron-icon { transform: rotate(180deg); }
+
+  .view-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 180px;
+    background: rgb(var(--color-primary-50));
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  .view-dropdown.hidden { display: none; }
+
+  .view-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    color: rgb(var(--color-primary-800));
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: background-color 0.15s;
+    border-bottom: 1px solid rgb(var(--color-primary-100));
+  }
+
+  .view-option:last-child { border-bottom: none; }
+  .view-option:hover { background: rgb(var(--color-primary-100)); }
+  .view-option.active { background: rgb(var(--color-primary-200)); font-weight: 500; }
+
+  .check-icon { flex-shrink: 0; color: rgb(var(--color-highlight-500)); margin-left: auto; }
+</style>

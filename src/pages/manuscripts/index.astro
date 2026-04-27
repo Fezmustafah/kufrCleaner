@@ -1,0 +1,82 @@
+---
+import { getCollection } from 'astro:content';
+import { siteConfig } from '@/config';
+import { generatePostsListSEO } from '@/utils/seo';
+import { shouldShowContent, isValidDate } from '@/utils/markdown';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ManuscriptCard from '@/components/ManuscriptCard.astro';
+import Icon from '@/components/Icon.astro';
+
+if (!siteConfig.optionalContentTypes.manuscripts) {
+  return Astro.redirect('/404');
+}
+
+const allManuscripts = await getCollection('manuscripts');
+const isDev = import.meta.env.DEV;
+
+const visible = allManuscripts
+  .filter(m => shouldShowContent(m, isDev))
+  .sort((a, b) => {
+    const da = isValidDate(a.data.date) ? a.data.date : new Date(0);
+    const db = isValidDate(b.data.date) ? b.data.date : new Date(0);
+    return db.getTime() - da.getTime();
+  });
+
+// Group by type for stats
+const typeCounts = visible.reduce<Record<string, number>>((acc, m) => {
+  const t = m.data.type ?? 'other';
+  acc[t] = (acc[t] ?? 0) + 1;
+  return acc;
+}, {});
+
+const seoData = generatePostsListSEO(import.meta.env.SITE || '', undefined);
+seoData.title = `Manuscripts | ${siteConfig.title}`;
+seoData.description = `Academic writings, essays, and research notes by ${siteConfig.author}`;
+---
+
+<BaseLayout seoData={seoData}>
+  <div class="pt-4 pb-8 md:py-8">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 mb-8 md:mb-12" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+
+      <!-- Page header -->
+      <header class="mb-8 pb-6 border-b border-primary-200 dark:border-primary-700">
+        <h1 class="text-lg font-bold text-primary-900 dark:text-primary-50 mb-2">
+          Manuscripts
+        </h1>
+        <p class="text-sm text-primary-600 dark:text-primary-300 mb-4">
+          Essays, papers, and research notes — {visible.length} document{visible.length !== 1 ? 's' : ''}.
+        </p>
+
+        <!-- Type breakdown -->
+        {Object.keys(typeCounts).length > 0 && (
+          <div class="flex flex-wrap gap-2">
+            {Object.entries(typeCounts).map(([type, count]) => (
+              <span class="font-mono text-xs text-highlight-600 dark:text-highlight-400 bg-highlight-50 dark:bg-highlight-950 px-2 py-0.5 rounded uppercase tracking-wider">
+                {type} ({count})
+              </span>
+            ))}
+          </div>
+        )}
+      </header>
+
+      {visible.length > 0 ? (
+        <div class="flex flex-col gap-4">
+          {visible.map((manuscript, i) => (
+            <ManuscriptCard manuscript={manuscript} eager={i < 3} />
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-16">
+          <Icon name="file-text" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-primary-900 dark:text-primary-50 mb-2">
+            No manuscripts yet
+          </h3>
+          <p class="text-sm text-primary-600 dark:text-primary-300">
+            Add <code>.md</code> files to <code>src/content/manuscripts/</code> in Obsidian.
+          </p>
+        </div>
+      )}
+
+    </div>
+  </div>
+</BaseLayout>

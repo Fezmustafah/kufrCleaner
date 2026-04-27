@@ -1,0 +1,164 @@
+---
+import { getCollection } from 'astro:content';
+import { siteConfig } from '@/config';
+import { shouldShowPost, sortPostsByDate } from '@/utils/markdown';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import Icon from '@/components/Icon.astro';
+
+const isDev = import.meta.env.DEV;
+
+const allPosts = await getCollection('posts');
+const visiblePosts = allPosts.filter(post => shouldShowPost(post, isDev));
+const sortedPosts = sortPostsByDate(visiblePosts);
+
+// Build category data with post counts
+const categoryMap = new Map<string, number>();
+for (const post of sortedPosts) {
+  const cat = (post.data as any).category;
+  if (cat && typeof cat === 'string' && cat.trim()) {
+    categoryMap.set(cat.trim(), (categoryMap.get(cat.trim()) || 0) + 1);
+  }
+}
+
+const categoryData = Array.from(categoryMap.entries())
+  .map(([category, postCount]) => ({ category, postCount }))
+  .sort((a, b) => a.category.localeCompare(b.category));
+
+const seoData = {
+  title: `Categories | ${siteConfig.title}`,
+  description: `Browse ${categoryData.length} categories across ${visiblePosts.length} posts.`,
+  canonical: Astro.url.href,
+  ogType: 'website' as const
+};
+---
+
+<BaseLayout seoData={seoData}>
+  <div class="py-8">
+    <div class="cat-moc-grid" style={`--contentWidth: ${siteConfig.layout.contentWidth}`}>
+
+      <Breadcrumbs
+        postId="category"
+        title="Categories"
+        class="moc-breadcrumb mb-4"
+      />
+
+      <article class="moc-article bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm overflow-hidden">
+
+        <!-- Header -->
+        <div class="px-6 py-6 border-b border-primary-200 dark:border-primary-700">
+          <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 mb-1 leading-tight">
+            Categories
+          </h1>
+          <p class="text-sm text-primary-500 dark:text-primary-400">
+            {categoryData.length} categories · {visiblePosts.length} posts
+          </p>
+        </div>
+
+        <!-- Category list -->
+        <div class="p-6">
+          {categoryData.length > 0 ? (
+            <div class="cat-card-grid">
+              {categoryData.map(({ category, postCount }) => (
+                <a
+                  href={`/posts/category/${encodeURIComponent(category)}`}
+                  class="cat-card group"
+                >
+                  <div class="cat-card-icon">
+                    <Icon name="folder" class="w-7 h-7 text-primary-400 dark:text-primary-500" />
+                  </div>
+                  <div class="cat-card-body">
+                    <div class="flex items-start justify-between gap-2">
+                      <h2 class="text-sm font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors leading-snug">
+                        {category}
+                      </h2>
+                      <span class="shrink-0 text-xs font-medium px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-700 text-primary-500 dark:text-primary-400 tabular-nums">
+                        {postCount}
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div class="text-center py-16">
+              <Icon name="folder" class="w-10 h-10 text-primary-300 dark:text-primary-600 mx-auto mb-3" />
+              <p class="text-sm text-primary-500 dark:text-primary-400">No categories found.</p>
+            </div>
+          )}
+        </div>
+      </article>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .cat-moc-grid {
+    display: grid;
+    grid-template-columns: minmax(0, var(--contentWidth));
+    justify-content: center;
+    padding: 0 1rem;
+  }
+
+  .moc-breadcrumb { grid-column: 1 / -1; }
+  .moc-article { min-width: 0; }
+
+  .cat-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 480px) {
+    .cat-card-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (min-width: 768px) {
+    .cat-card-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .cat-card {
+    display: block;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(var(--color-primary-200, 229 231 235));
+    background: white;
+    overflow: hidden;
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+
+  :global(.dark) .cat-card {
+    border-color: rgb(var(--color-primary-700, 55 65 81));
+    background: rgb(var(--color-primary-800, 31 41 55) / 0.5);
+  }
+
+  .cat-card:hover {
+    border-color: rgb(var(--color-highlight-300, 134 239 172));
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  :global(.dark) .cat-card:hover {
+    border-color: rgb(var(--color-highlight-600, 22 163 74));
+  }
+
+  .cat-card-icon {
+    width: 100%;
+    aspect-ratio: 3/2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%);
+  }
+
+  :global(.dark) .cat-card-icon {
+    background: linear-gradient(135deg, #1e2939 0%, #273549 100%);
+  }
+
+  .cat-card-body {
+    padding: 0.625rem 0.75rem 0.75rem;
+  }
+
+  @media (min-width: 1280px) {
+    .cat-moc-grid { padding: 0 1.5rem; }
+  }
+</style>

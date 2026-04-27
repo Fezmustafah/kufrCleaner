@@ -1,0 +1,167 @@
+---
+import type { Note } from '@/utils/bases/types';
+import type { BaseView } from '@/utils/bases/types';
+import { getPropertyValue, formatPropertyValue } from '@/utils/bases/filter';
+
+interface Props {
+  notes: Note[];
+  view: BaseView;
+}
+
+const { notes, view } = Astro.props;
+const columns = view.order || ['file.name', 'file.mtime'];
+
+function getColumnName(propertyName: string): string {
+  if (propertyName.startsWith('file.')) {
+    const name = propertyName.substring(5);
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }
+  return propertyName.charAt(0).toUpperCase() + propertyName.slice(1);
+}
+---
+
+{notes.length === 0 ? (
+  <div class="empty-state">
+    <p>No posts match the current filters.</p>
+  </div>
+) : (
+  <div class="table-scroll">
+    <table class="base-table">
+      <thead>
+        <tr>
+          {columns.map((col) => (
+            <th>{getColumnName(col)}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {notes.map(note => (
+          <tr>
+            {columns.map(col => {
+              const value = getPropertyValue(note, col);
+              const formatted = formatPropertyValue(value);
+
+              if (col === 'file.name') {
+                return (
+                  <td class="cell-name">
+                    <a href={`/posts/${note.id}`} class="note-link">
+                      {note.data.title || formatted || note.id}
+                    </a>
+                  </td>
+                );
+              }
+
+              if (col === 'file.tags' || col === 'tags') {
+                return (
+                  <td class="cell-tags">
+                    {Array.isArray(value) && value.length > 0 ? (
+                      <div class="tag-list">
+                        {value.map((tag: string) => (
+                          <span class="tag-badge">{tag}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span class="text-muted">—</span>
+                    )}
+                  </td>
+                );
+              }
+
+              return <td>{formatted || <span class="text-muted">—</span>}</td>;
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
+<style>
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: rgb(var(--color-primary-400));
+    font-style: italic;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .base-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    table-layout: auto;
+  }
+
+  .base-table thead {
+    background: rgb(var(--color-primary-100));
+    border-bottom: 1px solid rgb(var(--color-primary-200));
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .base-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-weight: 600;
+    color: rgb(var(--color-primary-700));
+    white-space: nowrap;
+    font-size: 0.8125rem;
+  }
+
+  .base-table tbody tr {
+    border-bottom: 1px solid rgb(var(--color-primary-100));
+    transition: background-color 0.1s;
+  }
+
+  .base-table tbody tr:hover { background: rgb(var(--color-highlight-50)); }
+
+  .base-table td {
+    padding: 8px 12px;
+    color: rgb(var(--color-primary-600));
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .cell-name { font-weight: 500; }
+
+  .note-link {
+    color: rgb(var(--color-highlight-600));
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .note-link:hover {
+    color: rgb(var(--color-highlight-700));
+    text-decoration: underline;
+  }
+
+  .cell-tags { max-width: 300px; }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .tag-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+    background: rgb(var(--color-highlight-500));
+    border-radius: 0.25rem;
+    white-space: nowrap;
+  }
+
+  .text-muted {
+    color: rgb(var(--color-primary-300));
+    font-style: italic;
+  }
+</style>

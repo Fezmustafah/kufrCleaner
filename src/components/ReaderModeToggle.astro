@@ -1,0 +1,116 @@
+---
+/**
+ * ReaderModeToggle — toggles body.reading-mode for distraction-free reading.
+ *
+ * Two surfaces:
+ *   1. Sidebar button (#reader-mode-toggle) — inside TOC sidebar, xl:visible (1280px+)
+ *   2. Fixed exit button (.reader-mode-exit-fixed) — fixed top-right, shown via CSS
+ *      when sidebar is unavailable (mobile OR ≥1640px with has-marginalia grid active)
+ *
+ * State persists via localStorage. Re-applies on Swup page:view.
+ */
+---
+
+<!-- Sidebar toggle (inside #toc-sidebar) -->
+<button
+  id="reader-mode-toggle"
+  class="flex items-center gap-2 w-full px-3 py-2 mb-3 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+  aria-label="Toggle reader mode"
+  title="Toggle reader mode"
+>
+  <svg
+    class="reader-mode-icon-off"
+    xmlns="http://www.w3.org/2000/svg"
+    width="16" height="16" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+  </svg>
+  <svg
+    class="reader-mode-icon-on"
+    xmlns="http://www.w3.org/2000/svg"
+    width="16" height="16" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"
+    style="display: none;"
+  >
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    <path d="M6 8h2"/><path d="M6 12h2"/><path d="M16 8h2"/><path d="M16 12h2"/>
+  </svg>
+  <span class="reader-mode-label">Reader mode</span>
+</button>
+
+<!-- Fixed exit button — CSS shows this when sidebar toggle is out of reach -->
+<button
+  class="reader-mode-exit-fixed"
+  aria-label="Exit reader mode"
+  title="Exit reader mode"
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14" height="14" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    <path d="M6 8h2"/><path d="M6 12h2"/><path d="M16 8h2"/><path d="M16 12h2"/>
+  </svg>
+  Exit reader
+</button>
+
+<script>
+  const STORAGE_KEY = 'kufrCleaner:readerMode';
+
+  function applyReaderMode(active: boolean): void {
+    document.body.classList.toggle('reading-mode', active);
+
+    // Update all sidebar toggle instances
+    document.querySelectorAll<HTMLElement>('.reader-mode-icon-off').forEach(el => {
+      el.style.display = active ? 'none' : '';
+    });
+    document.querySelectorAll<HTMLElement>('.reader-mode-icon-on').forEach(el => {
+      el.style.display = active ? '' : 'none';
+    });
+    document.querySelectorAll<HTMLElement>('.reader-mode-label').forEach(el => {
+      el.textContent = active ? 'Exit reader mode' : 'Reader mode';
+    });
+  }
+
+  function initReaderModeToggle(): void {
+    // Restore persisted state
+    const stored = localStorage.getItem(STORAGE_KEY);
+    applyReaderMode(stored === 'true');
+
+    // Wire sidebar toggle
+    const btn = document.getElementById('reader-mode-toggle');
+    if (btn) {
+      const newBtn = btn.cloneNode(true) as HTMLElement;
+      btn.parentNode?.replaceChild(newBtn, btn);
+      newBtn.addEventListener('click', () => {
+        const next = !document.body.classList.contains('reading-mode');
+        applyReaderMode(next);
+        localStorage.setItem(STORAGE_KEY, String(next));
+      });
+    }
+
+    // Wire fixed exit buttons (always exit, never enter)
+    document.querySelectorAll<HTMLElement>('.reader-mode-exit-fixed').forEach(el => {
+      const clone = el.cloneNode(true) as HTMLElement;
+      el.parentNode?.replaceChild(clone, el);
+      clone.addEventListener('click', () => {
+        applyReaderMode(false);
+        localStorage.setItem(STORAGE_KEY, 'false');
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initReaderModeToggle);
+  document.addEventListener('page:view', initReaderModeToggle);
+</script>

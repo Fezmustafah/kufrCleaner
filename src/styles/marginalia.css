@@ -1,0 +1,256 @@
+/**
+ * Marginalia — CSS float sidenotes (Tufte-style)
+ *
+ * Breakpoints (derived from contentWidth: 45rem + sidebar: 280px):
+ *   ≥1440px  — floats active: notes appear in right margin beside text
+ *   <1440px  — floats off: notes hidden, click superscript to toggle inline
+ *   <768px   — mobile: tap superscript → popover (JS handles this)
+ *
+ * HTML emitted by remark-marginalia.ts:
+ *   <span class="footnote-container">
+ *     <label for="fn-N" class="margin-toggle footnote-number"></label>
+ *     <input type="checkbox" id="fn-N" class="margin-toggle" />
+ *     <span class="footnote">NOTE CONTENT</span>
+ *   </span>
+ */
+
+/*
+ * --ma-offset: total right padding between the float's containing block and
+ * the article card's right edge, plus the column gap.
+ * Each nested container that adds right padding must increment this value.
+ *
+ * Base (article px-9 right = 2.25rem + column-gap 0.75rem = 3rem)
+ * Inside .callout (+ p-4 right = 1rem → 4rem)
+ */
+#post-content {
+  --ma-offset: 3rem;
+}
+.callout {
+  --ma-offset: 4rem;
+}
+
+/* ── Counter reset ──────────────────────────────────────────────────────── */
+#post-content {
+  counter-reset: footnote-counter;
+}
+
+/* ── Container: sits inline in prose ───────────────────────────────────── */
+.footnote-container {
+  display: inline;
+}
+
+/* ── Hidden checkbox ────────────────────────────────────────────────────── */
+input.margin-toggle {
+  display: none;
+}
+
+/* ── Superscript reference number (the inline label) ───────────────────── */
+label.footnote-number {
+  counter-increment: footnote-counter;
+  cursor: pointer;
+  display: inline;
+}
+
+label.footnote-number::after {
+  content: counter(footnote-counter);
+  font-size: 0.7em;
+  font-weight: 600;
+  color: rgb(var(--color-highlight-600));
+  vertical-align: super;
+  line-height: 0;
+  position: relative;
+  top: -0.1em;
+  transition: color 0.15s ease;
+}
+
+.dark label.footnote-number::after {
+  color: rgb(var(--color-highlight-400));
+}
+
+/* ── Note base: hidden by default (checkbox or float reveals it) ────────── */
+.footnote {
+  display: none;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgb(var(--color-primary-600));
+  border-left: 2px solid rgb(var(--color-primary-200));
+  padding-left: 1em;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.dark .footnote {
+  color: rgb(var(--color-primary-300));
+  border-left-color: rgb(var(--color-primary-700));
+}
+
+/* Note counter prefix */
+.footnote::before {
+  content: counter(footnote-counter) ". ";
+  font-weight: 600;
+  color: rgb(var(--color-highlight-600));
+  font-size: 0.85em;
+}
+
+.dark .footnote::before {
+  color: rgb(var(--color-highlight-400));
+}
+
+/* Markdown content inside notes */
+.footnote :global(a) {
+  color: rgb(var(--color-highlight-600));
+  text-decoration: none;
+  border-bottom: 1px solid rgb(var(--color-highlight-300));
+  word-break: break-word;
+}
+.dark .footnote :global(a) {
+  color: rgb(var(--color-highlight-400));
+  border-bottom-color: rgb(var(--color-highlight-700));
+}
+.footnote :global(a):hover { opacity: 0.8; }
+.footnote :global(code) {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+  background: rgb(var(--color-primary-100));
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+.dark .footnote :global(code) { background: rgb(var(--color-primary-800)); }
+.footnote :global(img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.5rem 0;
+  border-radius: 4px;
+}
+.footnote :global(p) { margin: 0; }
+.footnote :global(p + p) { margin-top: 0.4rem; }
+
+/* ── Hover highlight (bidirectional — JS adds .is-highlighted) ──────────── */
+.footnote-container.is-highlighted label.footnote-number::after {
+  color: rgb(var(--color-primary-900));
+}
+.dark .footnote-container.is-highlighted label.footnote-number::after {
+  color: rgb(var(--color-primary-50));
+}
+.footnote-container.is-highlighted .footnote {
+  border-left-color: rgb(var(--color-highlight-500));
+  color: rgb(var(--color-primary-800));
+}
+.dark .footnote-container.is-highlighted .footnote {
+  border-left-color: rgb(var(--color-highlight-400));
+  color: rgb(var(--color-primary-100));
+}
+
+/* ── <1440px: inline toggle disabled — popovers handle it via JS ─────────── */
+/* Checkbox expand intentionally removed; images must not bleed into prose. */
+
+/* ── ≥1100px: float into right margin ───────────────────────────────────── */
+@media (min-width: 1100px) {
+  .footnote {
+    /*
+     * Float right into the 200px gutter column.
+     * column-gap is 0.75rem. The float lives inside the prose content box,
+     * which sits inside article padding (md:px-9 = 2.25rem on the right).
+     * To land the note's left edge at the gutter start (article card right + gap):
+     *
+     *   margin-right = -(note-width + article-right-padding + column-gap)
+     *                = -(200px + 2.25rem + 0.75rem)
+     *                = -(200px + 3rem)
+     *
+     * This ensures the visual gap from article card → note equals the
+     * visual gap from sidebar → article card (both 0.75rem column-gap).
+     */
+    display: block;
+    float: right;
+    clear: right;
+    width: 200px;
+    margin-right: calc(-200px - var(--ma-offset, 3rem));
+    margin-left: 1rem;
+    margin-top: 0;
+    margin-bottom: 0;
+    cursor: pointer;
+  }
+
+  /* Animate note when targeted via URL hash */
+  .footnote:target {
+    border-left-color: rgb(var(--color-highlight-500));
+    color: rgb(var(--color-primary-800));
+    animation: marginalia-flash 1.2s ease forwards;
+  }
+  .dark .footnote:target {
+    border-left-color: rgb(var(--color-highlight-400));
+    color: rgb(var(--color-primary-100));
+  }
+
+}
+
+@keyframes marginalia-flash {
+  0%   { background: rgb(var(--color-highlight-100) / 0.5); }
+  100% { background: transparent; }
+}
+
+/* ── Mobile popover (<768px) ─────────────────────────────────────────────── */
+/* CSS for the popover element (JS creates & positions it) */
+.marginalia-popover {
+  display: none;
+  position: fixed;
+  z-index: 100;
+  width: 260px;
+  padding: 0.5rem 0.75rem 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(var(--color-primary-200));
+  border-left: 2px solid rgb(var(--color-highlight-400));
+  background: rgb(var(--color-primary-50));
+  color: rgb(var(--color-primary-700));
+  font-size: 0.8rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: auto;
+}
+.dark .marginalia-popover {
+  border-color: rgb(var(--color-primary-700));
+  border-left-color: rgb(var(--color-highlight-500));
+  background: rgb(var(--color-primary-900));
+  color: rgb(var(--color-primary-200));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.marginalia-popover.is-visible {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+.marginalia-popover-num {
+  font-weight: 600;
+  color: rgb(var(--color-highlight-600));
+  margin-right: 0.3rem;
+}
+.dark .marginalia-popover-num { color: rgb(var(--color-highlight-400)); }
+.marginalia-popover-text p { margin: 0; display: inline; }
+.marginalia-popover-text p + p { margin-top: 0.4rem; display: block; }
+.marginalia-popover-text a {
+  color: rgb(var(--color-highlight-600));
+  text-decoration: none;
+  border-bottom: 1px solid rgb(var(--color-highlight-300));
+}
+.dark .marginalia-popover-text a {
+  color: rgb(var(--color-highlight-400));
+  border-bottom-color: rgb(var(--color-highlight-700));
+}
+.marginalia-popover-text code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+  background: rgb(var(--color-primary-100));
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+.dark .marginalia-popover-text code { background: rgb(var(--color-primary-800)); }
+.marginalia-popover-text img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.4rem 0;
+  border-radius: 4px;
+}

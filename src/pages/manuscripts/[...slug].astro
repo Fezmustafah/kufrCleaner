@@ -1,0 +1,26 @@
+---
+import { getCollection } from 'astro:content';
+import { shouldShowContent } from '@/utils/markdown';
+import { siteConfig } from '@/config';
+import ManuscriptLayout from '@/layouts/ManuscriptLayout.astro';
+
+export async function getStaticPaths() {
+  if (!siteConfig.optionalContentTypes.manuscripts) return [];
+
+  const manuscripts = await getCollection('manuscripts');
+  const isDev = import.meta.env.DEV;
+
+  return manuscripts
+    .filter(m => shouldShowContent(m, isDev))
+    .map(manuscript => ({
+      params: { slug: manuscript.id },
+      props: { manuscript },
+    }));
+}
+
+const { manuscript } = Astro.props;
+
+if (!manuscript) return Astro.redirect('/manuscripts/', 404);
+---
+
+<ManuscriptLayout manuscript={manuscript} />

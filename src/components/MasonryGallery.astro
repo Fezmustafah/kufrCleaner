@@ -1,0 +1,106 @@
+---
+/**
+ * MasonryGallery component
+ * CSS-columns masonry layout with lightbox integration.
+ *
+ * Images are rendered entirely client-side from a JSON data attribute,
+ * so ImageGalleryManager never sees raw <img> tags and can't interfere.
+ * CSS lives in global.css under .masonry-gallery.
+ *
+ * Usage in MDX:
+ *   import MasonryGallery from '@/components/MasonryGallery.astro'
+ *   <MasonryGallery images={[
+ *     { src: "https://...", alt: "...", caption: "optional" },
+ *   ]} columns={3} />
+ */
+
+interface ImageItem {
+  src: string;
+  alt?: string;
+  caption?: string;
+}
+
+interface Props {
+  images: ImageItem[];
+  /** Number of columns on desktop (2 or 3). Default: 3 */
+  columns?: 2 | 3;
+  /** Gap between items in rem. Default: 0.75 */
+  gap?: number;
+  class?: string;
+}
+
+const { images = [], columns = 3, gap = 0.75, class: className = '' } = Astro.props;
+---
+
+<div
+  class:list={['masonry-gallery not-prose', className]}
+  data-masonry-cols={columns}
+  data-masonry-gap={gap}
+  data-masonry-images={JSON.stringify(images)}
+  style={`--masonry-gap: ${gap}rem; --masonry-cols: ${columns};`}
+  aria-label="Image gallery"
+>
+  <!-- Images rendered client-side; noscript fallback below -->
+  <noscript>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+      {images.map(img => <img src={img.src} alt={img.alt ?? ''} style="max-width:200px;" />)}
+    </div>
+  </noscript>
+</div>
+
+<script>
+  function buildMasonry(gallery: HTMLElement) {
+    if ((gallery as any)._masonryBuilt) return;
+    (gallery as any)._masonryBuilt = true;
+
+    const raw = gallery.dataset.masonryImages;
+    if (!raw) return;
+
+    let images: { src: string; alt?: string; caption?: string }[];
+    try { images = JSON.parse(raw); } catch { return; }
+
+    const allImages = images.map((img, i) => ({ ...img, index: i }));
+
+    allImages.forEach(({ src, alt = '', caption, index }) => {
+      const btn = document.createElement('button');
+      btn.className = 'masonry-item';
+      btn.type = 'button';
+      btn.setAttribute('aria-label', caption ?? alt ?? `Image ${index + 1}`);
+
+      const imgEl = document.createElement('img');
+      imgEl.src = src;
+      imgEl.alt = alt;
+      imgEl.loading = 'lazy';
+      imgEl.decoding = 'async';
+      imgEl.className = 'masonry-img';
+
+      btn.appendChild(imgEl);
+
+      if (caption) {
+        const cap = document.createElement('span');
+        cap.className = 'masonry-caption';
+        cap.textContent = caption;
+        btn.appendChild(cap);
+      }
+
+      btn.addEventListener('click', () => {
+        window.dispatchEvent(new CustomEvent('openLightbox', {
+          detail: {
+            images: allImages.map(i => ({ src: i.src, alt: i.alt ?? '' })),
+            index,
+          },
+        }));
+      });
+
+      gallery.appendChild(btn);
+    });
+  }
+
+  function initMasonries(root: Document | Element = document) {
+    root.querySelectorAll<HTMLElement>('[data-masonry-images]').forEach(buildMasonry);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => initMasonries());
+  document.addEventListener('swup:page:view', () => initMasonries());
+  window.addEventListener('pageshow', (e) => { if (e.persisted) initMasonries(); });
+</script>
