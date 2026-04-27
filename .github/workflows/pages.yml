@@ -5,6 +5,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      trigger_build:
+        description: Build and deploy GitHub Pages
+        required: true
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -17,6 +23,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_dispatch' || inputs.trigger_build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
