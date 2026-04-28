@@ -922,9 +922,9 @@ async function generateRedirects() {
         await writeVercelConfig(allRedirects);
         break;
       case 'github-pages':
-        // GitHub Pages: Uses _redirects file for instant HTTP redirects
-        // No Astro config needed - would create slow meta refresh HTML files
-        await writeGitHubPagesConfig(allRedirects);
+        // GitHub Pages free plan does not support custom headers or _redirects natively.
+        // Skip writing public/_headers (causes Vite to choke) and public/_redirects.
+        // Redirects on GH Pages must be handled via Astro routes or 404.html fallback.
         break;
       case 'cloudflare-workers':
         // Cloudflare Workers: Uses _redirects file for instant HTTP redirects
