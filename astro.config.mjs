@@ -33,7 +33,7 @@ const isGitHubPages = DEPLOYMENT_PLATFORM === 'github-pages';
 
 export default defineConfig({
   site: isGitHubPages ? 'https://fezmustafah.github.io' : siteConfig.site,
-  base: isGitHubPages ? '/kufrCleaner' : undefined,
+  base: isGitHubPages ? '/kufrCleaner/' : undefined,
   deployment: {
     platform: DEPLOYMENT_PLATFORM
   },

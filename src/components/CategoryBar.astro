@@ -22,7 +22,7 @@ for (const post of visiblePosts) {
 }
 const categories = Array.from(categoryMap.entries())
   .sort((a, b) => a[0].localeCompare(b[0]))
-  .map(([name, count]) => ({ name, count, url: `/posts/category/${encodeURIComponent(name)}` }));
+  .map(([name, count]) => ({ name, count, url: `${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(name)}` }));
 
 const totalPosts = visiblePosts.length;
 ---
@@ -30,12 +30,12 @@ const totalPosts = visiblePosts.length;
 <div
   class:list={['category-bar', className]}
   id="category-bar"
-  data-home-path="/posts"
+  data-home-path={`${import.meta.env.BASE_URL}posts`}
   data-current-post-category={currentCategory || ''}
 >
   <div class="category-bar-inner flex gap-2">
     <a
-      href="/posts"
+      href={`${import.meta.env.BASE_URL}posts`}
       class="category-pill text-sm px-2 py-1 rounded-lg shrink-0 transition-colors duration-150 ease-out flex items-center justify-center"
       data-category-name=""
       aria-label="All posts"
@@ -179,13 +179,13 @@ const totalPosts = visiblePosts.length;
     const pathname = currentUrl.pathname.replace(/\/$/, '');
     const homePath = (bar.getAttribute('data-home-path') || '/posts').replace(/\/$/, '');
     const isHome = pathname === homePath || pathname === '' || pathname === '/';
-    const isCategoryPage = pathname.startsWith('/posts/category/');
+    const isCategoryPage = pathname.startsWith(import.meta.env.BASE_URL.replace(/\/$/, '') + '/posts/category/');
 
     return {
       isHome,
       isCategoryPage,
       activeCategory: isCategoryPage
-        ? decodeURIComponent(pathname.replace('/posts/category/', '').split('/')[0])
+        ? decodeURIComponent(pathname.replace(import.meta.env.BASE_URL.replace(/\/$/, '') + '/posts/category/', '').split('/')[0])
         : '',
     };
   }
