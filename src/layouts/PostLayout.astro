@@ -13,7 +13,6 @@ import LocalGraph from '@/components/LocalGraph.astro';
 import GiscusComments from '@/components/GiscusComments.astro';
 import Lightbox from '@/components/Lightbox.astro';
 import Icon from '@/components/Icon.astro';
-import CategoryBar from '@/components/CategoryBar.astro';
 import PostBanner from '@/components/PostBanner.astro';
 import ImageWrapper from '@/components/ImageWrapper.astro';
 import { devConfig } from '@/config/dev';
@@ -314,11 +313,6 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       )}
     </div>
   </div>
-  </div>
-
-  <!-- Category bar footer -->
-  <div class="post-category-footer">
-    <CategoryBar currentCategory={(post.data as any).category} />
   </div>
 
   <Fragment slot="scripts">

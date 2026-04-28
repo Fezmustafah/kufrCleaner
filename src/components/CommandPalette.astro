@@ -396,7 +396,7 @@ import Icon from './Icon.astro';
         // Load posts if enabled in search config
         if (searchConfig.posts) {
           promises.push(
-            fetch('/api/posts.json').then(response =>
+            fetch(`${import.meta.env.BASE_URL}api/posts.json`).then(response =>
               response.ok ? response.json() : []
             )
           );
@@ -407,7 +407,7 @@ import Icon from './Icon.astro';
         // Load pages if enabled in search config
         if (searchConfig.pages) {
           promises.push(
-            fetch('/api/pages.json').then(response => {
+            fetch(`${import.meta.env.BASE_URL}api/pages.json`).then(response => {
               return response.ok ? response.json() : [];
             }).catch(() => [])
           );

@@ -14,7 +14,7 @@ export const GET: APIRoute = async () => {
       id: page.id,
       title: page.data.title,
       description: page.data.description || "",
-      url: `/${page.id}`,
+      url: `${import.meta.env.BASE_URL}${page.id}`,
       type: "page" as const,
       lastModified: page.data.lastModified?.toISOString(),
     }));

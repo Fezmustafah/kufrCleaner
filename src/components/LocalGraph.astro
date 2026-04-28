@@ -279,7 +279,7 @@ const shouldShowGraph = true;
               document.body.style.overflow = '';
               resetLocalGraph();
 
-              const url = `/posts/${d.slug}`;
+              const url = `${import.meta.env.BASE_URL}posts/${d.slug}`;
               if ((window as any).swup) {
                 (window as any).swup.navigate(url);
               } else {
@@ -446,7 +446,7 @@ const shouldShowGraph = true;
       }
     }
     
-      fetch('/graph/graph-data.json')
+      fetch(`${import.meta.env.BASE_URL}graph/graph-data.json`)
         .then(response => response.json())
         .then((data) => {
         
@@ -741,7 +741,7 @@ const shouldShowGraph = true;
     const container = document.getElementById('local-graph-content');
     if (container && localGraphInitialized) {
       // Get fresh data and re-render
-      fetch('/graph/graph-data.json')
+      fetch(`${import.meta.env.BASE_URL}graph/graph-data.json`)
         .then(response => response.json())
         .then(data => {
           const currentPath = window.location.pathname;
@@ -819,7 +819,7 @@ const shouldShowGraph = true;
           }
         }
 
-        fetch('/graph/graph-data.json')
+        fetch(`${import.meta.env.BASE_URL}graph/graph-data.json`)
           .then(response => response.json())
           .then(data => {
             const filteredData = filterLocalGraphData(data, currentSlug);

@@ -24,7 +24,7 @@ export interface SiteConfig {
   defaultOgImageAlt: string;
   
   // Global Settings
-  theme: "minimal" | "oxygen" | "atom" | "ayu" | "catppuccin" | "charcoal" | "dracula" | "everforest" | "flexoki" | "gruvbox" | "macos" | "nord" | "obsidian" | "rose-pine" | "sky" | "solarized" | "things" | "custom";
+  theme: "minimal" | "custom";
   customThemeFile?: string; // Filename in src/themes/custom/ (e.g., "my-cool-theme" for my-cool-theme.ts)
   availableThemes: "default" | Array<string>; // Control which themes users can select - "default" shows all built-in themes, array can include custom theme filenames
   fonts: {
@@ -210,7 +210,7 @@ export const siteConfig: SiteConfig = {
 
   // Global Settings
   // [CONFIG:THEME]
-  theme: "minimal", // Available themes: "minimal" | "oxygen" | "atom" | "ayu" | "catppuccin" | "charcoal" | "dracula" | "everforest" | "flexoki" | "gruvbox" | "macos" | "nord" | "obsidian" | "rose-pine" | "sky" | "solarized" | "things" | "custom"
+  theme: "minimal", // Available themes: "minimal" (bare reader-friendly default) | "custom" (Al Andalus, future — loaded from src/themes/custom/<customThemeFile>.ts)
   // [CONFIG:CUSTOM_THEME_FILE]
   customThemeFile: "custom", // Only used if theme is set to "custom" above. Filename in src/themes/custom/ (without .ts extension)
   // [CONFIG:AVAILABLE_THEMES]

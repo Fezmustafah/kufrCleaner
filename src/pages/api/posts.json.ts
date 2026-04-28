@@ -18,7 +18,7 @@ export const GET: APIRoute = async () => {
       id: post.id,
       title: post.data.title,
       description: post.data.description,
-      url: `/posts/${post.id}`,
+      url: `${import.meta.env.BASE_URL}posts/${post.id}`,
       type: "post" as const,
       date: post.data.date,
       tags: post.data.tags || [],
