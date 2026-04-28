@@ -71,7 +71,11 @@ const shouldShowGraph = true;
 )}
 
 <script>
-  import * as d3 from "d3";
+  import { forceSimulation, forceLink, forceManyBody, forceCollide, forceRadial, forceX, forceY } from 'd3-force';
+  import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
+  import type { Selection } from 'd3-selection';
+  import type { Simulation } from 'd3-force';
+  const d3 = { forceSimulation, forceLink, forceManyBody, forceCollide, forceRadial, forceX, forceY, zoom, zoomIdentity, zoomTransform };
   import { getGraphThemeColors } from '@/utils/graph-theme-colors';
 
   interface GraphNode {
@@ -99,8 +103,8 @@ const shouldShowGraph = true;
 
   // Local Graph Functionality
   let localGraphInitialized = false;
-  let svg: d3.Selection<SVGSVGElement, undefined, null, undefined> | null = null;
-  let simulation: d3.Simulation<any, any> | null = null;
+  let svg: Selection<SVGSVGElement, undefined, null, undefined> | null = null;
+  let simulation: Simulation<any, any> | null = null;
   let cleanup: (() => void) | null = null;
   let fullscreenModalOpen = false;
 

@@ -31,13 +31,18 @@ import Icon from './Icon.astro';
 </div>
 
 <script>
-  import * as d3 from "d3";
+  import { forceSimulation, forceLink, forceManyBody, forceCollide, forceX, forceY } from 'd3-force';
+  import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
+  import { select } from 'd3-selection';
+  import type { Selection } from 'd3-selection';
+  import type { Simulation } from 'd3-force';
+  const d3 = { forceSimulation, forceLink, forceManyBody, forceCollide, forceX, forceY, zoom, zoomIdentity, zoomTransform, select };
   import { getGraphThemeColors } from '@/utils/graph-theme-colors';
   
   // Graph Modal Functionality
   let graphModalInitialized = false;
-  let svg: d3.Selection<SVGSVGElement, undefined, null, undefined> | null = null;
-  let simulation: d3.Simulation<any, any> | null = null;
+  let svg: Selection<SVGSVGElement, undefined, null, undefined> | null = null;
+  let simulation: Simulation<any, any> | null = null;
   let cleanup: (() => void) | null = null;
   let hasFittedToGraph = false; // Prevent multiple fitToGraph calls
   

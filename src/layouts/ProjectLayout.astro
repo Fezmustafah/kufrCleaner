@@ -356,7 +356,7 @@ const { prev: prevProject, next: nextProject } = getAdjacentPosts(visibleProject
   </div>
 
   <Fragment slot="scripts">
-    <script define:vars={{ posts: visiblePosts, commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: project.data.title, postSlug: project.id }}>
+    <script define:vars={{ posts: visiblePosts.map(p => ({ id: p.id, data: { title: p.data.title } })), commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: project.data.title, postSlug: project.id }}>
       // Remove duplicate H1 from project content (since we render it in header)
       document.addEventListener('DOMContentLoaded', function() {
         const projectContent = document.getElementById('project-content');

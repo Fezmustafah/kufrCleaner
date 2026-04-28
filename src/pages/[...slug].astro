@@ -34,8 +34,8 @@ export const getStaticPaths: GetStaticPaths = async () => {
   // Special pages serve as fallback content when features are disabled
   const specialPaths = specialPages
     .filter(page => {
-      // Always exclude home and 404
-      if (['home', '404'].includes(page.id)) {
+      // Always exclude home, 404, and posts (handled by dedicated routes)
+      if (['home', '404', 'posts'].includes(page.id)) {
         return false;
       }
 

@@ -50,6 +50,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Astro content + Vite
+        uses: actions/cache@v4
+        with:
+          path: |
+            .astro
+            node_modules/.astro
+            node_modules/.vite
+            node_modules/.cache
+          key: astro-${{ runner.os }}-${{ hashFiles('src/content.config.ts', 'astro.config.mjs', 'src/utils/remark-*.ts', 'src/utils/rehype-*.ts', 'src/utils/internallinks.ts') }}-${{ hashFiles('src/content/**/*.md', 'src/content/**/*.mdx') }}
+          restore-keys: |
+            astro-${{ runner.os }}-${{ hashFiles('src/content.config.ts', 'astro.config.mjs', 'src/utils/remark-*.ts', 'src/utils/rehype-*.ts', 'src/utils/internallinks.ts') }}-
+            astro-${{ runner.os }}-
+
       - name: Build
         run: pnpm run build
 

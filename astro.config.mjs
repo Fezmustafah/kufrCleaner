@@ -1,7 +1,6 @@
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import sitemap from '@astrojs/sitemap';
-import mdx from '@astrojs/mdx';
 import { remarkInternalLinks, remarkFolderImages, remarkImageCaptions } from './src/utils/internallinks.ts';
 import remarkCallouts from './src/utils/remark-callouts.ts';
 import remarkImageGrids from './src/utils/remark-image-grids.ts';
@@ -24,7 +23,6 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import { siteConfig } from './src/config.ts';
 import { remarkMarginalia } from './src/utils/remark-marginalia.ts';
 import remarkCitations from './src/utils/remark-citations.ts';
-import { escapeMarginaliaForMdx } from './src/integrations/escape-marginalia-mdx.ts';
 import swup from '@swup/astro';
 import refreshContentOnChange from './src/integrations/refresh-content-on-change.ts';
 import { fileURLToPath } from 'node:url';
@@ -203,11 +201,9 @@ image: {
     remotePatterns: []
   },
   integrations: [
-    escapeMarginaliaForMdx(), // Must be FIRST — escapes {{...}} in .mdx before @astrojs/mdx sees them
     refreshContentOnChange(),
     tailwind(),
     sitemap(),
-    mdx(),
     swup({
       theme: false,
       animationClass: 'transition-swup-',
@@ -312,8 +308,7 @@ image: {
       }
     },
     define: {
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
-      'process.env.ASTRO_CONTENT_COLLECTION_CACHE': 'false'
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
     },
     optimizeDeps: {
       exclude: ['astro:content']

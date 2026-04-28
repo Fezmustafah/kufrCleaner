@@ -14,13 +14,13 @@ const postsCollection = defineCollection({
       // Handle various Obsidian syntax formats
       if (Array.isArray(val)) {
         // Handle array format from [[...]] syntax - take first element
-        return val[0] || null;
+        val = val[0] || null;
       }
-      if (typeof val === 'string') {
-        // Handle string format - return as-is
-        return val;
-      }
-      return null;
+      if (typeof val !== 'string') return null;
+      // Markdown image syntax: ![alt](url) → url
+      const md = val.match(/^!\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)$/);
+      if (md) return md[1];
+      return val;
     }),
     imageOG: z.boolean().optional(),
     imageAlt: z.string().nullable().optional(),
@@ -46,13 +46,13 @@ const pagesCollection = defineCollection({
       // Handle various Obsidian syntax formats
       if (Array.isArray(val)) {
         // Handle array format from [[...]] syntax - take first element
-        return val[0] || null;
+        val = val[0] || null;
       }
-      if (typeof val === 'string') {
-        // Handle string format - return as-is
-        return val;
-      }
-      return null;
+      if (typeof val !== 'string') return null;
+      // Markdown image syntax: ![alt](url) → url
+      const md = val.match(/^!\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)$/);
+      if (md) return md[1];
+      return val;
     }),
     imageAlt: z.string().nullable().optional(),
     hideCoverImage: z.boolean().optional(),
@@ -140,10 +140,64 @@ const tagsCollection = defineCollection({
   }),
 });
 
+const imageTransform = (val: unknown) => {
+  if (Array.isArray(val)) val = val[0] || null;
+  if (typeof val !== 'string') return null;
+  const md = val.match(/^!\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)$/);
+  if (md) return md[1];
+  return val;
+};
+
+const projectsCollection = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/bin/projects' }),
+  schema: z.object({
+    title: z.string().default('Untitled Project'),
+    description: z.string().nullable().optional().default('No description provided'),
+    date: z.coerce.date().default(() => new Date()),
+    categories: z.array(z.string()).nullable().optional(),
+    repositoryUrl: z.string().nullable().optional(),
+    projectUrl: z.string().nullable().optional(),
+    demoUrl: z.string().nullable().optional(),
+    demoURL: z.string().nullable().optional(),
+    status: z.string().nullable().optional(),
+    image: z.any().nullable().optional().transform(imageTransform),
+    imageAlt: z.string().nullable().optional(),
+    hideCoverImage: z.boolean().optional(),
+    hideTOC: z.boolean().optional(),
+    showTOC: z.boolean().optional(),
+    draft: z.boolean().optional(),
+    featured: z.boolean().optional(),
+    aliases: z.array(z.string()).nullable().optional(),
+  }),
+});
+
+const docsCollection = defineCollection({
+  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/bin/docs' }),
+  schema: z.object({
+    title: z.string().default('Untitled Doc'),
+    description: z.string().nullable().optional().default('No description provided'),
+    date: z.coerce.date().optional(),
+    lastModified: z.coerce.date().optional(),
+    category: z.string().nullable().optional(),
+    order: z.number().nullable().optional(),
+    version: z.string().nullable().optional(),
+    image: z.any().nullable().optional().transform(imageTransform),
+    imageAlt: z.string().nullable().optional(),
+    hideCoverImage: z.boolean().optional(),
+    hideTOC: z.boolean().optional(),
+    showTOC: z.boolean().optional(),
+    draft: z.boolean().optional(),
+    featured: z.boolean().optional(),
+    aliases: z.array(z.string()).nullable().optional(),
+  }),
+});
+
 // Export collections
 export const collections = {
   posts: postsCollection,
   pages: pagesCollection,
+  projects: projectsCollection,
+  docs: docsCollection,
   manuscripts: manuscriptsCollection,
   special: specialCollection,
   tags: tagsCollection,

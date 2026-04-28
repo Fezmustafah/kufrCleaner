@@ -102,8 +102,13 @@ async function findImageFiles(dir, relativePath = '') {
 async function syncFolderBasedImages(contentType) {
   const contentDir = `src/content/${contentType}`;
   const publicContentDir = `public/${contentType}`;
-  
+
   try {
+    try {
+      await fs.access(contentDir);
+    } catch {
+      return;
+    }
     const items = await fs.readdir(contentDir);
     let totalSynced = 0;
     let totalSkipped = 0;

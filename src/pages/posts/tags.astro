@@ -1,4 +1,17 @@
 ---
-// Redirect /posts/tags → /posts/tag
-return Astro.redirect('/posts/tag', 301);
+const dest = '/posts/tag/';
 ---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <meta http-equiv="refresh" content={`0; url=${dest}`} />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href={dest} />
+  </head>
+  <body data-pagefind-ignore="all">
+    <a href={dest}>Redirecting to {dest}</a>
+    <script set:html={`window.location.replace(${JSON.stringify(dest)});`}></script>
+  </body>
+</html>

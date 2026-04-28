@@ -554,7 +554,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       window.addEventListener('pageshow', (e) => { if (e.persisted) initMarginalia(); });
     </script>
 
-    <script define:vars={{ posts: visiblePosts, commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id }}>
+    <script define:vars={{ posts: visiblePosts.map(p => ({ id: p.id, data: { title: p.data.title } })), commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id }}>
 
       // Process wikilinks - unified logic for all wikilink types
       function initializeWikilinks() {

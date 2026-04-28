@@ -1,13 +1,48 @@
 {
   "hooks": {
     "PreToolUse": [
-      { "type": "command", "command": "context-mode hook vscode-copilot pretooluse" }
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\Users\\user1\\.claude\\plugins\\marketplaces\\context-mode/hooks/pretooluse.mjs\""
+          }
+        ]
+      }
     ],
     "PostToolUse": [
-      { "type": "command", "command": "context-mode hook vscode-copilot posttooluse" }
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\Users\\user1\\.claude\\plugins\\marketplaces\\context-mode/hooks/posttooluse.mjs\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\Users\\user1\\.claude\\plugins\\marketplaces\\context-mode/hooks/precompact.mjs\""
+          }
+        ]
+      }
     ],
     "SessionStart": [
-      { "type": "command", "command": "context-mode hook vscode-copilot sessionstart" }
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\Users\\user1\\.claude\\plugins\\marketplaces\\context-mode/hooks/sessionstart.mjs\""
+          }
+        ]
+      }
     ]
   }
 }
