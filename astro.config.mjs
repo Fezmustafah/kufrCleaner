@@ -29,9 +29,11 @@ import { fileURLToPath } from 'node:url';
 
 // Deployment platform configuration
 const DEPLOYMENT_PLATFORM = process.env.DEPLOYMENT_PLATFORM || 'netlify';
+const isGitHubPages = DEPLOYMENT_PLATFORM === 'github-pages';
 
 export default defineConfig({
-  site: siteConfig.site,
+  site: isGitHubPages ? 'https://fezmustafah.github.io' : siteConfig.site,
+  base: isGitHubPages ? '/kufrCleaner' : undefined,
   deployment: {
     platform: DEPLOYMENT_PLATFORM
   },
