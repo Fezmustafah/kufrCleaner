@@ -298,7 +298,7 @@ const { prev: prevProject, next: nextProject } = getAdjacentPosts(visibleProject
                 {prevProject && (
                   <div class="text-left">
                     <a
-                      href={`/projects/${prevProject.id}`}
+                      href={`${import.meta.env.BASE_URL}projects/${prevProject.id}`}
                       class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
                     >
                       <h3 class="font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
@@ -314,7 +314,7 @@ const { prev: prevProject, next: nextProject } = getAdjacentPosts(visibleProject
                 {nextProject && (
                   <div class={`text-right ${!prevProject ? 'md:col-start-2' : ''}`}>
                     <a
-                      href={`/projects/${nextProject.id}`}
+                      href={`${import.meta.env.BASE_URL}projects/${nextProject.id}`}
                       class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
                     >
                       <h3 class="font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
@@ -463,7 +463,7 @@ const { prev: prevProject, next: nextProject } = getAdjacentPosts(visibleProject
 
           if (post) {
             // Update href
-            link.href = `/posts/${post.id}`;
+            link.href = `${import.meta.env.BASE_URL}posts/${post.id}`;
 
             // Simple logic:
             // - If displayOverride exists and is not null, it's a wikilink with custom text [[link|display]] - use it

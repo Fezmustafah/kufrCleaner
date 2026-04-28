@@ -89,7 +89,7 @@ function getViewTypeIcon(type: string) {
               {base.config.views.map(view => {
                 const viewSlug = slugifyPath(view.name);
                 return (
-                  <a href={`/base/${base.slug}/${viewSlug}`} class="view-link">
+                  <a href={`${import.meta.env.BASE_URL}base/${base.slug}/${viewSlug}`} class="view-link">
                     <span class="view-icon">{getViewTypeIcon(view.type)}</span>
                     <span class="view-name">{view.name}</span>
                     <span class="view-type">{view.type}</span>

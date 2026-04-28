@@ -68,7 +68,7 @@ const sidebarHeader = currentCategory && currentCategory !== 'General' ? current
           const isActive = doc.id === currentDocId;
           return (
             <a
-              href={`/docs/${doc.id}`}
+              href={`${import.meta.env.BASE_URL}docs/${doc.id}`}
               class={`block px-3 py-2 rounded-md text-sm transition-colors ${
                 isActive
                   ? 'bg-highlight-50 dark:bg-highlight-900/20 text-highlight-600 dark:text-highlight-400 font-semibold'

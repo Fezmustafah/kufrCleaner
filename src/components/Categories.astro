@@ -22,7 +22,7 @@ const sortedCategories = [...categories].sort();
     <div class="flex flex-wrap gap-2">
       {sortedCategories.map(category => (
         <a
-          href={`/posts/category/${encodeURIComponent(category)}`}
+          href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`}
           class={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
             currentCategory === category
               ? 'bg-highlight-100 dark:bg-highlight-900/40 text-highlight-800 dark:text-highlight-200 ring-1 ring-highlight-300 dark:ring-highlight-700'

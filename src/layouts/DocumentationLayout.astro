@@ -242,7 +242,7 @@ const structuredData = {
             {prevDoc && (
               <div class="text-left">
                 <a
-                  href={`/docs/${prevDoc.id}`}
+                  href={`${import.meta.env.BASE_URL}docs/${prevDoc.id}`}
                   class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
                 >
                   <h3 class="font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
@@ -258,7 +258,7 @@ const structuredData = {
             {nextDoc && (
               <div class={`text-right ${!prevDoc ? 'md:col-start-2' : ''}`}>
                 <a
-                  href={`/docs/${nextDoc.id}`}
+                  href={`${import.meta.env.BASE_URL}docs/${nextDoc.id}`}
                   class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
                 >
                   <h3 class="font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">

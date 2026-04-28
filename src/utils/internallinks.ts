@@ -1,6 +1,10 @@
 import type { Post, WikilinkMatch } from "@/types";
 import { visit } from "unist-util-visit";
 
+// Build-time base path. Mirrors astro.config.mjs `base` decision so wikilink-resolved
+// URLs include the deploy prefix on platforms like GitHub Pages subpath.
+const BASE = process.env.DEPLOYMENT_PLATFORM === 'github-pages' ? '/kufrCleaner/' : '/';
+
 // Global posts cache for build-time wikilink resolution
 let globalPostsCache: any[] = [];
 
@@ -506,7 +510,7 @@ export function remarkWikilinks() {
               postPath.endsWith("/index") && postPath.split("/").length === 2
                 ? postPath.replace("/index", "")
                 : postPath;
-            url = `/posts/${cleanPath}`;
+            url = `${BASE}posts/${cleanPath}`;
             wikilinkData = cleanPath;
           } else if (link.includes("/")) {
             // Handle folder-based post format: folder-name/index
@@ -515,7 +519,7 @@ export function remarkWikilinks() {
             if (link.endsWith("/index") && link.split("/").length === 2) {
               // This is a folder-based post: folder-name/index -> folder-name
               const folderName = link.replace("/index", "");
-              url = `/posts/${folderName}`;
+              url = `${BASE}posts/${folderName}`;
               wikilinkData = folderName;
             } else {
               // Other paths with slashes that don't start with posts/ are not valid for wikilinks
@@ -525,7 +529,7 @@ export function remarkWikilinks() {
           } else {
             // Handle simple slug format - ASSUMES POSTS COLLECTION
             const slugifiedLink = createSlugFromTitle(link);
-            url = `/posts/${slugifiedLink}`;
+            url = `${BASE}posts/${slugifiedLink}`;
             wikilinkData = link.trim();
           }
 
@@ -817,7 +821,7 @@ export function remarkStandardLinks() {
               if (postPath.endsWith("/index") && postPath.split("/").length === 2) {
                 postPath = postPath.replace("/index", "");
               }
-              baseUrl = `/posts/${postPath}`;
+              baseUrl = `${BASE}posts/${postPath}`;
             } else if (node.url.startsWith("pages/")) {
               // Pages: /slug/ (no prefix) - use URL mapping
               baseUrl = mapRelativeUrlToSiteUrl(
@@ -873,11 +877,11 @@ export function remarkStandardLinks() {
                   let processedUrl = node.url.replace(/\.md.*$/, "");
                   // Remove /index if present
                   processedUrl = processedUrl.replace(/\/index$/, "");
-                  baseUrl = `/posts/${processedUrl}`;
+                  baseUrl = `${BASE}posts/${processedUrl}`;
                 } else {
                   // Use linkText which should already be clean
                   let cleanLinkText = linkText.replace(/\/index$/, ""); // Extra defensive check
-                  baseUrl = `/posts/${cleanLinkText}`;
+                  baseUrl = `${BASE}posts/${cleanLinkText}`;
                 }
               }
             }
@@ -905,7 +909,7 @@ export function remarkStandardLinks() {
               const pathWithoutAnchor = postPath.split('#')[0];
               // Remove /index if present
               const cleanPath = pathWithoutAnchor.replace(/\/index$/, "");
-              let mappedUrl = `/posts/${cleanPath}`;
+              let mappedUrl = `${BASE}posts/${cleanPath}`;
               
               if (anchor) {
                 mappedUrl += `#${createAnchorSlug(anchor)}`;

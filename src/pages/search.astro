@@ -227,7 +227,7 @@ const seoData = {
       const wordCount = totalLength ? Math.ceil(totalLength.toString().length > 3 ? totalLength / 5 : totalLength) : null;
 
       const tagsHtml = (item.tags || []).map(t =>
-        `<a href="/tags/${escapeHtml(t)}" class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-highlight-50 dark:bg-highlight-900/30 text-highlight-700 dark:text-highlight-400 border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-800/40 transition-colors">
+        `<a href="${import.meta.env.BASE_URL}tags/${escapeHtml(t)}" class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-highlight-50 dark:bg-highlight-900/30 text-highlight-700 dark:text-highlight-400 border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-800/40 transition-colors">
           ${svg(svgPaths.tag, 11, 'opacity-70')}
           ${escapeHtml(t)}
         </a>`

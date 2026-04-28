@@ -39,7 +39,7 @@ function getViewTypeIcon(type: string) {
         const isActive = view.name === currentView.name;
         return (
           <a
-            href={`/base/${baseName}/${viewSlug}`}
+            href={`${import.meta.env.BASE_URL}base/${baseName}/${viewSlug}`}
             class={`view-option ${isActive ? 'active' : ''}`}
             role="menuitem"
           >

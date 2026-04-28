@@ -195,14 +195,14 @@ const structuredData = {
             <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50">
               Browse by Category
             </h2>
-            <a href="/posts" class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors">
+            <a href={`${import.meta.env.BASE_URL}posts`} class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors">
               All posts →
             </a>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {allCategories.map((cat: string) => (
               <a
-                href={`/posts/category/${encodeURIComponent(cat)}`}
+                href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(cat)}`}
                 class="group flex flex-col gap-1 p-4 rounded-xl border border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-900 hover:border-highlight-400 dark:hover:border-highlight-500 hover:shadow-md transition-all duration-200"
               >
                 <Icon name="folder" class="w-5 h-5 text-highlight-500 dark:text-highlight-400 mb-1" />
@@ -262,7 +262,7 @@ const structuredData = {
                   Recent Posts
                 </h2>
                 <a
-                  href="/posts"
+                  href={`${import.meta.env.BASE_URL}posts`}
                   class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 font-medium transition-colors"
                 >
                   View all posts →
@@ -281,7 +281,7 @@ const structuredData = {
             <section class="mb-12">
               <div class="flex items-center justify-between mb-5">
                 <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50">Projects</h2>
-                <a href="/projects" class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 font-medium transition-colors">
+                <a href={`${import.meta.env.BASE_URL}projects`} class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 font-medium transition-colors">
                   View all projects →
                 </a>
               </div>
@@ -298,7 +298,7 @@ const structuredData = {
             <section class="mb-12">
               <div class="flex items-center justify-between mb-5">
                 <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50">Documentation</h2>
-                <a href="/docs" class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 font-medium transition-colors">
+                <a href={`${import.meta.env.BASE_URL}docs`} class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 font-medium transition-colors">
                   View all docs →
                 </a>
               </div>

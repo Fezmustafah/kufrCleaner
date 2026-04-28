@@ -61,7 +61,7 @@ const seoData = {
             <div class="cat-card-grid">
               {categoryData.map(({ category, postCount }) => (
                 <a
-                  href={`/posts/category/${encodeURIComponent(category)}`}
+                  href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`}
                   class="cat-card group"
                 >
                   <div class="cat-card-icon">

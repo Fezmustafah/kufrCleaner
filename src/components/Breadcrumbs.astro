@@ -24,7 +24,7 @@ const crumbs: Crumb[] = [{ label: 'Posts', href: '/posts' }];
 if (category) {
   crumbs.push({
     label: category,
-    href: `/posts/category/${encodeURIComponent(category)}`,
+    href: `${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`,
   });
 } else {
   // Parse path segments from post ID (e.g. "thoughts/philosophy/post" → ["thoughts","philosophy"])
@@ -34,7 +34,7 @@ if (category) {
     const label = seg
       .replace(/-/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase());
-    const href = '/posts/' + segments.slice(0, i + 1).join('/');
+    const href = `${import.meta.env.BASE_URL}posts/` + segments.slice(0, i + 1).join('/');
     crumbs.push({ label, href });
   }
 }

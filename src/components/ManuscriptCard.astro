@@ -51,10 +51,10 @@ const venueStr = [publishedIn, volume ? `vol. ${volume}` : null, issue ? `no. ${
   .filter(Boolean).join(', ');
 
 const refCount = references?.length ?? 0;
-const href = `/manuscripts/${manuscript.id}/`;
+const href = `${import.meta.env.BASE_URL}manuscripts/${manuscript.id}/`;
 
 const doiHref = doi ? `https://doi.org/${doi}` : null;
-const pdfHref = pdf ? `/manuscripts/${pdf}` : null;
+const pdfHref = pdf ? `${import.meta.env.BASE_URL}manuscripts/${pdf}` : null;
 ---
 
 <!-- Stretched-link card: outer div is position:relative, title <a> stretches via ::after -->

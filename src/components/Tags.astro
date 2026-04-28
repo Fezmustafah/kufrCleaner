@@ -17,7 +17,7 @@ const sortedTags = [...tags].sort();
 
 {siteConfig.postOptions.tags && sortedTags.length > 0 && (
   <div class="tags-container p-4 bg-white dark:bg-primary-900 rounded-xl border border-primary-200 dark:border-primary-700 shadow-lg backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
-    <a href="/posts/tag" class="font-semibold text-primary-900 dark:text-primary-50 mb-3 flex items-center text-sm hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors">
+    <a href={`${import.meta.env.BASE_URL}posts/tag`} class="font-semibold text-primary-900 dark:text-primary-50 mb-3 flex items-center text-sm hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors">
       <Icon name="tag" class="w-4 h-4 mr-2" />
       Tags
     </a>
@@ -25,7 +25,7 @@ const sortedTags = [...tags].sort();
     <div class="flex flex-wrap gap-2">
       {sortedTags.map(tag => (
         <a
-          href={`/posts/tag/${encodeURIComponent(tag)}`}
+          href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`}
           class={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
             currentTag === tag
               ? 'bg-highlight-100 dark:bg-highlight-900/40 text-highlight-800 dark:text-highlight-200 ring-1 ring-highlight-300 dark:ring-highlight-700'

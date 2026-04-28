@@ -2,6 +2,11 @@ import { visit } from 'unist-util-visit';
 import type { Plugin } from 'unified';
 import type { Root, Text } from 'mdast';
 
+// Build-time base path. Mirrors the astro.config.mjs `base` decision.
+// remark plugins run in Node, not Vite, so import.meta.env.BASE_URL is unavailable —
+// derive from DEPLOYMENT_PLATFORM env directly.
+const BASE = process.env.DEPLOYMENT_PLATFORM === 'github-pages' ? '/kufrCleaner/' : '/';
+
 /**
  * Remark plugin for processing inline Obsidian tags
  * 
@@ -62,7 +67,7 @@ const remarkInlineTags: Plugin<[], Root> = () => {
         // Create HTML node for the tag link
         const tagHtml = {
           type: 'html',
-          value: `<a href="/posts/tag/${encodeURIComponent(tag)}" class="text-xs text-primary-600 dark:text-primary-300 bg-primary-100 dark:bg-primary-800 px-2.5 py-1 rounded-full border border-primary-200 dark:border-primary-700 transition-colors hover:bg-highlight-100 dark:hover:bg-highlight-800">#${tag}</a>`
+          value: `<a href="${BASE}posts/tag/${encodeURIComponent(tag)}" class="text-xs text-primary-600 dark:text-primary-300 bg-primary-100 dark:bg-primary-800 px-2.5 py-1 rounded-full border border-primary-200 dark:border-primary-700 transition-colors hover:bg-highlight-100 dark:hover:bg-highlight-800">#${tag}</a>`
         };
         
         newChildren.push(tagHtml);

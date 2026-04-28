@@ -64,7 +64,7 @@ const seoData = {
             <div class="tag-card-grid">
               {tagData.map(({ tag, displayTitle, description, image, imageAlt, postCount }) => (
                 <a
-                  href={`/posts/tag/${encodeURIComponent(tag)}`}
+                  href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`}
                   class="tag-card group"
                 >
                   <!-- Card image / gradient -->

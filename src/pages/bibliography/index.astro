@@ -198,7 +198,7 @@ seoData.description = `Complete bibliography of all references cited in manuscri
                         <div class="flex flex-wrap gap-1.5 mt-2">
                           {ref.citedBy.map(m => (
                             <a
-                              href={`/manuscripts/${m.id}/`}
+                              href={`${import.meta.env.BASE_URL}manuscripts/${m.id}/`}
                               class="text-xs px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-800 text-primary-500 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-700 transition-colors"
                             >
                               ↗ {m.title}

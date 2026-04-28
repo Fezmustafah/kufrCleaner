@@ -56,7 +56,7 @@ const showCoverImage = shouldShowCoverImage && image && context !== 'home';
 ---
 
 <div class="group relative bg-white dark:bg-primary-800 rounded-lg border border-primary-200 dark:border-primary-700 hover:shadow-lg transition-all duration-300 h-full flex flex-col">
-  <a href={`/docs/${documentation.id}`} class="block flex flex-col h-full" aria-label={`View documentation: ${title}`}>
+  <a href={`${import.meta.env.BASE_URL}docs/${documentation.id}`} class="block flex flex-col h-full" aria-label={`View documentation: ${title}`}>
     <!-- Header with icon and version -->
     <div class="flex items-center justify-between p-4 pb-2">
       <Icon name="book-text" class="w-4 h-4 text-primary-500 dark:text-primary-400" />
