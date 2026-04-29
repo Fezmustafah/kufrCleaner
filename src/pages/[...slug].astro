@@ -1,7 +1,6 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
-import { siteConfig } from '@/config';
 import { shouldShowContent } from '@/utils/markdown';
 import PageLayout from '@/layouts/PageLayout.astro';
 
@@ -31,24 +30,11 @@ export const getStaticPaths: GetStaticPaths = async () => {
   }));
 
   // Generate paths for special pages (excluding home and 404 which have special handling)
-  // Special pages serve as fallback content when features are disabled
   const specialPaths = specialPages
     .filter(page => {
-      // Always exclude home, 404, and posts (handled by dedicated routes)
       if (['home', '404', 'posts'].includes(page.id)) {
         return false;
       }
-
-      // For projects and docs: only include if their features are disabled
-      // When features are enabled, the dedicated routes handle these paths
-      if (page.id === 'projects') {
-        return !siteConfig.optionalContentTypes.projects;
-      }
-
-      if (page.id === 'docs') {
-        return !siteConfig.optionalContentTypes.docs;
-      }
-
       return true;
     })
     .map(page => ({

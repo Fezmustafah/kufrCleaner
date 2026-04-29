@@ -64,8 +64,6 @@ export interface SiteConfig {
     search: {
       posts: boolean;
       pages: boolean;
-      projects: boolean;
-      docs: boolean;
     };
     sections: {
       quickActions: boolean;
@@ -118,14 +116,6 @@ export interface SiteConfig {
       enabled: boolean;
       count: number;
     };
-    projects: {
-      enabled: boolean;
-      count: number;
-    };
-    docs: {
-      enabled: boolean;
-      count: number;
-    };
     blurb: {
       placement: "above" | "below" | "none";
     };
@@ -172,8 +162,6 @@ export interface SiteConfig {
   
   // Optional Content Types
   optionalContentTypes: {
-    projects: boolean;
-    docs: boolean;
     manuscripts: boolean;
   };
 }
@@ -243,7 +231,7 @@ export const siteConfig: SiteConfig = {
     // [CONFIG:FOOTER_ENABLED]
     enabled: true,
     // [CONFIG:FOOTER_CONTENT]
-    content: `© 2025 {author}. Built with the <a href="https://github.com/davidvkimball/astro-modular" target="_blank">Astro Modular</a> theme.`,
+    content: `© ${new Date().getFullYear()} {author}.`,
     // [CONFIG:FOOTER_SHOW_SOCIAL_ICONS]
     showSocialIconsInFooter: true,
   },
@@ -281,10 +269,6 @@ export const siteConfig: SiteConfig = {
       posts: true,
       // [CONFIG:COMMAND_PALETTE_SEARCH_PAGES]
       pages: false,
-      // [CONFIG:COMMAND_PALETTE_SEARCH_PROJECTS]
-      projects: false,
-      // [CONFIG:COMMAND_PALETTE_SEARCH_DOCS]
-      docs: false,
     },
     sections: {
       // [CONFIG:COMMAND_PALETTE_SECTIONS_QUICK_ACTIONS]
@@ -358,14 +342,10 @@ export const siteConfig: SiteConfig = {
     ],
   },
 
-  // Optional Content Types - Enable/disable optional content sections (takes priority over homeOptions)
+  // Optional Content Types
   optionalContentTypes: {
-    // [CONFIG:OPTIONAL_CONTENT_TYPES_PROJECTS]
-    projects: true, // Enable projects section
-    // [CONFIG:OPTIONAL_CONTENT_TYPES_DOCS]
-    docs: true, // Enable documentation section
     // [CONFIG:OPTIONAL_CONTENT_TYPES_MANUSCRIPTS]
-    manuscripts: true, // Enable manuscripts section
+    manuscripts: true,
   },
 
   // Home Options
@@ -383,18 +363,6 @@ export const siteConfig: SiteConfig = {
       enabled: true, // Show recent posts on homepage
       // [CONFIG:HOME_OPTIONS_RECENT_POSTS_COUNT]
       count: 7, // Number of recent posts to show
-    },
-    projects: {
-      // [CONFIG:HOME_OPTIONS_PROJECTS_ENABLED]
-      enabled: true, // Show featured projects on homepage
-      // [CONFIG:HOME_OPTIONS_PROJECTS_COUNT]
-      count: 2, // Number of projects to show
-    },
-    docs: {
-      // [CONFIG:HOME_OPTIONS_DOCS_ENABLED]
-      enabled: true, // Show featured docs on homepage
-      // [CONFIG:HOME_OPTIONS_DOCS_COUNT]
-      count: 3, // Number of docs to show
     },
     blurb: {
       // [CONFIG:HOME_OPTIONS_BLURB_PLACEMENT]
@@ -696,12 +664,6 @@ function validateSiteConfig(config: SiteConfig): { isValid: boolean; errors: str
   }
   if (config.homeOptions.recentPosts.count < 1) {
     errors.push('Recent posts count must be at least 1. Adjust homeOptions.recentPosts.count.');
-  }
-  if (config.homeOptions.projects.count < 1) {
-    errors.push('Projects count must be at least 1. Adjust homeOptions.projects.count.');
-  }
-  if (config.homeOptions.docs.count < 1) {
-    errors.push('Documentation count must be at least 1. Adjust homeOptions.docs.count.');
   }
 
   // Content width validation

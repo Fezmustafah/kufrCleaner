@@ -4,6 +4,10 @@ import Icon from './Icon.astro';
 
 const currentYear = new Date().getFullYear();
 const socialLinks = (siteConfig.navigation.social || []).filter((social) => social && social.url && social.icon);
+const feedLinks = [
+  { url: '/rss.xml', title: 'RSS Feed', icon: 'rss' },
+  { url: '/feed.xml', title: 'Atom Feed', icon: 'atom' },
+];
 const showSocialIcons = siteConfig.footer.showSocialIconsInFooter && socialLinks.length > 0;
 const showProfilePicture = siteConfig.profilePicture.enabled && siteConfig.profilePicture.placement === 'footer';
 const profilePicture = siteConfig.profilePicture;
@@ -60,11 +64,42 @@ const getProfilePictureClasses = (size: string, style: string) => {
       </div>
     )}
 
-    <!-- Mobile: Social icons above footer content, centered -->
-    {showSocialIcons && (
-      <div class="flex justify-center md:hidden mb-4">
-        <div class="flex items-center space-x-4">
-          {socialLinks.map((social) => (
+    <!-- Mobile: Social icons + feed links above footer content, centered -->
+    <div class="flex justify-center md:hidden mb-4">
+      <div class="flex items-center space-x-4">
+        {showSocialIcons && socialLinks.map((social) => (
+          <a
+            href={social.url}
+            title={social.title}
+            class="text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
+            target="_blank"
+          >
+            <Icon name={social.icon} class="w-5 h-5" />
+            <span class="sr-only">{social.title}</span>
+          </a>
+        ))}
+        {feedLinks.map((feed) => (
+          <a
+            href={feed.url}
+            title={feed.title}
+            class="text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
+          >
+            <Icon name={feed.icon} class="w-4 h-4" />
+            <span class="sr-only">{feed.title}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+    
+    <!-- Footer content and social icons on same line -->
+    {footerEnabled && (
+      <div class="md:flex md:justify-between md:items-center text-center">
+        <p class="text-xs text-primary-500 dark:text-primary-400" set:html={footerContent}>
+        </p>
+
+        <!-- Desktop: Social icons + feed links on same line as footer content -->
+        <div class="hidden md:flex items-center space-x-4">
+          {showSocialIcons && socialLinks.map((social) => (
             <a
               href={social.url}
               title={social.title}
@@ -75,32 +110,16 @@ const getProfilePictureClasses = (size: string, style: string) => {
               <span class="sr-only">{social.title}</span>
             </a>
           ))}
+          {feedLinks.map((feed) => (
+            <a
+              href={feed.url}
+              title={feed.title}
+              class="text-xs font-medium text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
+            >
+              {feed.label}
+            </a>
+          ))}
         </div>
-      </div>
-    )}
-    
-    <!-- Footer content and social icons on same line -->
-    {footerEnabled && (
-      <div class={`text-center ${showSocialIcons ? 'md:flex md:justify-between md:items-center' : ''}`}>
-        <p class="text-xs text-primary-500 dark:text-primary-400" set:html={footerContent}>
-        </p>
-        
-        <!-- Desktop: Social icons on same line as footer content -->
-        {showSocialIcons && (
-          <div class="hidden md:flex items-center space-x-4">
-            {socialLinks.map((social) => (
-              <a
-                href={social.url}
-                title={social.title}
-                class="text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
-                target="_blank"
-              >
-                <Icon name={social.icon} class="w-5 h-5" />
-                <span class="sr-only">{social.title}</span>
-              </a>
-            ))}
-          </div>
-        )}
       </div>
     )}
 

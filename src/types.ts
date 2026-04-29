@@ -9,13 +9,6 @@ export type Page = CollectionEntry<"pages">;
 
 export type PageData = CollectionEntry<"pages">["data"];
 
-export type Project = CollectionEntry<"projects">;
-
-export type ProjectData = CollectionEntry<"projects">["data"];
-
-export type Docs = CollectionEntry<"docs">;
-
-export type DocsData = CollectionEntry<"docs">["data"];
 
 export interface Heading {
   depth: number;
@@ -49,7 +42,7 @@ export interface CommandPaletteItem {
   title: string;
   description?: string;
   url: string;
-  type: "post" | "page" | "project" | "docs" | "social" | "external" | "action";
+  type: "post" | "page" | "social" | "external" | "action";
   icon?: string;
 }
 

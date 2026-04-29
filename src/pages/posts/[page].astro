@@ -90,8 +90,8 @@ const pagination = {
   totalPages,
   hasNext: currentPage < totalPages,
   hasPrev: currentPage > 1,
-  nextUrl: currentPage < totalPages ? `/posts/${currentPage + 1}` : undefined,
-  prevUrl: currentPage > 2 ? `/posts/${currentPage - 1}` : '/posts'
+  nextUrl: currentPage < totalPages ? `${import.meta.env.BASE_URL}posts/${currentPage + 1}` : undefined,
+  prevUrl: currentPage > 2 ? `${import.meta.env.BASE_URL}posts/${currentPage - 1}` : `${import.meta.env.BASE_URL}posts`
 };
 ---
 
@@ -108,26 +108,6 @@ const pagination = {
               <>All Posts</>
             )}
           </h1>
-          <div class="flex items-center space-x-2">
-            <a
-              href={`${import.meta.env.BASE_URL}rss.xml`}
-              class="inline-flex items-center px-3 py-2 text-sm font-medium text-highlight-600 dark:text-highlight-400 bg-highlight-50 dark:bg-highlight-900/20 rounded-lg border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-900/40 hover:text-highlight-700 dark:hover:text-highlight-300 transition-all duration-200"
-              title="Subscribe to RSS feed"
-              data-no-swup
-            >
-              <Icon name="rss" class="w-4 h-4 mr-1.5" />
-              RSS Feed
-            </a>
-            <a
-              href={`${import.meta.env.BASE_URL}feed.xml`}
-              class="inline-flex items-center px-3 py-2 text-sm font-medium text-highlight-600 dark:text-highlight-400 bg-highlight-50 dark:bg-highlight-900/20 rounded-lg border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-900/40 hover:text-highlight-700 dark:hover:text-highlight-300 transition-all duration-200"
-              title="Subscribe to Atom feed"
-              data-no-swup
-            >
-              <Icon name="atom" class="w-4 h-4 mr-1.5" />
-              Atom Feed
-            </a>
-          </div>
         </div>
         <p class="text-base text-primary-600 dark:text-primary-300">
           Page {currentPage} of {totalPages} • <strong>{filteredPosts.length}</strong>

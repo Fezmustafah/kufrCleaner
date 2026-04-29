@@ -14,12 +14,14 @@ const base = import.meta.env.BASE_URL;
 const withBase = (u: string) => (u.startsWith('http') ? u : `${base}${u.replace(/^\//, '')}`);
 
 const links: NavLink[] = siteConfig.navigation.pages
-  .filter((p: any) => p.url && p.url.trim() !== '')
+  .filter((p: any) => p.url && p.url.trim() !== '' && !p.url.replace(/\/?$/, '/').endsWith('/search/'))
   .map((p: any) => ({
     name: p.title,
     url: withBase(p.url),
     external: p.url.startsWith('http'),
   }));
+
+const searchUrl = withBase('search/');
 
 const hasShortcut = siteConfig.commandPalette.shortcut && siteConfig.commandPalette.shortcut.trim();
 const shortcutKey = hasShortcut
@@ -33,11 +35,11 @@ const paletteIcon = allSectionsDisabled ? 'search' : 'command';
 ---
 
 <!-- Mirrors fuwari: outer top-row (relative, not sticky) + inner navbar-wrapper (sticky) + inner #navbar (onload-animation) -->
-<div id="top-row" class="h-[4.5rem] z-50 pointer-events-none relative transition-all duration-700">
+<div id="top-row" class="h-14 z-50 pointer-events-none relative transition-all duration-700">
   <div id="navbar-wrapper" class="pointer-events-auto fixed top-0 left-0 right-0 z-50">
     <div id="navbar" class="onload-animation">
     <div class="absolute h-8 left-0 right-0 -top-8 bg-[var(--card-bg)] transition"></div>
-    <div class="card-base !overflow-visible !rounded-t-none h-[4.5rem] max-w-[var(--page-width)] mx-auto flex items-center justify-between px-4">
+    <div class="card-base !overflow-visible !rounded-t-none h-14 max-w-[var(--page-width)] mx-auto flex items-center justify-between px-4">
 
       <!-- Home button -->
       <a href={base} class="btn-plain scale-animation rounded-lg h-[3.25rem] px-5 font-bold active:scale-95" aria-label="Home">
@@ -68,6 +70,10 @@ const paletteIcon = allSectionsDisabled ? 'search' : 'command';
 
       <!-- Right actions -->
       <div class="flex">
+        <a href={searchUrl} aria-label="Search" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90">
+          <Icon name="search" class="w-5 h-5" />
+        </a>
+
         {siteConfig.featureButton === 'mode' && <ThemeToggle />}
 
         {siteConfig.featureButton === 'graph' && siteConfig.postOptions.graphView.enabled && (
@@ -112,7 +118,7 @@ function loadButtonScript() {
   const wrapper = document.getElementById('navbar-wrapper');
   const banner = document.getElementById('banner-wrapper');
   if (wrapper) {
-    const NAVBAR_HEIGHT = 72;
+    const NAVBAR_HEIGHT = 56;
     const MAIN_PANEL_EXCESS_HEIGHT = 3.5 * 16; // 56px — fuwari's MAIN_PANEL_OVERLAPS_BANNER_HEIGHT in px
     const THRESHOLD_BUFFER = 16;               // fuwari's 16px buffer
 

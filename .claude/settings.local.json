@@ -9,7 +9,8 @@
       "Bash(grep -E \"^\\(remark-parse|remark-rehype|rehype-stringify|rehype-raw|mdast-util-to-markdown\\)$\")",
       "mcp__plugin_context-mode_context-mode__ctx_upgrade",
       "mcp__plugin_context-mode_context-mode__ctx_fetch_and_index",
-      "mcp__plugin_context-mode_context-mode__ctx_execute"
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "Bash(node:*)"
     ]
   }
 }

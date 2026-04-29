@@ -76,7 +76,7 @@ const pagination = {
   totalPages,
   hasNext: currentPage < totalPages,
   hasPrev: false,
-  nextUrl: totalPages > 1 ? '/posts/2' : undefined,
+  nextUrl: totalPages > 1 ? `${import.meta.env.BASE_URL}posts/2` : undefined,
   prevUrl: undefined
 };
 ---
@@ -113,14 +113,6 @@ const pagination = {
             <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50">
               {pageTitle}
             </h1>
-            <div class="flex items-center gap-2 shrink-0">
-              <a href={`${import.meta.env.BASE_URL}rss.xml`} class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-highlight-600 dark:text-highlight-400 bg-highlight-50 dark:bg-highlight-900/20 rounded-lg border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-900/40 transition-all" title="RSS Feed" data-no-swup>
-                <Icon name="rss" class="w-4 h-4 mr-1.5" />RSS Feed
-              </a>
-              <a href={`${import.meta.env.BASE_URL}feed.xml`} class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-highlight-600 dark:text-highlight-400 bg-highlight-50 dark:bg-highlight-900/20 rounded-lg border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-900/40 transition-all" title="Atom Feed" data-no-swup>
-                <Icon name="atom" class="w-4 h-4 mr-1.5" />Atom Feed
-              </a>
-            </div>
           </div>
           <p class="text-sm text-primary-500 dark:text-primary-400">
             {selectedTag ? (

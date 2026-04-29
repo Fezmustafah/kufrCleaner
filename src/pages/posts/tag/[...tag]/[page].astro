@@ -74,7 +74,7 @@ const seoData = {
   ogType: 'website' as const
 };
 
-const baseUrl = `/posts/tag/${encodeURIComponent(tag)}`;
+const baseUrl = `${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`;
 const pagination = {
   currentPage,
   totalPages,
