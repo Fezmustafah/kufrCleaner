@@ -1,6 +1,9 @@
 ---
 import { siteConfig, getThemeDisplayName } from '../config';
 import Icon from './Icon.astro';
+
+const base = import.meta.env.BASE_URL;
+const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\//, '')}` : u);
 ---
 
 <!-- Make site configuration available to client-side JavaScript -->
@@ -128,13 +131,11 @@ import Icon from './Icon.astro';
                 const hasUrl = page.url && page.url.trim() !== '';
                 
                 if (hasChildren) {
-                  // Parent item with children - show grouped
                   return (
                     <div class="command-palette-nav-group">
-                      {/* Parent item */}
                       {hasUrl ? (
-                        <a 
-                          href={page.url}
+                        <a
+                          href={wb(page.url)}
                           class="w-full flex items-center space-x-3 px-3 py-2 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors group"
                           target={page.url.startsWith('http') ? '_blank' : undefined}
                         >
@@ -150,10 +151,9 @@ import Icon from './Icon.astro';
                           <span class="text-primary-900 dark:text-primary-50 font-medium">{page.title}</span>
                         </div>
                       )}
-                      {/* Children items (indented) */}
                       {page.children.map(child => (
-                        <a 
-                          href={child.url || '#'}
+                        <a
+                          href={child.url ? wb(child.url) : '#'}
                           class="w-full flex items-center space-x-3 px-3 py-2 pl-8 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors group"
                           target={child.url?.startsWith('http') ? '_blank' : undefined}
                         >
@@ -167,10 +167,9 @@ import Icon from './Icon.astro';
                     </div>
                   );
                 } else {
-                  // Regular navigation item without children
                   return (
-                    <a 
-                      href={page.url || '#'}
+                    <a
+                      href={page.url ? wb(page.url) : '#'}
                       class="w-full flex items-center space-x-3 px-3 py-2 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors group"
                       target={page.url?.startsWith('http') ? '_blank' : undefined}
                     >

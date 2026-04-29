@@ -773,6 +773,13 @@ export function remarkStandardLinks() {
       }
 
       if (isInternalLink(node.url)) {
+        // Handle collection index URLs like /posts/ or posts/ where linkText would be empty
+        const normalizedUrl = node.url.replace(/\/?$/, '/');
+        if (normalizedUrl === '/posts/' || normalizedUrl === 'posts/') {
+          node.url = `${BASE}posts/`;
+          return;
+        }
+
         const { linkText, anchor } = extractLinkTextFromUrlWithAnchor(node.url);
         if (linkText) {
           // Handle /pages/ URLs that don't end in .md (simple URL mapping)
