@@ -1,9 +1,8 @@
 import type { Post, WikilinkMatch } from "@/types";
 import { visit } from "unist-util-visit";
 
-// Build-time base path. Mirrors astro.config.mjs `base` decision so wikilink-resolved
-// URLs include the deploy prefix on platforms like GitHub Pages subpath.
-const BASE = process.env.DEPLOYMENT_PLATFORM === 'github-pages' ? '/kufrCleaner/' : '/';
+// Build-time base path — overridden by remarkInternalLinks options when called from astro.config.mjs.
+let BASE = process.env.DEPLOYMENT_PLATFORM === 'github-pages' ? '/kufrCleaner/' : '/';
 
 // Global posts cache for build-time wikilink resolution
 let globalPostsCache: any[] = [];
@@ -1069,13 +1068,14 @@ export function extractStandardLinks(content: string): WikilinkMatch[] {
  */
 
 // Combined remark plugin for both wikilinks and standard links
-export function remarkInternalLinks() {
+export function remarkInternalLinks(options?: { base?: string }) {
+  if (options?.base !== undefined) {
+    BASE = options.base;
+  }
   return function transformer(tree: any, file: any) {
-    // First process wikilinks (Obsidian-style, posts only) with build-time resolution
     const wikilinkPlugin = remarkWikilinks();
     wikilinkPlugin(tree, file);
 
-    // Then process standard markdown links (all content types)
     const standardLinkPlugin = remarkStandardLinks();
     standardLinkPlugin(tree, file);
   };
