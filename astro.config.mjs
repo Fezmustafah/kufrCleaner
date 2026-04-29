@@ -231,7 +231,7 @@ image: {
       remarkPlugins: [
       remarkCitations,          // Process [@citation-key] inline citations
       remarkObsidianImageSize, // Parse Obsidian image size syntax first
-      remarkInternalLinks,
+      [remarkInternalLinks, { base: isGitHubPages ? '/kufrCleaner/' : '/' }],
       remarkInlineTags,
       remarkObsidianComments, // Remove Obsidian comments (%%...%%) early in processing
       remarkMarginalia,       // Parse {{marginalia}} side notes (⟪...⟫ in .mdx normalized internally)
