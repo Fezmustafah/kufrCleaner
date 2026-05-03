@@ -55,8 +55,29 @@ const processedHeadings = filteredHeadings.map(h => {
 )}
 
 <script>
+  import { annotate } from 'rough-notation';
+  import type { RoughAnnotation } from 'rough-notation/lib/model';
+
   let tocObserver: IntersectionObserver | null = null;
   let scrollTimeout: number | null = null;
+  let headingAnnotation: RoughAnnotation | null = null;
+
+  function flashHeadingAnnotation(headingId: string) {
+    const heading = document.getElementById(headingId);
+    if (!heading) return;
+    const highlight = heading.querySelector<HTMLElement>('span.highlight-span');
+    if (!highlight) return;
+
+    if (headingAnnotation) headingAnnotation.hide();
+    headingAnnotation = annotate(highlight, {
+      type: 'bracket',
+      color: 'rgba(234, 157, 52, 0.55)',
+      animate: false,
+      brackets: ['left', 'right'],
+    });
+    window.setTimeout(() => headingAnnotation!.show(), 50);
+    window.setTimeout(() => headingAnnotation?.hide(), 2550);
+  }
 
   function initializeTableOfContents() {
     const nav = document.querySelector('.toc-nav') as HTMLElement | null;
@@ -181,6 +202,13 @@ const processedHeadings = filteredHeadings.map(h => {
 
     headings.forEach(h => tocObserver!.observe(h));
     updateActiveState();
+
+    tocItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const headingId = item.getAttribute('data-heading');
+        if (headingId) flashHeadingAnnotation(headingId);
+      });
+    });
   }
 
   (window as any).initializeTableOfContents = initializeTableOfContents;
@@ -188,6 +216,8 @@ const processedHeadings = filteredHeadings.map(h => {
   document.addEventListener('DOMContentLoaded', initializeTableOfContents);
   document.addEventListener('swup:page:view', () => {
     if (scrollTimeout) clearTimeout(scrollTimeout);
+    if (headingAnnotation) { headingAnnotation.hide(); headingAnnotation = null; }
+    document.querySelectorAll('svg.rough-annotation').forEach(el => el.remove());
     initializeTableOfContents();
   });
 </script>
@@ -206,7 +236,7 @@ const processedHeadings = filteredHeadings.map(h => {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
-    padding: 0.5rem 0.125rem 1.5rem;
+    padding: 1.5rem 0.125rem 1.5rem;
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--color-primary-300) / 0.5) transparent;
     mask-image: linear-gradient(

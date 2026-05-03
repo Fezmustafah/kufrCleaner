@@ -68,6 +68,7 @@
     "remark-reading-time": "^2.1.0",
     "remark-rehype": "^11.1.2",
     "remark-toc": "^9.0.0",
+    "rough-notation": "^0.5.1",
     "sharp": "^0.34.5",
     "swup": "^4.8.3",
     "tailwindcss": "^3.4.19",

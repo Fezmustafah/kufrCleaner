@@ -158,6 +158,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/ahad-vs-wahid"
+  to = "/posts/ahad-vs-wahidواحد-vs-أحد-the-arabic-word-that-proves-gods-absolute-oneness-in-surah-al-ikhlas"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/final-academic-response-1351212802366242877"
   to = "/posts/aisha-marriage-age-historical-evidence-scholarly-sources-refutation"
   status = 301
@@ -166,6 +172,12 @@
 [[redirects]]
   from = "/posts/marriage-with-aisha"
   to = "/posts/aisha-marriage-age-historical-evidence-scholarly-sources-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/aishas-jealousy-made-her-wish-to-be-stung-by-a-scorpion-or-a-snake"
+  to = "/posts/aishas-jealousy-and-love-for-the-prophet-صلى-الله-عليه-وسلم-the-camel-incident-explained"
   status = 301
   force = true
 
@@ -184,12 +196,6 @@
 [[redirects]]
   from = "/posts/and-purify-your-garments"
   to = "/posts/and-purify-your-garmentsdoes-the-command-to-avoid-idols-mean-that-the-messenger-worshipped-idols"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/update-2026-1490037128745189496"
-  to = "/posts/anekatah"
   status = 301
   force = true
 
@@ -224,6 +230,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/black-seed"
+  to = "/posts/black-seed-in-islam-nigella-sativa-prophetic-medicine-and-modern-scientific-research"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/by-islamophobes-nightmare-pdf"
   to = "/posts/by-islamophobes-nightmare-pdf-slavery"
   status = 301
@@ -242,14 +254,38 @@
   force = true
 
 [[redirects]]
+  from = "/posts/deficient-in-religion"
+  to = "/posts/deficient-in-mind-and-religion-hadith-meaning-context-and-full-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/women-are-deficient-in-religio"
+  to = "/posts/deficient-in-mind-and-religion-hadith-meaning-context-and-full-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/the-blind-companion-killed-his-wife-or-female-slave-when-she-insulted-the-prophet"
   to = "/posts/did-a-blind-companion-kill-his-wife-for-insulting-the-prophet-complete-hadith-refutation"
   status = 301
   force = true
 
 [[redirects]]
+  from = "/posts/al-anbiya-98-qiraats-difference"
+  to = "/posts/did-aisha-and-the-companions-recite-hadhab-jahannam-refuting-a-false-quranic-variant-claim-surah-al-anbiya-verse-98"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/responding-to-the-doubt-about-breastfeeding-an-adult-in-detail"
   to = "/posts/did-islam-allow-breastfeeding-an-adult-scholarly-refutation-of-the-salim-hadith-misconception"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-response-to-christs-claim-is-that-god-creates-from-clay-the-shape-of-a-bird-and-it-becomes-a-b"
+  to = "/posts/did-jesus-creating-a-bird-from-clay-prove-he-is-god-quran-gospel-scholars-answer"
   status = 301
   force = true
 
@@ -272,8 +308,20 @@
   force = true
 
 [[redirects]]
+  from = "/posts/doubt-about-moses-peace-be-upon-him-throwing-the-tablets"
+  to = "/posts/did-moses-throwing-the-tablets-disrespect-gods-word-al-araf-150-explained-with-tafsir-bible"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/responding-to-the-suspicion-that-embryology-in-the-quran-is-borrowed-from-aristotle-and-hippocrates"
   to = "/posts/did-muhammad-copy-embryology-from-greek-science-refuting-the-aristotle-and-hippocrates-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/abraham-lied"
+  to = "/posts/did-prophet-abraham-commit-shirk-or-doubt-refuting-quranic-misconceptions-about-ibrahim-صلى-الله-عليه-وسلم"
   status = 301
   force = true
 
@@ -292,6 +340,24 @@
 [[redirects]]
   from = "/posts/response-to-the-allegation-that-the-prophet-defecated-and-ate-without-washing-his-hands-or-touching"
   to = "/posts/did-prophet-muhammad-صلى-الله-عليه-وسلم-eat-with-unclean-hands-full-refutation-of-the-christian-polemic"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/bukhari-6982-suicide"
+  to = "/posts/did-prophet-muhammad-صلى-الله-عليه-وسلم-try-to-commit-suicide-refuting-the-weak-bukhari-addition-az-zuhris-idraj"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-response-to-the-lie-that-the-prophet-peace-and-blessings-be-upon-him-quoted-from-the-monk-bahi"
+  to = "/posts/did-the-monk-bahira-teach-the-prophet-صلى-الله-عليه-وسلم-the-quran-6-historical-proofs-syriac-forgeries-catholic-encyclopedia-answer"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/bhukhari-4503-they-are-from-them-killing-children-night-raid"
+  to = "/posts/did-the-prophet-allow-killing-women-and-children-a-complete-islamic-response"
   status = 301
   force = true
 
@@ -332,6 +398,30 @@
   force = true
 
 [[redirects]]
+  from = "/posts/dawud-4449-trust-tawrat"
+  to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-place-his-hand-on-the-torah-refuting-the-weak-hisham-ibn-sad-report"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-2026-1490037128745189496"
+  to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-say-anakta-hā-the-maiz-hadith-arabic-usage-and-legal-clarity"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/anekatah"
+  to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-say-anakta-hā-the-maiz-hadith-arabic-usage-and-legal-clarity"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/existence-of-statues-or-pictures-of-jesus-son-of-mary-and-his-mother-in-the-kaaba"
+  to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-spare-the-image-of-mary-jesus-in-the-kaaba-al-azraqis-narrations-examined-with-11-authentic-hadiths"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/is-the-story-of-luqman-s-advice-to-his-son-transferred"
   to = "/posts/did-the-quran-borrow-luqmans-wisdom-from-ahiqar-full-refutation-of-the-claim"
   status = 301
@@ -352,6 +442,24 @@
 [[redirects]]
   from = "/posts/blowing-up-the-talmudic-traditions-in-the-quran"
   to = "/posts/did-the-quran-copy-the-talmud-a-complete-refutation-of-the-plagiarism-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/doubts-and-responses-to-allegations-of-distortion-of-the-holy-quran"
+  to = "/posts/did-the-quran-get-distorted-scholarly-refutations-to-8-major-claims-al-hajjaj-ibn-masoud-surat-al-noorayn-more"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/sunset"
+  to = "/posts/did-the-quran-say-the-sun-literally-sets-in-a-muddy-spring-quran-18-86-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-anomalous-readings-of-ubayd-ikrimah-mujahid-saeed-alqamah-hattan-al-amash"
+  to = "/posts/do-anomalous-tabiin-readings-disprove-the-qurans-preservation-chain-analysis-birmingham-manuscript-orientalist-testimony"
   status = 301
   force = true
 
@@ -416,8 +524,26 @@
   force = true
 
 [[redirects]]
+  from = "/posts/does-the-quran-acknowledge-jacobs-struggle-with-god"
+  to = "/posts/does-israel-mean-wrestling-with-god-hebrew-lexicon-islamic-tafsir-rabbi-rashi-father-tadros-answer"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/trinity-exist-in-islam"
   to = "/posts/does-the-christian-trinity-exist-in-islam-a-complete-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-response-to-the-doubt-and-he-made-the-moon-a-light-in-them"
+  to = "/posts/does-the-moon-light-up-all-seven-heavens-surah-nuh-71-1516-explained-with-tafsir-arabic-grammar"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-claim-that-god-almighty-does-not-have-the-exclusive-right-to-know-what-is-in-the-wombs"
+  to = "/posts/does-ultrasound-gender-detection-contradict-quran-31-34-hadith-scholars-embryology-answer"
   status = 301
   force = true
 
@@ -434,6 +560,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/immortal-boys-youth"
+  to = "/posts/eternal-youths-in-paradise-explained-refuting-the-false-claim-about-quran-76-19"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/even-if-he-committed-adultery-and-even-if-he-stole"
   to = "/posts/even-if-he-committed-adultery-and-even-if-he-stole-does-islam-permit-major-sins"
   status = 301
@@ -446,8 +578,8 @@
   force = true
 
 [[redirects]]
-  from = "/posts/update-2026"
-  to = "/posts/he-hastens-to-fulfill-your-desires-v2"
+  from = "/posts/the-contradiction-in-the-number-of-angels-in-the-battle-of-badr"
+  to = "/posts/how-many-angels-were-at-badr-resolving-the-1000-vs-3000-vs-5000-doubt-quran-tafsir-bible"
   status = 301
   force = true
 
@@ -470,14 +602,20 @@
   force = true
 
 [[redirects]]
-  from = "/posts/moon-god"
-  to = "/posts/is-allah-a-moon-god-the-claim-debunked-and-why-yahweh-has-a-bigger-problem"
+  from = "/posts/doubts-about-the-compilation-of-the-holy-quran"
+  to = "/posts/how-was-the-quran-compiled-dots-diacritics-the-two-collections-doubts-answered"
   status = 301
   force = true
 
 [[redirects]]
-  from = "/posts/the-name-of-ahmad-in-isaiah-421"
-  to = "/posts/is-muhammad-ahmad-named-in-isaiah-42-1-the-chosen-one-prophecy-explained"
+  from = "/posts/abraham-lied-1325421805514784820"
+  to = "/posts/ibrahim-only-told-three-lies-what-did-the-prophet-صلى-الله-عليه-وسلم-mean-al-nawawi-ibn-al-jawzi-al-razi-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/moon-god"
+  to = "/posts/is-allah-a-moon-god-the-claim-debunked-and-why-yahweh-has-a-bigger-problem"
   status = 301
   force = true
 
@@ -508,6 +646,12 @@
 [[redirects]]
   from = "/posts/hadith-about-the-age-of-flies"
   to = "/posts/is-the-hadith-about-the-flys-lifespan-being-40-nights-authentic-full-isnad-analysis-scientific-proof"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/surah-nisa-34-domestic-abuse-quran-434"
+  to = "/posts/islam-and-wife-beating-classical-scholars-on-quran-4-34-and-its-strict-limits"
   status = 301
   force = true
 
@@ -548,6 +692,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/noahs-flood-peace-be-upon-him"
+  to = "/posts/noahs-flood-was-it-global-or-local-the-quran-vs-the-torah"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/prophecies-of-the-end-time-b-prophet"
   to = "/posts/prophecies"
   status = 301
@@ -578,12 +728,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/context"
-  to = "/posts/quran-434-wife-beating-verse-additions"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/update-2026-1468269937515823264"
   to = "/posts/refuting-the-dirham-anachronism-how-the-quran-accurately-describes-ancient-currency"
   status = 301
@@ -608,8 +752,14 @@
   force = true
 
 [[redirects]]
-  from = "/posts/sunset"
-  to = "/posts/sun-sets-in-muddy-spring"
+  from = "/posts/more-questions-asked-about-it-summary-of-debate"
+  to = "/posts/surah-al-rum-prophecy-refuted-answering-the-badr-hadith-and-ghalabat-reading-doubt"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/a-woman-comes-in-the-form-of-a-devil"
+  to = "/posts/tabarruj-in-islam-what-the-quran-hadith-and-classical-scholars-say-about-womens-modesty"
   status = 301
   force = true
 
@@ -626,8 +776,26 @@
   force = true
 
 [[redirects]]
+  from = "/posts/20-evidences-that-lie-the-story"
+  to = "/posts/the-false-attribution-of-the-story-of-david-and-uriahs-wife-to-the-quran"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/genealogy-of-muhammad"
   to = "/posts/the-genealogy-of-prophet-muhammad-صلى-الله-عليه-وسلم-from-ishmael-to-the-final-prophet"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-weak-one-who-has-no-support"
+  to = "/posts/the-hadith-of-the-people-of-paradise-and-hell-meaning-of-zabr"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/aisha-broke-plates"
+  to = "/posts/the-prophet-صلى-الله-عليه-وسلم-aishas-jealousy-and-the-bowl-incident-refuting-claims-of-lust-and-misconduct"
   status = 301
   force = true
 
@@ -688,18 +856,6 @@
 [[redirects]]
   from = "/posts/mutah-pleasure-marriage"
   to = "/posts/the-truth-about-mutah-temporary-marriage-permanently-forbidden-in-quran-sunnah-full-evidence"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/untitled-1319671382862200917"
-  to = "/posts/the-unique-characteristics-of-the-prophet-muhammad-صلى-الله-عليه-وسلم-khaṣāiṣ-al-nabī"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/characteristics-of-prophet"
-  to = "/posts/the-unique-characteristics-of-the-prophet-muhammad-صلى-الله-عليه-وسلم-khaṣāiṣ-al-nabī"
   status = 301
   force = true
 
@@ -782,14 +938,26 @@
   force = true
 
 [[redirects]]
-  from = "/posts/deficient-in-religion"
-  to = "/posts/women-are-deficient-in-religio"
+  from = "/posts/uthman-ibn-affan-and-the-holy-quran-revisited"
+  to = "/posts/why-did-uthman-burn-other-quran-copies-the-uthmanic-codex-and-preservation-of-the-quran"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/did-god-fail-to-preserve-the-previous-books"
+  to = "/posts/why-didnt-allah-preserve-the-bible-and-torah-quran-15-9-and-the-trust-given-to-ahl-al-kitab"
   status = 301
   force = true
 
 [[redirects]]
   from = "/posts/untitled-1319668747341926410"
   to = "/posts/women-rights-before-islam"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/a-womans-testimony-alone"
+  to = "/posts/womens-testimony-in-islam-why-two-women-half-a-mind-the-complete-scholarly-analysis-from-ibn-taymiyyah-to-mahmoud-shaltut"
   status = 301
   force = true
 

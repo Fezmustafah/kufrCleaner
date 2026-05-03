@@ -2,7 +2,7 @@
 import type { Post, Heading } from '@/types';
 import { siteConfig } from '@/config';
 import { generatePostSEO } from '@/utils/seo';
-import { getOptimizedFormat } from '@/utils/images';
+// import { getOptimizedFormat } from '@/utils/images'; // unused while PostBanner is disabled
 import { processWikilinksInHTML } from '@/utils/internallinks';
 import { getCollection } from 'astro:content';
 import { shouldShowPost, processPost, calculateReadingTime, generateTOC, getAdjacentPosts, formatDate, formatDateMobile, getReadingTimeMobile } from '@/utils/markdown';
@@ -13,7 +13,7 @@ import LocalGraph from '@/components/LocalGraph.astro';
 import GiscusComments from '@/components/GiscusComments.astro';
 import Lightbox from '@/components/Lightbox.astro';
 import Icon from '@/components/Icon.astro';
-import PostBanner from '@/components/PostBanner.astro';
+// import PostBanner from '@/components/PostBanner.astro';
 import ImageWrapper from '@/components/ImageWrapper.astro';
 import { devConfig } from '@/config/dev';
 import { readFileSync } from 'fs';
@@ -75,36 +75,10 @@ const toc = shouldShowTOC ? await generateTOC(headings) : [];
 // Get adjacent posts for navigation
 const { prev: prevPost, next: nextPost } = getAdjacentPosts(visiblePosts, post.id);
 
-// ── Resolve post image path (used by both banner and cover image) ────────────
-let resolvedImageSrc: string | undefined;
-let resolvedImageBasePath: string | undefined;
-
-if (post.data.image) {
-  let rawImage = post.data.image;
-  if (Array.isArray(rawImage)) rawImage = rawImage[0];
-
-  let cleanImagePath = typeof rawImage === 'string' ? rawImage : '';
-  if (cleanImagePath.startsWith('[[') && cleanImagePath.endsWith(']]')) {
-    cleanImagePath = cleanImagePath.slice(2, -2);
-  }
-
-  if (typeof cleanImagePath === 'string' && cleanImagePath.startsWith('http')) {
-    resolvedImageSrc = cleanImagePath;
-    resolvedImageBasePath = '';
-  } else {
-    const isFileBased = typeof cleanImagePath === 'string' && cleanImagePath.startsWith('attachments/');
-    if (isFileBased) {
-      resolvedImageSrc = cleanImagePath.replace('attachments/', '');
-      resolvedImageBasePath = '/posts/attachments/';
-    } else {
-      resolvedImageSrc = cleanImagePath.startsWith('images/') || cleanImagePath.startsWith('attachments/')
-        ? cleanImagePath.replace(/^(images|attachments)\//, '')
-        : cleanImagePath;
-      resolvedImageBasePath = post.id ? `/posts/${post.id}/` : '/posts/attachments/';
-    }
-  }
-  resolvedImageSrc = getOptimizedFormat(resolvedImageSrc);
-}
+// ── Post banner image resolution (commented out — PostBanner disabled) ───────
+// let resolvedImageSrc: string | undefined;
+// let resolvedImageBasePath: string | undefined;
+// if (post.data.image) { ... }
 
 // Check if current post has connections for LocalGraph
 let hasLocalGraphConnections = false;
@@ -141,105 +115,85 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
     )}
   </Fragment>
 
-  <!-- Full-width atmospheric banner (decorative only — metadata lives in the card) -->
+  <!-- PostBanner disabled for layout testing
   <PostBanner
     imageSrc={resolvedImageSrc}
     imageBasePath={resolvedImageBasePath}
   />
+  -->
 
-  <div class="post-banner-overlap py-8">
+  <!-- Ghost element: gives Header scroll script a #post-banner offsetHeight to threshold against,
+       preserving the navbar hide-on-scroll behaviour without the visual banner. -->
+  <div id="post-banner" aria-hidden="true" style="position:absolute;height:clamp(260px,44vh,520px);width:1px;pointer-events:none;visibility:hidden;"></div>
+
+  <div class="py-8">
     <div
-      class:list={["post-layout-grid", (shouldShowTOC || hasLocalGraphConnections) && "has-sidebar"]}
+      class:list={["post-layout-grid", (shouldShowTOC || hasLocalGraphConnections) && "has-left-col"]}
       style={`--contentWidth: ${siteConfig.layout.contentWidth}`}
     >
 
       <!-- Main content -->
-      <article class="post-layout-article bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm">
+      <article class="post-layout-article">
 
         <!-- Post content wrapper -->
-        <div class="post-content-wrapper px-6 md:px-9 pt-6 pb-4 rounded-lg">
-          <!-- Post header — Fuwari layout: stats → title → meta -->
-          <header class="mb-6">
+        <div class="post-content-wrapper px-6 md:px-9 pt-6 pb-4">
+          <header class="mb-8">
 
-            <!-- Row 1: word count + reading time (muted icon boxes, Fuwari style) -->
-            <div class="flex flex-row gap-5 mb-3 text-primary-400/60 dark:text-primary-500/50">
-              {siteConfig.postOptions.wordCount && wordCount !== undefined && (
-                <div class="flex items-center">
-                  <div class="meta-icon-sm">
-                    <Icon name="file-text" class="w-3.5 h-3.5" />
-                  </div>
-                  <span class="text-sm">{wordCount} words</span>
-                </div>
-              )}
+            <!-- Category eyebrow -->
+            {siteConfig.postOptions.categories && (post.data as any).category && (
+              <a
+                href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent((post.data as any).category)}`}
+                class="inline-block text-xs font-semibold tracking-[0.12em] uppercase text-highlight-600 dark:text-highlight-400 mb-3 hover:opacity-75 transition-opacity"
+              >
+                {(post.data as any).category}
+              </a>
+            )}
+
+            <!-- Title -->
+            <h1 class="text-3xl md:text-4xl font-bold text-primary-900 dark:text-primary-50 leading-tight mb-3">
+              {post.data.title}
+            </h1>
+
+            <!-- Single meta line: date · read time · word count · tags -->
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-primary-400 dark:text-primary-500">
+
+              <time datetime={post.data.date.toISOString()}>
+                {formatDate(post.data.date)}
+              </time>
+
               {siteConfig.postOptions.readingTime && readingTime && (
-                <div class="flex items-center">
-                  <div class="meta-icon-sm">
-                    <Icon name="clock" class="w-3.5 h-3.5" />
-                  </div>
-                  <span class="text-sm">
-                    {readingTime.text && readingTime.text !== 'read0' ? readingTime.text : '1 min read'}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <!-- Row 2: title with left accent bar -->
-            <div class="relative mb-4">
-              <div class="post-title-accent"></div>
-              <h1 class="text-3xl md:text-[2.25rem]/[2.75rem] font-bold text-primary-900 dark:text-primary-50 leading-tight">
-                {post.data.title}
-              </h1>
-            </div>
-
-            <!-- Row 3: date · category · tags — Fuwari icon-box style -->
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-primary-500 dark:text-primary-400">
-
-              <!-- Date -->
-              <div class="flex items-center">
-                <div class="meta-icon">
-                  <Icon name="calendar" class="w-4 h-4" />
-                </div>
-                <time datetime={post.data.date.toISOString()} class="text-sm font-medium">
-                  {formatDate(post.data.date)}
-                </time>
-              </div>
-
-              <!-- Category — catalogue label (always shown) -->
-              {siteConfig.postOptions.categories && (post.data as any).category && (
-                <div class="flex items-center">
-                  <div class="meta-icon">
-                    <Icon name="folder" class="w-4 h-4" />
-                  </div>
-                  <a
-                    href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent((post.data as any).category)}`}
-                    class="text-sm font-medium hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
-                  >
-                    {(post.data as any).category}
-                  </a>
-                </div>
+                <>
+                  <span aria-hidden="true" class="select-none">·</span>
+                  <span>{readingTime.text && readingTime.text !== 'read0' ? readingTime.text : '1 min read'}</span>
+                </>
               )}
 
-              <!-- Tags — concept labels (hidden on mobile like Fuwari) -->
+              {siteConfig.postOptions.wordCount && wordCount !== undefined && (
+                <>
+                  <span aria-hidden="true" class="select-none">·</span>
+                  <span>{wordCount} words</span>
+                </>
+              )}
+
               {siteConfig.postOptions.tags && post.data.tags && post.data.tags.length > 0 && (
-                <div class="hidden md:flex items-center">
-                  <div class="meta-icon">
-                    <Icon name="tag" class="w-4 h-4" />
-                  </div>
-                  <div class="flex flex-row flex-wrap items-center gap-x-1">
+                <>
+                  <span aria-hidden="true" class="select-none">·</span>
+                  <div class="flex flex-wrap items-center gap-x-1.5">
                     {post.data.tags.map((tag, i) => (
                       <>
-                        {i > 0 && <span class="text-primary-300 dark:text-primary-600 text-sm select-none">/</span>}
+                        {i > 0 && <span class="text-primary-300 dark:text-primary-700 select-none">/</span>}
                         <a
                           href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`}
-                          class="text-sm font-medium hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors whitespace-nowrap"
+                          class="hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
                         >
                           {tag}
                         </a>
                       </>
                     ))}
                   </div>
-                </div>
+                </>
               )}
+
             </div>
           </header>
 
@@ -304,11 +258,35 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         </div>
       </article>
 
-      <!-- Left sidebar: TOC + LocalGraph (graph collapsed by default) -->
+      <!-- Left sidebar: Contents header (toggle) + TOC + Local graph -->
       {(shouldShowTOC || hasLocalGraphConnections) && (
         <aside class="post-layout-left-col" id="post-left-sidebar">
-          {shouldShowTOC && <TableOfContents headings={toc} />}
-          {hasLocalGraphConnections && <LocalGraph currentSlug={post.id} />}
+          <!-- Clickable "Contents" header — collapses/expands sidebar content -->
+          <button
+            class="sidebar-toc-header"
+            id="sidebar-toc-header"
+            aria-expanded="true"
+            aria-controls="sidebar-toc-content"
+            title="Toggle table of contents"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/>
+            </svg>
+            <span>Contents</span>
+            <svg class="sidebar-toc-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+          </button>
+
+          <!-- Collapsible content: TOC + graph -->
+          <div class="sidebar-toc-content" id="sidebar-toc-content">
+            {shouldShowTOC && <TableOfContents headings={toc} />}
+            {hasLocalGraphConnections && (
+              <div class="left-sidebar-graph">
+                <LocalGraph currentSlug={post.id} />
+              </div>
+            )}
+          </div>
         </aside>
       )}
     </div>
@@ -318,65 +296,82 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
   <Fragment slot="scripts">
     <!-- Marginalia: hover highlighting + popover (<1100px) + scroll+hash (≥1100px) -->
     <script>
-      // Clear any stale reader mode state from previous sessions
-      localStorage.removeItem('kufrCleaner:readerMode');
-      document.body.classList.remove('reading-mode');
+      // (sidebar collapsed state is persisted via kufrCleaner:sidebarCollapsed in localStorage)
 
-      const _lightboxZoomSVG = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>`;
-
-      function wrapImgWithLightboxOverlay(img: HTMLImageElement, beforeDispatch?: (e: MouseEvent) => void) {
+      function wireImgLightbox(img: HTMLImageElement, beforeOpen?: (e: MouseEvent) => void) {
         if ((img as any)._lightboxWired) return;
         (img as any)._lightboxWired = true;
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', (e) => {
+          beforeOpen?.(e);
+          if (typeof window.openLightbox === 'function') {
+            window.openLightbox(img.src, img.alt || '');
+          }
+        });
+      }
 
-        // If already wrapped by ImageGalleryManager, just wire the existing button
-        const existingBtn = img.closest<HTMLButtonElement>('.image-button');
-        if (existingBtn) {
-          existingBtn.addEventListener('click', (e) => {
-            beforeDispatch?.(e);
-            window.dispatchEvent(new CustomEvent('openLightbox', {
-              detail: { images: [{ src: img.src, alt: img.alt || '' }], index: 0 }
-            }));
-          });
+      // ── JS-based note positioning (replaces CSS float/clear) ─────────────
+      // Positions each .footnote absolutely to the right of the article,
+      // aligned with its label and pushed down only when needed to avoid overlap.
+      function layoutMarginaliaFloats() {
+        const article = document.querySelector<HTMLElement>('.post-layout-article');
+        if (!article) return;
+
+        // Make article a containing block for absolute notes
+        if (getComputedStyle(article).position === 'static') {
+          article.style.position = 'relative';
+        }
+
+        const notes = Array.from(document.querySelectorAll<HTMLElement>('.footnote'));
+        if (!notes.length) return;
+
+        const isWide = window.innerWidth >= 1100;
+
+        if (!isWide) {
+          notes.forEach(n => { n.style.top = ''; n.style.left = ''; });
+          article.style.minHeight = '';
           return;
         }
 
-        const grid = document.createElement('div');
-        grid.className = 'image-grid image-grid-1 my-2';
+        const NOTE_WIDTH = 200;
+        const NOTE_GAP  = 8;   // px between stacked notes
+        const SIDE_GAP  = 12;  // px from article right edge to note left edge
 
-        const imageItem = document.createElement('div');
-        imageItem.className = 'image-item';
+        // Clear any stale minHeight so offsetHeight reflects natural content height below
+        article.style.minHeight = '';
 
-        const button = document.createElement('button');
-        button.className = 'image-button w-full h-full group cursor-pointer';
-        button.setAttribute('data-lightbox', 'gallery');
+        const articleRect = article.getBoundingClientRect();
+        let lastBottom = 0;
 
-        const imgClone = img.cloneNode(true) as HTMLImageElement;
-        imgClone.className = 'w-full h-full object-cover rounded-lg transition-all duration-300 group-hover:shadow-lg group-hover:scale-[1.02]';
-        imgClone.loading = 'lazy';
-        imgClone.setAttribute('data-lightbox', 'gallery');
+        notes.forEach(note => {
+          const container = note.closest<HTMLElement>('.footnote-container');
+          const label     = container?.querySelector<HTMLElement>('.footnote-number');
+          if (!container || !label) return;
 
-        const overlay = document.createElement('div');
-        overlay.className = 'absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 rounded-lg flex items-center justify-center';
+          const opParent = note.offsetParent as HTMLElement | null;
+          const opRect   = opParent ? opParent.getBoundingClientRect() : articleRect;
 
-        const zoomIcon = document.createElement('div');
-        zoomIcon.className = 'w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300';
-        zoomIcon.innerHTML = _lightboxZoomSVG;
+          // Horizontal: note left edge sits SIDE_GAP right of the article card
+          note.style.left = `${articleRect.right - opRect.left + SIDE_GAP}px`;
 
-        overlay.appendChild(zoomIcon);
-        button.appendChild(imgClone);
-        button.appendChild(overlay);
-        imageItem.appendChild(button);
-        grid.appendChild(imageItem);
+          // Vertical: align with label, push down past previous note if needed
+          const labelRect    = label.getBoundingClientRect();
+          const desiredTop   = labelRect.top - opRect.top;
+          const topVal       = Math.max(desiredTop, lastBottom);
+          note.style.top     = `${topVal}px`;
 
-        button.addEventListener('click', (e) => {
-          beforeDispatch?.(e);
-          window.dispatchEvent(new CustomEvent('openLightbox', {
-            detail: { images: [{ src: imgClone.src, alt: imgClone.alt || '' }], index: 0 }
-          }));
+          lastBottom = topVal + note.offsetHeight + NOTE_GAP;
         });
 
-        img.parentNode!.insertBefore(grid, img);
-        img.parentNode!.removeChild(img);
+        // Expand article to contain all notes so they don't overflow below the card.
+        // minHeight was cleared above, so offsetHeight is the natural content height.
+        const notesBottom = lastBottom - NOTE_GAP;
+        if (notesBottom > article.offsetHeight) {
+          // Include bottom padding + border so the last note doesn't clip at the card edge.
+          const cs = getComputedStyle(article);
+          const extraBottom = parseFloat(cs.paddingBottom) + parseFloat(cs.borderBottomWidth);
+          article.style.minHeight = `${notesBottom + extraBottom}px`;
+        }
       }
 
       function initMarginalia() {
@@ -385,6 +380,9 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
 
         // Whether the floated sidebar notes are visible
         const floatsVisible = () => window.innerWidth >= 1100;
+
+        // Position notes immediately on init
+        layoutMarginaliaFloats();
 
         // ── Abort stale listeners from previous page navigation ────────────
         // Each initMarginalia() call would stack more mouseenter/mouseleave on
@@ -434,7 +432,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
           pop.innerHTML = `<span class="marginalia-popover-num">${idx}.</span><span class="marginalia-popover-text">${noteEl.innerHTML}</span>`;
           // Wire lightbox on images cloned into popover
           pop.querySelectorAll<HTMLImageElement>('img').forEach(img => {
-            wrapImgWithLightboxOverlay(img, (e) => { e.stopPropagation(); });
+            wireImgLightbox(img, (e) => { e.stopPropagation(); });
           });
           // Reserve space for images so reposition() gets correct height before load
           const imgs = pop.querySelectorAll<HTMLImageElement>('img');
@@ -487,14 +485,9 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             e.stopPropagation(); // prevent document dismiss handler from closing the popover we just opened
 
             if (floatsVisible()) {
-              // Desktop: scroll floated note into view + update URL hash
+              // Desktop: scroll floated note into view + flash highlight
               if (!noteEl) return;
-              const noteId = noteEl.id; // fn-note-N
-              if (noteId) {
-                history.replaceState(null, '', `#${noteId}`);
-              }
               noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              // Flash highlight
               container.classList.add('is-highlighted');
               setTimeout(() => container.classList.remove('is-highlighted'), 1500);
             } else {
@@ -516,7 +509,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         // Dispatch explicit image data so Lightbox doesn't fall back to
         // querySelectorAll('img') which would also pick up #lightbox-image itself.
         document.querySelectorAll<HTMLImageElement>('.footnote img').forEach(img => {
-          wrapImgWithLightboxOverlay(img, (e) => { e.stopPropagation(); });
+          wireImgLightbox(img, (e) => { e.stopPropagation(); });
         });
 
         // ── Global dismiss ─────────────────────────────────────────────────
@@ -527,9 +520,9 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         }, { signal: sig });
         document.addEventListener('keydown', e => { if (e.key === 'Escape') pop.classList.remove('is-visible'); }, { signal: sig });
 
-        // ── Dismiss popover when crossing the 1100px float/popover threshold ──
-        // (e.g. user zooms in/out, changing which mode is active)
+        // ── Dismiss popover / reflow notes on resize ───────────────────────
         let lastWasFloats = floatsVisible();
+        let resizeTimer: ReturnType<typeof setTimeout> | null = null;
         window.addEventListener('resize', () => {
           const nowFloats = floatsVisible();
           if (nowFloats !== lastWasFloats) {
@@ -537,15 +530,60 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             document.querySelectorAll('.footnote-container.is-highlighted').forEach(c => c.classList.remove('is-highlighted'));
             lastWasFloats = nowFloats;
           }
+          // Debounced re-layout so notes stay aligned after resize
+          if (resizeTimer) clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => layoutMarginaliaFloats(), 100);
         }, { signal: sig, passive: true });
       }
 
-      // Expose globally so BaseLayout's Swup hooks can call it on navigation
-      window['initializeMarginalia'] = initMarginalia;
+      // Expose globally so BaseLayout's Swup hooks can call these
+      window['initializeMarginalia']   = initMarginalia;
+      window['layoutMarginaliaFloats'] = layoutMarginaliaFloats;
 
-      document.addEventListener('DOMContentLoaded', initMarginalia);
-      // bfcache restore: browser back/forward skips DOMContentLoaded
+      document.addEventListener('DOMContentLoaded', () => {
+        initMarginalia();
+        document.fonts.ready.then(() => layoutMarginaliaFloats());
+      });
+      // Swup navigation — fires after content is replaced
+      document.addEventListener('astro:page-load', () => {
+        initMarginalia();
+        document.fonts.ready.then(() => layoutMarginaliaFloats());
+      });
+      // Self-init: script loaded into already-ready page (command palette from non-post page,
+      // script is new so it missed both DOMContentLoaded and astro:page-load)
+      if (document.readyState !== 'loading') {
+        initMarginalia();
+        document.fonts.ready.then(() => layoutMarginaliaFloats());
+      }
       window.addEventListener('pageshow', (e) => { if (e.persisted) initMarginalia(); });
+    </script>
+
+    <!-- Contents sidebar collapse toggle -->
+    <script>
+      function initSidebarToggle() {
+        const btn      = document.getElementById('sidebar-toc-header');
+        const leftCol  = document.getElementById('post-left-sidebar');
+        if (!btn || !leftCol || (btn as any)._wired) return;
+        (btn as any)._wired = true;
+
+        const KEY = 'kufrCleaner:sidebarCollapsed';
+        if (localStorage.getItem(KEY) === 'true') {
+          leftCol.classList.add('is-collapsed');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+
+        btn.addEventListener('click', () => {
+          const collapsed = leftCol.classList.toggle('is-collapsed');
+          btn.setAttribute('aria-expanded', String(!collapsed));
+          localStorage.setItem(KEY, String(collapsed));
+        });
+      }
+
+      window['initSidebarToggle'] = initSidebarToggle;
+      document.addEventListener('DOMContentLoaded', initSidebarToggle);
+      document.addEventListener('astro:page-load', initSidebarToggle);
+      if (document.readyState !== 'loading') initSidebarToggle();
+      window.addEventListener('pageshow', (e) => { if (e.persisted) initSidebarToggle(); });
     </script>
 
     <script define:vars={{ posts: visiblePosts.map(p => ({ id: p.id, data: { title: p.data.title } })), commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id }}>
@@ -619,22 +657,112 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         });
       }
 
-      // Make function globally available for Swup re-initialization
       window.initializeWikilinks = initializeWikilinks;
-
-      // Process wikilinks and initialize layouts after content loads
-      document.addEventListener('DOMContentLoaded', () => {
-        // Process external links - handled by BaseLayout, but call here as backup for initial load
-        if (window.processExternalLinks) {
-          window.processExternalLinks();
-        }
-
-        // Initialize wikilinks on initial load
-        initializeWikilinks();
-      });
+      // astro:page-load handles both initial load and Swup navigation
+      document.addEventListener('astro:page-load', initializeWikilinks);
 
       // External links are now handled globally by BaseLayout Swup hooks
 
+    </script>
+    <!-- Heading permalink: copy URL to clipboard on click -->
+    <script>
+      function initHeadingPermalinks() {
+        document.querySelectorAll<HTMLAnchorElement>('a[data-role="anchor"]').forEach(anchor => {
+          if ((anchor as any)._permalinkWired) return;
+          (anchor as any)._permalinkWired = true;
+
+          anchor.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = anchor.getAttribute('href');
+            if (!href) return;
+
+            const url = new URL(window.location.href);
+            url.hash = href;
+
+            navigator.clipboard.writeText(url.toString()).catch(() => {});
+            history.pushState(null, '', href);
+
+            const target = document.getElementById(href.slice(1));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            anchor.classList.add('permalink-copied');
+            setTimeout(() => anchor.classList.remove('permalink-copied'), 1500);
+          });
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', initHeadingPermalinks);
+      document.addEventListener('swup:page:view', initHeadingPermalinks);
+    </script>
+
+    <!-- Rough annotations -->
+    <script>
+      import { annotate } from 'rough-notation';
+
+      function initAnnotations({ animate = true } = {}) {
+        const spans = document.querySelectorAll<HTMLElement>('.rough-ann');
+        if (!spans.length) return;
+
+        // Remove all lingering rough-notation SVGs from body (Swup doesn't touch them —
+        // rough-notation appends SVGs to <body> outside #swup-container)
+        document.querySelectorAll('svg.rough-annotation').forEach(el => el.remove());
+        const prev = (window as any)._roughAnnotations as any[] | undefined;
+        if (prev?.length) prev.forEach(a => { try { a.hide(); } catch {} });
+
+        // Read all annotation colors from CSS vars — defined in marginalia.css,
+        // with light + dark variants. Override per-theme via [data-theme="*"].
+        const cs = getComputedStyle(document.documentElement);
+        const annColor = (type: string): string =>
+          cs.getPropertyValue(`--ann-${type}`).trim() ||
+          cs.getPropertyValue('--ann-highlight').trim();
+
+        const annotations: any[] = [];
+
+        spans.forEach(span => {
+          const type = span.dataset.annType ?? 'highlight';
+          const color = annColor(type);
+          const opts: Record<string, any> = {
+            type,
+            color,
+            iterations: 2,
+            animate,
+            animationDuration: 500,
+          };
+
+          // Block elements can wrap across lines — always enable multiline
+          // except for circle (rough-notation wraps the whole element as one shape)
+          if (type !== 'circle') opts.multiline = true;
+          if (type === 'bracket') opts.brackets = ['left', 'right'];
+
+          const ann = annotate(span, opts);
+          ann.show();
+          annotations.push(ann);
+        });
+
+        (window as any)._roughAnnotations = annotations;
+      }
+
+      // Expose globally for Swup hooks in BaseLayout
+      window['initializeAnnotations'] = initAnnotations;
+      // Fresh load: animate (no Swup transition running)
+      document.addEventListener('DOMContentLoaded', () => initAnnotations({ animate: true }));
+      // Swup navigation: wait for fade-in (200ms) to finish, then draw instantly
+      // (animate:true conflicts with Swup's opacity transition — SVG renders invisible)
+      document.addEventListener('astro:page-load', () => {
+        setTimeout(() => initAnnotations({ animate: false }), 250);
+      });
+      // Self-init: script loaded into already-ready page (command palette from non-post page)
+      if (document.readyState !== 'loading') setTimeout(() => initAnnotations({ animate: false }), 250);
+      window.addEventListener('pageshow', (e) => {
+        if (e.persisted) initAnnotations({ animate: true });
+      });
+
+      // Re-draw instantly (no animation) when dark/light mode toggles
+      let _annLastDark = document.documentElement.classList.contains('dark');
+      new MutationObserver(() => {
+        const isDark = document.documentElement.classList.contains('dark');
+        if (isDark !== _annLastDark) { _annLastDark = isDark; initAnnotations({ animate: false }); }
+      }).observe(document.documentElement, { attributeFilter: ['class'] });
     </script>
   </Fragment>
 
@@ -649,61 +777,8 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
     }
 
 
-    /* ── Firefly title left accent bar ──────────────────────────────────── */
-    .post-title-accent {
-      position: absolute;
-      left: -1.5rem;
-      top: 0.75rem;
-      width: 0.25rem;
-      height: 1.25rem;
-      border-radius: 0.25rem;
-      background: rgb(var(--color-highlight-600));
-    }
-    @media (min-width: 768px) {
-      .post-title-accent { left: -2.25rem; }
-    }
-    :global(.dark) .post-title-accent {
-      background: rgb(var(--color-highlight-400));
-    }
-
-    /* ── Post metadata icon boxes ────────────────────────────────────────── */
-    /* Row 1: word count / reading time — small, very muted */
-    .meta-icon-sm {
-      height: 1.5rem;
-      width: 1.5rem;
-      border-radius: 0.375rem;
-      background: rgba(0, 0, 0, 0.05);
-      color: rgb(var(--color-primary-400));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 0.4rem;
-      flex-shrink: 0;
-    }
-    :global(.dark) .meta-icon-sm {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgb(var(--color-primary-500));
-    }
-    /* Row 3: date / category / tags — slightly larger */
-    .meta-icon {
-      height: 1.75rem;
-      width: 1.75rem;
-      border-radius: 0.375rem;
-      background: rgba(0, 0, 0, 0.05);
-      color: rgb(var(--color-primary-500));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 0.45rem;
-      flex-shrink: 0;
-    }
-    :global(.dark) .meta-icon {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgb(var(--color-primary-400));
-    }
-
     /* ── Break out of BaseLayout's max-width when sidebar is present ────── */
-    :global(#main-content:has(.post-layout-grid.has-sidebar)) {
+    :global(#main-content:has(.post-layout-grid.has-left-col)) {
       max-width: none !important;
     }
 
@@ -715,16 +790,10 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       padding: 0 1rem;
     }
 
-    /* ── Category footer ─────────────────────────────────────────────────── */
-    .post-category-footer {
-      max-width: min(98vw, 1800px);
-      margin: 1.5rem auto 0;
-      padding: 0 1.5rem;
-    }
-
     .post-layout-article {
       min-width: 0;
       overflow: visible; /* must not clip floated notes */
+      position: relative; /* containing block for absolute sidebar buttons + marginalia notes */
     }
 
     .post-layout-left-col {
@@ -732,20 +801,14 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
     }
 
     /*
-     * ≥1100px: [240px sidebar] [1fr article]          — no right gutter yet
-     * ≥1100px: [240px sidebar] [1fr article] [200px]  — gutter for marginalia floats
-     *
-     * The 200px gutter column only appears when marginalia are active (≥1100px).
-     * Below that breakpoint article fills all remaining space — no wasted column.
+     * ≥1100px layout:
+     *   [260px left col] [1fr article] [220px right gutter for marginalia]
+     * Reader mode (sidebar hidden):
+     *   [1fr article] [220px right gutter]  ← article expands, gutter kept for notes
      */
     @media (min-width: 1100px) {
-      /*
-       * 3-col grid from 1100px: [240px sidebar] [1fr article] [200px gutter]
-       * The 200px gutter is always present so marginalia floats work from 1100px.
-       * Article fills 1fr — remaining space after sidebar + gutter + gaps.
-       */
-      .post-layout-grid.has-sidebar {
-        grid-template-columns: 240px 1fr 200px;
+      .post-layout-grid.has-left-col {
+        grid-template-columns: 260px 1fr 220px;
         column-gap: 0.75rem;
         max-width: var(--page-width);
         margin-left: auto;
@@ -756,19 +819,99 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       .post-layout-left-col {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
         grid-column: 1;
         grid-row: 1;
         position: sticky;
         top: 5rem;
         align-self: start;
-        height: fit-content;
-        padding-top: 2rem;
+        max-height: calc(100vh - 6rem);
+        overflow: hidden;
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
+        /* position: sticky creates a stacking context */
       }
 
-      .post-layout-grid.has-sidebar .post-layout-article {
+      .post-layout-grid.has-left-col .post-layout-article {
         grid-column: 2;
         grid-row: 1;
+      }
+      /* col 3 (220px) intentionally empty — provides gutter for marginalia notes */
+
+      /* ── "Contents" header — always visible, acts as collapse toggle ─────── */
+      .sidebar-toc-header {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        width: 100%;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.15rem 0 0.5rem;
+        color: rgb(var(--color-primary-400));
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        user-select: none;
+        flex-shrink: 0;
+        transition: color 0.15s;
+      }
+      .sidebar-toc-header:hover { color: rgb(var(--color-primary-700)); }
+      :global(.dark) .sidebar-toc-header { color: rgb(var(--color-primary-500)); }
+      :global(.dark) .sidebar-toc-header:hover { color: rgb(var(--color-primary-200)); }
+
+      .sidebar-toc-chevron {
+        margin-left: auto;
+        flex-shrink: 0;
+        transition: transform 0.2s ease;
+      }
+      .post-layout-left-col.is-collapsed .sidebar-toc-chevron {
+        transform: rotate(180deg);
+      }
+
+      /* ── Collapsible content: TOC + graph ────────────────────────────────── */
+      .sidebar-toc-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        transition: opacity 0.18s ease, visibility 0.18s ease;
+      }
+
+      /*
+       * Collapsed: content becomes invisible but column keeps its 260px width.
+       * No layout shift — article and marginalia stay exactly where they are.
+       */
+      .post-layout-left-col.is-collapsed .sidebar-toc-content {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      /* TOC: natural height up to 60vh, scrolls internally if longer */
+      .sidebar-toc-content :global(.toc-nav) {
+        flex: 0 0 auto;
+        min-height: 0;
+        max-height: calc(60vh - 3rem);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .sidebar-toc-content :global(.toc-scroll-container) {
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* Graph: sits right below TOC with a thin separator */
+      .left-sidebar-graph {
+        flex: 0 0 auto;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgb(var(--color-primary-200) / 0.5);
+      }
+      :global(.dark) .left-sidebar-graph {
+        border-top-color: rgb(var(--color-primary-700) / 0.5);
       }
     }
   </style>

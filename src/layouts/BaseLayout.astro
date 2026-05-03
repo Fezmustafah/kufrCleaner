@@ -985,46 +985,25 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
     // Make the function globally accessible
     window.initializeGiscusComments = initializeGiscusComments;
 
-    // Collapsible callouts functionality
+    // Collapsible callouts — aarnphm grid-animation approach
     function initializeCollapsibleCallouts() {
-      const collapsibleCallouts = document.querySelectorAll('.callout-collapsible');
+      const collapsibleCallouts = document.querySelectorAll('.callout.is-collapsible');
 
       collapsibleCallouts.forEach(callout => {
-        const toggleButton = callout.querySelector('.callout-toggle');
+        const title = callout.querySelector('.callout-title');
         const content = callout.querySelector('.callout-content');
 
-        if (!toggleButton || !content) return;
+        if (!title || !content) return;
 
-        // Add click handler to toggle button
-        toggleButton.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        // Set initial grid state
+        const collapsed = callout.classList.contains('is-collapsed');
+        content.style.gridTemplateRows = collapsed ? '0fr' : '1fr';
 
-          const isCollapsed = callout.classList.contains('callout-collapsed');
-
-          if (isCollapsed) {
-            // Expand
-            callout.classList.remove('callout-collapsed');
-            content.style.display = '';
-            toggleButton.setAttribute('aria-expanded', 'true');
-          } else {
-            // Collapse
-            callout.classList.add('callout-collapsed');
-            content.style.display = 'none';
-            toggleButton.setAttribute('aria-expanded', 'false');
-          }
+        title.addEventListener('click', () => {
+          callout.classList.toggle('is-collapsed');
+          const isNowCollapsed = callout.classList.contains('is-collapsed');
+          content.style.gridTemplateRows = isNowCollapsed ? '0fr' : '1fr';
         });
-
-        // Add click handler to title for easier interaction
-        const title = callout.querySelector('.callout-title');
-        if (title) {
-          title.addEventListener('click', (e) => {
-            // Only trigger if not clicking the toggle button
-            if (!e.target.closest('.callout-toggle')) {
-              toggleButton.click();
-            }
-          });
-        }
       });
     }
 
@@ -1349,122 +1328,20 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
         if (isDev) {
         }
 
-        // Use the correct Swup hooks API
+        // content:replace: runs BEFORE new content is visible.
+        // Only handle things that must happen at swap time.
         window.swup.hooks.on('content:replace', () => {
-          if (isDev) {
-          }
-          // Re-initialize theme properly respecting theme switching availability
+          (document.getElementById('img-lightbox') as HTMLDialogElement | null)?.close();
           const theme = getThemeWithoutClearing();
           document.documentElement.setAttribute('data-theme', theme);
           updateThemeCSSVariables(theme).catch(console.error);
-          // Close any open lightbox before content replacement
-          if (window.lightboxInstance && window.lightboxInstance.isOpen) {
-            window.lightboxInstance.closeLightbox();
-          }
-          // Reinitialize favicon after page transition
           setFavicon();
-          // Initialize after content replacement
-          setTimeout(() => {
-            if (document.querySelector('#giscus-comments')) {
-              window.initializeGiscusComments();
-            }
-            // Initialize base embeds first, then wrap tables
-            if (window.initializeBaseEmbeds) {
-              window.initializeBaseEmbeds();
-            }
-            window.initializeTableWrappers();
-            // Initialize linked mentions
-            if (window.initializeLinkedMentions) {
-              window.initializeLinkedMentions();
-            }
-            // Initialize wikilinks
-            if (window.initializeWikilinks) {
-              window.initializeWikilinks();
-            }
-            // Initialize image galleries
-            if (typeof window['initializeImageGalleries'] === 'function') {
-              window['initializeImageGalleries']();
-            }
-            // Initialize marginalia hover/popover
-            if (typeof window['initializeMarginalia'] === 'function') {
-              window['initializeMarginalia']();
-            }
-            // Initialize category filtering
-            if (typeof window['initializeCategoryFiltering'] === 'function') {
-              window['initializeCategoryFiltering']();
-            }
-            // Process external links to open in new tabs
-            if (window.processExternalLinks) {
-              window.processExternalLinks();
-            }
-            // Re-setup smooth scrolling for anchor links
-            setupSmoothScrolling();
-          }, 100);
-        });
-
-        window.swup.hooks.on('page:view', () => {
-          if (isDev) {
-          }
-          // Re-initialize theme properly respecting theme switching availability
-          const theme = getThemeWithoutClearing();
-          document.documentElement.setAttribute('data-theme', theme);
-          updateThemeCSSVariables(theme).catch(console.error);
-          setTimeout(() => {
-            if (document.querySelector('#giscus-comments')) {
-              window.initializeGiscusComments();
-            }
-            // Initialize with small delay to ensure DOM is ready
-            setTimeout(() => {
-              // Initialize base embeds first, then wrap tables
-              if (window.initializeBaseEmbeds) {
-                window.initializeBaseEmbeds();
-              }
-              window.initializeTableWrappers();
-            }, 50);
-            // Re-initialize GraphModal after page transition
-            if (window.initializeGraphModal) {
-              window.initializeGraphModal();
-            }
-            // Initialize linked mentions
-            if (window.initializeLinkedMentions) {
-              window.initializeLinkedMentions();
-            }
-            // Initialize wikilinks
-            if (window.initializeWikilinks) {
-              window.initializeWikilinks();
-            }
-            // Initialize category filtering
-            if (typeof window['initializeCategoryFiltering'] === 'function') {
-              window['initializeCategoryFiltering']();
-            }
-            // Initialize marginalia hover/popover
-            if (typeof window['initializeMarginalia'] === 'function') {
-              window['initializeMarginalia']();
-            }
-            // Initialize table of contents
-            if (window.initializeTableOfContents) {
-              window.initializeTableOfContents();
-            }
-            // Reset and initialize local graph
-            if (window.resetGraph) {
-              window.resetGraph();
-            }
-            if (window.initializeGraph) {
-              window.initializeGraph();
-            }
-            if (window.setupGraphButtons) {
-              window.setupGraphButtons();
-            }
-            // Process external links to open in new tabs
-            if (window.processExternalLinks) {
-              window.processExternalLinks();
-            }
-            // Re-setup smooth scrolling for anchor links
-            setupSmoothScrolling();
-          }, 100);
         });
 
         // Favicon is handled by CSS media queries - no JavaScript needed
+        // Note: component-specific init (lightbox, marginalia, annotations, graph) is handled
+        // by each component's own astro:page-load listener. BaseLayout only wires globals here.
+
       } else if (swupRetryCount < maxSwupRetries) {
         swupRetryCount++;
         if (isDev) {
@@ -1478,6 +1355,64 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
 
     // Start setting up Swup hooks
     setupSwupHooks();
+
+    // astro:page-load fires on initial page load AND after every Swup navigation.
+    // Components (Lightbox, LocalGraph, PostLayout) handle their own init via their own
+    // astro:page-load listeners. This listener handles BaseLayout-level globals only.
+    // Single place for all global re-initialization. Fires on initial load + every Swup navigation.
+    // Component-specific init (lightbox, graph, annotations, marginalia) lives in each component.
+    document.addEventListener('astro:page-load', () => {
+      const theme = getThemeWithoutClearing();
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeCSSVariables(theme).catch(console.error);
+      setFavicon();
+
+      if (document.querySelector('#giscus-comments')) window.initializeGiscusComments?.();
+      window.initializeLinkedMentions?.();
+      window.initializeWikilinks?.();
+      window.initializeTableOfContents?.();
+      window.initializeCategoryFiltering?.();
+      window.initializeDocCategoryFiltering?.();
+      window.initializeProjectCategoryFiltering?.();
+      window.initializeGraphModal?.();
+      window.initSidebarToggle?.();
+      window.resetGraph?.();
+      window.initializeGraph?.();
+      window.setupGraphButtons?.();
+      window.processExternalLinks?.();
+      window.initializeTwitterWidgets?.();
+      window.initializeCategoryScroll?.();
+      window.initializeTagsSidebar?.();
+      window.initializeCategoriesSidebar?.();
+      initializeCollapsibleCallouts();
+      setupSmoothScrolling();
+      updateNavigationHighlighting();
+
+      // Slight delay for embeds/tables/Mermaid that depend on other scripts settling
+      setTimeout(() => {
+        window.initializeBaseEmbeds?.();
+        window.initializeTableWrappers?.();
+        window.initializeMermaid?.();
+        window.updateTOCHeight?.();
+        window.initializeCollapsibleCategories?.();
+      }, 50);
+    });
+
+    // bfcache restore (browser back/forward — Swup skips these via skipPopStateHandling:true).
+    // Components handle their own pageshow (Lightbox, LocalGraph, PostLayout annotations/marginalia).
+    // BaseLayout only needs to re-run global things here.
+    window.addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      setTimeout(() => {
+        window.initializeLinkedMentions?.();
+        window.initializeWikilinks?.();
+        window.initializeTableOfContents?.();
+        window.initializeGraphModal?.();
+        updateNavigationHighlighting();
+        initializeCollapsibleCallouts();
+        setupSmoothScrolling();
+      }, 50);
+    });
 
     // Favicon is now handled by CSS media queries - no JavaScript needed
 
@@ -1987,97 +1922,8 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
 
     // Simple scroll behavior: let browser handle everything naturally
     function setupSwupScrollBehavior() {
-      if (typeof window !== 'undefined' && window.swup) {
-        const swup = window.swup;
-
-        // Completely disable all scroll behavior - let browser handle it naturally
-        swup.hooks.on('page:view', () => {
-          // Do nothing - let browser handle scroll position naturally
-          // Still update navigation highlighting and linked mentions
-          updateNavigationHighlighting();
-          if (window.initializeLinkedMentions) {
-            window.initializeLinkedMentions();
-          }
-          // Re-initialize LocalGraph after page transition
-          if (window.resetLocalGraph) {
-            window.resetLocalGraph();
-          }
-          if (window.initializeLocalGraph) {
-            window.initializeLocalGraph();
-          }
-          if (window.setupLocalGraphButtons) {
-            window.setupLocalGraphButtons();
-          }
-        });
-
-        swup.hooks.on('visit:end', () => {
-          // Update navigation highlighting after page transition is complete
-          updateNavigationHighlighting();
-          // Initialize linked mentions after page transition is complete
-          if (window.initializeLinkedMentions) {
-            window.initializeLinkedMentions();
-          }
-          // Initialize base embeds after page transition is complete
-          if (window.initializeBaseEmbeds) {
-            window.initializeBaseEmbeds();
-          }
-          // Then wrap tables
-          window.initializeTableWrappers();
-          // Initialize Mermaid diagrams after page transition is complete
-          if (typeof window.initializeMermaid === 'function') {
-            window.initializeMermaid();
-          }
-          // Re-initialize GraphModal after page transition is complete
-          if (window.initializeGraphModal) {
-            window.initializeGraphModal();
-          }
-          // Re-initialize LocalGraph after page transition is complete
-          if (window.initializeLocalGraph) {
-            window.initializeLocalGraph();
-          }
-          if (window.setupLocalGraphButtons) {
-            window.setupLocalGraphButtons();
-          }
-          // Initialize table of contents after page transition is complete
-          if (window.initializeTableOfContents) {
-            window.initializeTableOfContents();
-          }
-          // Update TOC height after LocalGraph renders (for PostLayout)
-          if (window.updateTOCHeight) {
-            setTimeout(() => {
-              window.updateTOCHeight();
-            }, 200);
-          }
-          // Initialize doc category filtering after page transition is complete
-          if (window.initializeDocCategoryFiltering) {
-            window.initializeDocCategoryFiltering();
-          }
-          // Initialize project category filtering after page transition is complete
-          if (window.initializeProjectCategoryFiltering) {
-            window.initializeProjectCategoryFiltering();
-          }
-          // Initialize Twitter widgets after page transition is complete
-          if (window.initializeTwitterWidgets) {
-            window.initializeTwitterWidgets();
-          }
-          // Initialize collapsible categories after page transition (for docs index page)
-          if (window.initializeCollapsibleCategories) {
-            setTimeout(() => window.initializeCollapsibleCategories(), 100);
-          }
-          if (window.initializeCategoryScroll) {
-            window.initializeCategoryScroll();
-          }
-          if (window.initializeTagsSidebar) {
-            window.initializeTagsSidebar();
-          }
-          if (window.initializeCategoriesSidebar) {
-            window.initializeCategoriesSidebar();
-          }
-          // Graph initialization is handled in page:view hook to prevent duplicates
-          // Don't call handleInitialHashScroll() here - it interferes with back/forward navigation
-        });
-
-      }
+      // All init is handled by the astro:page-load listener above.
+      // This function is kept as a no-op for compatibility with the swup:enable event.
     }
 
 

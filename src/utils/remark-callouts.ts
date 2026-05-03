@@ -167,29 +167,26 @@ const remarkCallouts: Plugin<[], Root> = () => {
         updateTextNode(firstParagraph);
       }
       
-      // Generate toggle button HTML if collapsible
-      const toggleButton = isCollapsible ? 
-        `<button class="callout-toggle" aria-expanded="${!isCollapsed}" aria-label="Toggle callout content">
-          <svg class="callout-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6,9 12,15 18,9"></polyline>
-          </svg>
-        </button>` : '';
-      
+      // Fold icon for collapsible callouts (matches aarnphm fold-callout-icon)
+      const foldIcon = isCollapsible
+        ? `<div class="fold-callout-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>`
+        : '';
+
       // Transform the blockquote into a callout HTML structure
       const calloutHtml: any = {
         type: 'html',
-        value: `<div class="callout callout-${mapping.type}${isCollapsible ? ' callout-collapsible' : ''}${isCollapsed ? ' callout-collapsed' : ''}">
+        value: `<div class="callout${isCollapsible ? ' is-collapsible' : ''}${isCollapsed ? ' is-collapsed' : ''}" data-callout="${calloutKey}">
           <div class="callout-title">
             ${getIconSVG(mapping.icon)}
-            <span>${calloutTitle}</span>
-            ${toggleButton}
+            <div class="callout-title-inner"><span>${calloutTitle}</span></div>
+            ${foldIcon}
           </div>
-          <div class="callout-content"${isCollapsed ? ' style="display: none;"' : ''}>`
+          <div class="callout-content"><div>`
       };
-      
+
       const closeHtml: any = {
         type: 'html',
-        value: '</div></div>'
+        value: '</div></div></div>'
       };
       
       // Replace the blockquote with the callout structure

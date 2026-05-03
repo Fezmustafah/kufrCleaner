@@ -365,8 +365,20 @@ function parseMarkdownFile(content, slug) {
           value = value.slice(1, -1);
         }
 
-        // Check if this is an array key (next line starts with dash)
-        if (i + 1 < lines.length && lines[i + 1].trim().startsWith("- ")) {
+        // Check for inline array: tags: ["a", "b"] or tags: [a, b] or tags: []
+        if (value.startsWith('[') && value.endsWith(']')) {
+          const inner = value.slice(1, -1).trim();
+          data[key] = !inner ? [] : inner.split(',').map(item => {
+            let v = item.trim();
+            if ((v.startsWith('"') && v.endsWith('"')) ||
+                (v.startsWith("'") && v.endsWith("'"))) {
+              v = v.slice(1, -1);
+            }
+            return v;
+          }).filter(v => v.length > 0);
+          currentKey = null;
+        } else if (i + 1 < lines.length && lines[i + 1].trim().startsWith("- ")) {
+          // Multi-line array
           currentKey = key;
           currentArray = [];
         } else {
@@ -500,16 +512,59 @@ async function generateGraphData() {
       );
     }
 
+    // ── Tags: build tag nodes + post→tag connections ───────────────────────
+    // Only create tags for posts that made it through the maxNodes filter.
+    const selectedPostIds = new Set(filteredNodes.map((n) => n.id));
+    const tagCountMap = new Map(); // tag → post count among selected posts
+
+    for (const post of visiblePosts) {
+      if (!selectedPostIds.has(post.id)) continue;
+      const tags = Array.isArray(post.data.tags) ? post.data.tags : [];
+      for (const tag of tags) {
+        if (tag && typeof tag === "string") {
+          tagCountMap.set(tag, (tagCountMap.get(tag) || 0) + 1);
+        }
+      }
+    }
+
+    const tagNodes = [];
+    const tagConnections = [];
+
+    for (const [tag, count] of tagCountMap) {
+      const tagId = `tag:${tag}`;
+      tagNodes.push({
+        id: tagId,
+        type: "tag",
+        title: tag,
+        slug: tag,
+        connections: count,
+      });
+
+      // Link each selected post that has this tag
+      for (const post of visiblePosts) {
+        if (!selectedPostIds.has(post.id)) continue;
+        const tags = Array.isArray(post.data.tags) ? post.data.tags : [];
+        if (tags.includes(tag)) {
+          tagConnections.push({
+            source: post.id,
+            target: tagId,
+            type: "tag",
+          });
+        }
+      }
+    }
+
     // Remove date field from nodes before exporting (only needed for sorting)
     const nodesForExport = filteredNodes.map(({ date, ...node }) => node);
 
     // Generate graph data
     const graphData = {
-      nodes: nodesForExport,
-      connections: filteredConnections,
+      nodes: [...nodesForExport, ...tagNodes],
+      connections: [...filteredConnections, ...tagConnections],
       metadata: {
         totalPosts: filteredNodes.length,
-        totalConnections: filteredConnections.length,
+        totalTags: tagNodes.length,
+        totalConnections: filteredConnections.length + tagConnections.length,
         maxNodesApplied: maxNodes && nodes.length > maxNodes,
         originalNodeCount: nodes.length,
       },

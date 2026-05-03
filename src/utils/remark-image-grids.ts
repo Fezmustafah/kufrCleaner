@@ -57,6 +57,9 @@ export function remarkImageGrids() {
 
           const hProperties = node.data.hProperties as Record<string, any>;
 
+          // Use div so <figure> children are valid HTML (figure is block-level)
+          node.data.hName = 'div';
+
           // Remove any existing image-grid classes
           const existingClasses = (hProperties.class || "")
             .split(" ")

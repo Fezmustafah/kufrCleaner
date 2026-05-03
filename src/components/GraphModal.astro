@@ -229,23 +229,31 @@ import Icon from './Icon.astro';
       </div>
     `;
 
-    fetch(`${import.meta.env.BASE_URL}graph/graph-data.json`)
-      .then(response => response.json())
+    fetch(`${import.meta.env.BASE_URL}graph/graph-data.json`, { cache: 'no-store' })
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
       .then((data: any) => {
-        // Transform data to match D3 format
+        // Transform data to match D3 format.
+        // Filter out tag nodes — global graph shows post-to-post connections only.
         const graphData: GraphData = {
-          nodes: data.nodes.map((node: any) => ({
-            id: node.id,
-            name: node.title || node.name,
-            slug: node.slug,
-            radius: Math.max(5, Math.min(15, (node.connections || 0) + 5)),
-            group: node.type
-          })),
-          links: data.connections.map((conn: any) => ({
-            source: conn.source,
-            target: conn.target,
-            value: 1
-          }))
+          nodes: data.nodes
+            .filter((node: any) => node.type !== 'tag')
+            .map((node: any) => ({
+              id: node.id,
+              name: node.title || node.name,
+              slug: node.slug,
+              radius: Math.max(5, Math.min(15, (node.connections || 0) + 5)),
+              group: node.type
+            })),
+          links: data.connections
+            .filter((conn: any) => conn.type !== 'tag')
+            .map((conn: any) => ({
+              source: conn.source,
+              target: conn.target,
+              value: 1
+            }))
         };
         renderGraph(container, graphData);
       })
@@ -369,51 +377,59 @@ import Icon from './Icon.astro';
         .data(nodes)
         .enter()
         .append("g")
-        .attr("data-id", (d) => d.id)
-        .call(
-          d3
-            .drag<SVGGElement, GraphNode>()
-            .on("start", function (event) {
-              dragStartX = event.x;
-              dragStartY = event.y;
-              isDraggingNode = true;
-              if (svg) svg.style('cursor', 'default');
-              if (!event.active) simulation!.alphaTarget(0.1).restart();
-              event.subject.fx = event.subject.x;
-              event.subject.fy = event.subject.y;
-            })
-            .on("drag", function (event, d) {
-              d.fx = event.x;
-              d.fy = event.y;
-            })
-            .on("end", function (event, d) {
-              isDraggingNode = false;
-              if (svg) svg.style('cursor', 'default');
-              if (!event.active) simulation!.alphaTarget(0);
-              event.subject.fx = null;
-              event.subject.fy = null;
+        .attr("data-id", (d) => d.id);
 
-              // Navigate on click (no drag movement). Uses distance threshold
-              // because D3 drag fires for even 1px of movement. Handled here
-              // instead of a "click" listener because D3 drag calls
-              // stopImmediatePropagation on mouseup in Chrome.
-              const dx = event.x - dragStartX;
-              const dy = event.y - dragStartY;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < CLICK_DISTANCE && d.slug) {
-                closeModal();
+      // Manual drag — d3-drag is not installed; use raw mouse events instead
+      const svgEl = svg.node() as SVGSVGElement;
+      nodeGroup.each(function(d: GraphNode) {
+        const grp = this as SVGGElement;
+        let dragging = false;
 
-                if ((window as any).swup) {
-                  if ((window as any).resetLocalGraph) {
-                    (window as any).resetLocalGraph();
-                  }
-                  (window as any).swup.navigate(`${import.meta.env.BASE_URL}posts/${d.slug}`);
-                } else {
-                  window.location.href = `${import.meta.env.BASE_URL}posts/${d.slug}`;
-                }
+        grp.addEventListener('mousedown', (e: MouseEvent) => {
+          e.stopPropagation();
+          isDraggingNode = true;
+          dragging = true;
+          dragStartX = e.clientX;
+          dragStartY = e.clientY;
+          simulation!.alphaTarget(0.1).restart();
+          d.fx = d.x ?? 0;
+          d.fy = d.y ?? 0;
+
+          const onMove = (ev: MouseEvent) => {
+            if (!dragging) return;
+            const r = svgEl.getBoundingClientRect();
+            const t = d3.zoomTransform(svgEl);
+            d.fx = (ev.clientX - r.left - t.x) / t.k;
+            d.fy = (ev.clientY - r.top  - t.y) / t.k;
+          };
+
+          const onUp = (ev: MouseEvent) => {
+            if (!dragging) return;
+            dragging = false;
+            isDraggingNode = false;
+            simulation!.alphaTarget(0);
+            const dx = ev.clientX - dragStartX;
+            const dy = ev.clientY - dragStartY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            d.fx = null;
+            d.fy = null;
+            if (dist < CLICK_DISTANCE && d.slug) {
+              closeModal();
+              if ((window as any).swup) {
+                if ((window as any).resetLocalGraph) (window as any).resetLocalGraph();
+                (window as any).swup.navigate(`${import.meta.env.BASE_URL}posts/${d.slug}`);
+              } else {
+                window.location.href = `${import.meta.env.BASE_URL}posts/${d.slug}`;
               }
-            }) as any,
-        );
+            }
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          };
+
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        });
+      });
         
       // Build neighbor map for hover effects
       const neighbors = new Map<string, Set<string>>();

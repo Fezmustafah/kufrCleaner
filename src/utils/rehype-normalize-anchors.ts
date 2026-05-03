@@ -26,6 +26,11 @@ export function rehypeNormalizeAnchors() {
         if (hasAnchorLinkClass) {
           return; // Skip this link - it's a heading anchor link
         }
+
+        // Skip links with data-role="anchor" (rehypeAutolinkHeadings append mode)
+        if (node.properties?.['data-role'] === 'anchor' || node.properties?.dataRole === 'anchor') {
+          return;
+        }
         
         // Also check if parent is a heading element
         if (parent && typeof parent === 'object' && 'tagName' in parent) {
