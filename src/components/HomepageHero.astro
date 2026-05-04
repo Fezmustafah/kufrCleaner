@@ -1,0 +1,614 @@
+---
+interface Props {
+  postCount: number;
+  categoryCount: number;
+}
+const { postCount, categoryCount } = Astro.props;
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<section class="hero-section">
+
+  <!-- WebGL star field — OGL renders its canvas inside this div -->
+  <div id="galaxy-container" aria-hidden="true"></div>
+
+  <div class="hero-inner">
+
+    <!-- Top ornamental hairline -->
+    <div class="hero-ornament-top" aria-hidden="true"></div>
+
+    <!-- Site title -->
+    <h1 class="hero-title">KufrCleaner</h1>
+
+    <!-- Subtitle -->
+    <p class="hero-subtitle">Establishing the Ḥaqq Through Evidence</p>
+
+    <!-- Mission statement -->
+    <p class="hero-mission">
+      A scholarly knowledge base dedicated to defending Islam through manuscript
+      evidence, linguistic proof, and hadith authentication —
+      built for seekers of truth in an age of organised doubt.
+    </p>
+
+    <!-- Live stats bar -->
+    <div class="hero-stats" aria-label={`${postCount} articles across ${categoryCount} topics`}>
+      <span>{postCount} articles</span>
+      <span class="hero-stats-sep" aria-hidden="true">·</span>
+      <span>{categoryCount} topics</span>
+    </div>
+
+    <!-- CTAs -->
+    <div class="hero-ctas">
+      <a href={`${baseUrl}posts/`} class="hero-btn-primary">
+        Browse the Library
+      </a>
+      <button id="hero-search-btn" class="hero-btn-outline" aria-label="Open command palette search (⌘K)">
+        <span>Search</span>
+        <kbd aria-hidden="true">⌘K</kbd>
+      </button>
+      <a href={`${baseUrl}search/`} class="hero-btn-ghost" aria-label="Full search page">
+        Full search
+      </a>
+    </div>
+
+    <!-- Bottom ornamental divider -->
+    <div class="hero-divider" aria-hidden="true">
+      <span class="hero-divider-ornament">◇ ✦ ◇</span>
+    </div>
+
+  </div>
+
+  <!-- Scroll hint -->
+  <div class="hero-scroll-hint" aria-hidden="true">↓</div>
+
+</section>
+
+<script>
+  import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
+
+  /* ── GLSL shaders (verbatim from astro-obsidian Galaxy.tsx) ── */
+  const vertexShader = `
+attribute vec2 uv;
+attribute vec2 position;
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = vec4(position, 0, 1);
+}
+`;
+
+  const fragmentShader = `
+precision highp float;
+
+uniform float uTime;
+uniform vec3 uResolution;
+uniform vec2 uFocal;
+uniform vec2 uRotation;
+uniform float uStarSpeed;
+uniform float uDensity;
+uniform float uHueShift;
+uniform float uSpeed;
+uniform vec2 uMouse;
+uniform float uGlowIntensity;
+uniform float uSaturation;
+uniform bool uMouseRepulsion;
+uniform float uTwinkleIntensity;
+uniform float uRotationSpeed;
+uniform float uRepulsionStrength;
+uniform float uMouseActiveFactor;
+uniform float uAutoCenterRepulsion;
+uniform bool uTransparent;
+
+varying vec2 vUv;
+
+#define NUM_LAYER 4.0
+#define STAR_COLOR_CUTOFF 0.2
+#define MAT45 mat2(0.7071, -0.7071, 0.7071, 0.7071)
+#define PERIOD 3.0
+
+float Hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float tri(float x) {
+  return abs(fract(x) * 2.0 - 1.0);
+}
+
+float tris(float x) {
+  float t = fract(x);
+  return 1.0 - smoothstep(0.0, 1.0, abs(2.0 * t - 1.0));
+}
+
+float trisn(float x) {
+  float t = fract(x);
+  return 2.0 * (1.0 - smoothstep(0.0, 1.0, abs(2.0 * t - 1.0))) - 1.0;
+}
+
+vec3 hsv2rgb(vec3 c) {
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+float Star(vec2 uv, float flare) {
+  float d = length(uv);
+  float m = (0.05 * uGlowIntensity) / d;
+  float rays = smoothstep(0.0, 1.0, 1.0 - abs(uv.x * uv.y * 1000.0));
+  m += rays * flare * uGlowIntensity;
+  uv *= MAT45;
+  rays = smoothstep(0.0, 1.0, 1.0 - abs(uv.x * uv.y * 1000.0));
+  m += rays * 0.3 * flare * uGlowIntensity;
+  m *= smoothstep(1.0, 0.2, d);
+  return m;
+}
+
+vec3 StarLayer(vec2 uv) {
+  vec3 col = vec3(0.0);
+  vec2 gv = fract(uv) - 0.5;
+  vec2 id = floor(uv);
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec2 offset = vec2(float(x), float(y));
+      vec2 si = id + vec2(float(x), float(y));
+      float seed = Hash21(si);
+      float size = fract(seed * 345.32);
+      float glossLocal = tri(uStarSpeed / (PERIOD * seed + 1.0));
+      float flareSize = smoothstep(0.9, 1.0, size) * glossLocal;
+      float red = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 1.0)) + STAR_COLOR_CUTOFF;
+      float blu = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 3.0)) + STAR_COLOR_CUTOFF;
+      float grn = min(red, blu) * seed;
+      vec3 base = vec3(red, grn, blu);
+      float hue = atan(base.g - base.r, base.b - base.r) / (2.0 * 3.14159) + 0.5;
+      hue = fract(hue + uHueShift / 360.0);
+      float sat = length(base - vec3(dot(base, vec3(0.299, 0.587, 0.114)))) * uSaturation;
+      float val = max(max(base.r, base.g), base.b);
+      base = hsv2rgb(vec3(hue, sat, val));
+      vec2 pad = vec2(tris(seed * 34.0 + uTime * uSpeed / 10.0), tris(seed * 38.0 + uTime * uSpeed / 30.0)) - 0.5;
+      float star = Star(gv - offset - pad, flareSize);
+      vec3 color = base;
+      float twinkle = trisn(uTime * uSpeed + seed * 6.2831) * 0.5 + 1.0;
+      twinkle = mix(1.0, twinkle, uTwinkleIntensity);
+      star *= twinkle;
+      col += star * size * color;
+    }
+  }
+  return col;
+}
+
+void main() {
+  vec2 focalPx = uFocal * uResolution.xy;
+  vec2 uv = (vUv * uResolution.xy - focalPx) / uResolution.y;
+  vec2 mouseNorm = uMouse - vec2(0.5);
+  if (uAutoCenterRepulsion > 0.0) {
+    vec2 centerUV = vec2(0.0, 0.0);
+    float centerDist = length(uv - centerUV);
+    vec2 repulsion = normalize(uv - centerUV) * (uAutoCenterRepulsion / (centerDist + 0.1));
+    uv += repulsion * 0.05;
+  } else if (uMouseRepulsion) {
+    vec2 mousePosUV = (uMouse * uResolution.xy - focalPx) / uResolution.y;
+    float mouseDist = length(uv - mousePosUV);
+    vec2 repulsion = normalize(uv - mousePosUV) * (uRepulsionStrength / (mouseDist + 0.1));
+    uv += repulsion * 0.05 * uMouseActiveFactor;
+  } else {
+    vec2 mouseOffset = mouseNorm * 0.1 * uMouseActiveFactor;
+    uv += mouseOffset;
+  }
+  float autoRotAngle = uTime * uRotationSpeed;
+  mat2 autoRot = mat2(cos(autoRotAngle), -sin(autoRotAngle), sin(autoRotAngle), cos(autoRotAngle));
+  uv = autoRot * uv;
+  uv = mat2(uRotation.x, -uRotation.y, uRotation.y, uRotation.x) * uv;
+  vec3 col = vec3(0.0);
+  for (float i = 0.0; i < 1.0; i += 1.0 / NUM_LAYER) {
+    float depth = fract(i + uStarSpeed * uSpeed);
+    float scale = mix(20.0 * uDensity, 0.5 * uDensity, depth);
+    float fade = depth * smoothstep(1.0, 0.9, depth);
+    col += StarLayer(uv * scale + i * 453.32) * fade;
+  }
+  if (uTransparent) {
+    float alpha = length(col);
+    alpha = smoothstep(0.0, 0.3, alpha);
+    alpha = min(alpha, 1.0);
+    gl_FragColor = vec4(col, alpha);
+  } else {
+    gl_FragColor = vec4(col, 1.0);
+  }
+}
+`;
+
+  /* ── Galaxy initializer ── */
+  function initGalaxy() {
+    const ctn     = document.getElementById('galaxy-container') as HTMLElement | null;
+    const section = document.querySelector('.hero-section')     as HTMLElement | null;
+    if (!ctn || !section) return;
+
+    if ((ctn as any)._galaxyCleanup) (ctn as any)._galaxyCleanup();
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
+    const gl = renderer.gl;
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.clearColor(0, 0, 0, 0);
+
+    let program: any;
+
+    // ResizeObserver on section — avoids firing on unrelated window resizes
+    const ro = new ResizeObserver(() => {
+      renderer.setSize(ctn!.offsetWidth, ctn!.offsetHeight);
+      if (program) {
+        program.uniforms.uResolution.value = new Color(
+          gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height
+        );
+      }
+    });
+    ro.observe(section);
+    renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
+
+    const geometry = new Triangle(gl);
+    program = new Program(gl, {
+      vertex: vertexShader,
+      fragment: fragmentShader,
+      uniforms: {
+        uTime:                { value: 0 },
+        uResolution:          { value: new Color(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height) },
+        uFocal:               { value: new Float32Array([0.5, 0.5]) },
+        uRotation:            { value: new Float32Array([1.0, 0.0]) },
+        uStarSpeed:           { value: 0.5 },
+        uDensity:             { value: 1.0 },
+        uHueShift:            { value: 35 },
+        uSpeed:               { value: 0.8 },
+        uMouse:               { value: new Float32Array([0.5, 0.5]) },
+        uGlowIntensity:       { value: 0.4 },
+        uSaturation:          { value: 0.5 },
+        uMouseRepulsion:      { value: false },
+        uTwinkleIntensity:    { value: 0.45 },
+        uRotationSpeed:       { value: 0.04 },
+        uRepulsionStrength:   { value: 2 },
+        uMouseActiveFactor:   { value: 0.0 },
+        uAutoCenterRepulsion: { value: 0 },
+        uTransparent:         { value: true },
+      },
+    });
+
+    const mesh = new Mesh(gl, { geometry, program });
+
+    let rafId       = 0;
+    let lastFrame   = 0;
+    let heroVisible = true;  // IntersectionObserver gate
+    let tabVisible  = true;  // visibilitychange gate
+    const FRAME_MS  = 1000 / 60; // hard cap: render at most 60 fps
+
+    let targetMouse = { x: 0.5, y: 0.5 };
+    let smoothMouse = { x: 0.5, y: 0.5 };
+    let targetActive = 0, smoothActive = 0;
+
+    function update(t: number) {
+      rafId = requestAnimationFrame(update);
+      // Skip the render entirely when off-screen, tab hidden, or over fps cap.
+      // The RAF itself stays alive so we can resume instantly without restart.
+      if (!heroVisible || !tabVisible || t - lastFrame < FRAME_MS) return;
+      lastFrame = t;
+
+      program.uniforms.uTime.value      = t * 0.001;
+      program.uniforms.uStarSpeed.value = (t * 0.001 * 0.5) / 10.0;
+
+      const lf = 0.05;
+      smoothMouse.x += (targetMouse.x - smoothMouse.x) * lf;
+      smoothMouse.y += (targetMouse.y - smoothMouse.y) * lf;
+      smoothActive  += (targetActive  - smoothActive)  * lf;
+
+      program.uniforms.uMouse.value[0]          = smoothMouse.x;
+      program.uniforms.uMouse.value[1]          = smoothMouse.y;
+      program.uniforms.uMouseActiveFactor.value = smoothActive;
+      renderer.render({ scene: mesh });
+    }
+    rafId = requestAnimationFrame(update);
+    ctn.appendChild(gl.canvas);
+
+    // Pause when hero is fully scrolled off-screen — zero GPU cost while
+    // browsing the rest of the page. Resumes instantly on scroll back up.
+    const io = new IntersectionObserver(
+      ([entry]) => { heroVisible = entry.isIntersecting; },
+      { threshold: 0 }
+    );
+    io.observe(section);
+
+    // Pause on hidden tab
+    function onVisibilityChange() {
+      tabVisible = document.visibilityState === 'visible';
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // Mouse tracked on the section element, NOT the canvas.
+    // Canvas stays pointer-events:none so scroll/touch gestures pass through.
+    function onMouseMove(e: MouseEvent) {
+      const rect = section!.getBoundingClientRect();
+      targetMouse  = {
+        x: (e.clientX - rect.left) / rect.width,
+        y: 1.0 - (e.clientY - rect.top) / rect.height,
+      };
+      targetActive = 1.0;
+    }
+    function onMouseLeave() { targetActive = 0; }
+    section.addEventListener('mousemove', onMouseMove);
+    section.addEventListener('mouseleave', onMouseLeave);
+
+    (ctn as any)._galaxyCleanup = () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+      io.disconnect();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      section!.removeEventListener('mousemove', onMouseMove);
+      section!.removeEventListener('mouseleave', onMouseLeave);
+      if (ctn!.contains(gl.canvas)) ctn!.removeChild(gl.canvas);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      delete (ctn as any)._galaxyCleanup;
+    };
+  }
+
+  /* ── Search button ── */
+  function wireHeroSearch() {
+    const btn = document.getElementById('hero-search-btn');
+    if (!btn || (btn as any)._heroWired) return;
+    (btn as any)._heroWired = true;
+    btn.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('openCommandPalette'));
+    });
+  }
+
+  initGalaxy();
+  wireHeroSearch();
+
+  document.addEventListener('swup:page:view', () => {
+    const btn = document.getElementById('hero-search-btn');
+    if (btn) (btn as any)._heroWired = false;
+    wireHeroSearch();
+    initGalaxy();
+  });
+</script>
+
+<style>
+  /* ── Section — full initial viewport, full-bleed, extends behind navbar ── */
+  .hero-section {
+    position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    overflow-x: clip;
+    margin-top: -3.5rem;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: calc(3.5rem + 4rem) 2rem 3rem;
+    background-color: #0D0A05;
+  }
+
+  /* ── Galaxy container — OGL appends its canvas here ── */
+  #galaxy-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+  #galaxy-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    /* Promote to own compositor layer — keeps WebGL rendering off the main layer */
+    will-change: transform;
+    transform: translateZ(0);
+  }
+
+  /* ── Inner content ── */
+  .hero-inner {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
+
+  /* ── Top ornament ── */
+  .hero-ornament-top {
+    width: 100%;
+    height: 1px;
+    margin: 0 auto 2rem;
+    background:
+      linear-gradient(to right, transparent, rgb(var(--color-highlight-400) / 0.55)) 0 0 / 46% 1px no-repeat,
+      linear-gradient(to left,  transparent, rgb(var(--color-highlight-400) / 0.55)) 100% 0 / 46% 1px no-repeat;
+    position: relative;
+    overflow: visible;
+  }
+  .hero-ornament-top::before {
+    content: '◈';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: rgb(var(--color-highlight-400));
+    font-size: 0.9rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* ── Title ── */
+  .hero-title {
+    font-family: var(--font-heading, serif);
+    font-size: clamp(1.9rem, 7vw, 3.8rem);
+    font-weight: 600;
+    letter-spacing: clamp(0.06em, 2vw, 0.15em);
+    color: rgb(var(--color-primary-50));
+    text-shadow: 0 0 60px rgba(200, 150, 62, 0.3);
+    line-height: 1.1;
+    margin: 0 0 0.85rem;
+    text-transform: uppercase;
+  }
+
+  /* ── Subtitle ── */
+  .hero-subtitle {
+    font-family: var(--font-prose, serif);
+    font-style: italic;
+    font-size: clamp(0.88rem, 2.5vw, 1.1rem);
+    color: rgb(var(--color-highlight-300));
+    letter-spacing: 0.02em;
+    margin: 0 0 1.5rem;
+  }
+
+  /* ── Mission ── */
+  .hero-mission {
+    font-family: var(--font-prose, serif);
+    font-size: clamp(0.85rem, 2vw, 0.95rem);
+    line-height: 1.85;
+    color: rgb(var(--color-primary-200));
+    max-width: 36rem;
+    margin: 0 auto 1.75rem;
+  }
+
+  /* ── Stats bar ── */
+  .hero-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-prose, serif);
+    font-style: italic;
+    font-size: 0.78rem;
+    color: rgb(var(--color-primary-300));
+    border-top: 1px solid rgb(var(--color-highlight-600) / 0.3);
+    border-bottom: 1px solid rgb(var(--color-highlight-600) / 0.3);
+    padding: 0.45rem 1.25rem;
+    margin: 0 auto 2rem;
+    letter-spacing: 0.04em;
+  }
+  .hero-stats-sep { color: rgb(var(--color-highlight-600) / 0.5); }
+
+  /* ── CTAs ── */
+  .hero-ctas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 2.75rem;
+  }
+
+  .hero-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 1.35rem;
+    background: rgb(var(--color-highlight-500));
+    color: #fff;
+    font-family: var(--font-prose, serif);
+    font-size: 0.88rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    border-radius: 0.2rem;
+    text-decoration: none;
+    border: 1px solid rgb(var(--color-highlight-500));
+    transition: background 0.18s, border-color 0.18s;
+    white-space: nowrap;
+  }
+  .hero-btn-primary:hover {
+    background: rgb(var(--color-highlight-400));
+    border-color: rgb(var(--color-highlight-400));
+    text-decoration: none;
+  }
+
+  .hero-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.1rem;
+    background: transparent;
+    color: rgb(var(--color-highlight-300));
+    font-family: var(--font-prose, serif);
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: 1px solid rgb(var(--color-highlight-500) / 0.55);
+    border-radius: 0.2rem;
+    cursor: pointer;
+    transition: border-color 0.18s, color 0.18s;
+    white-space: nowrap;
+  }
+  .hero-btn-outline:hover {
+    border-color: rgb(var(--color-highlight-400));
+    color: rgb(var(--color-highlight-200));
+  }
+  .hero-btn-outline kbd {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    padding: 0.1em 0.35em;
+    background: rgb(var(--color-primary-800));
+    border: 1px solid rgb(var(--color-primary-600) / 0.6);
+    border-bottom-width: 2px;
+    border-radius: 0.15rem;
+    color: rgb(var(--color-primary-300));
+  }
+
+  .hero-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-prose, serif);
+    font-size: 0.78rem;
+    color: rgb(var(--color-primary-400));
+    text-decoration: none;
+    border-bottom: 1px dotted rgb(var(--color-primary-600));
+    padding-bottom: 0.05em;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .hero-btn-ghost:hover {
+    color: rgb(var(--color-highlight-400));
+    border-bottom-color: rgb(var(--color-highlight-500));
+    text-decoration: none;
+  }
+
+  /* ── Bottom divider ── */
+  .hero-divider {
+    width: 100%;
+    height: 1px;
+    margin: 0 auto;
+    background:
+      linear-gradient(to right, transparent, rgb(var(--color-highlight-500) / 0.5)) 0 0 / 46% 1px no-repeat,
+      linear-gradient(to left,  transparent, rgb(var(--color-highlight-500) / 0.5)) 100% 0 / 46% 1px no-repeat;
+    position: relative;
+    overflow: visible;
+  }
+  .hero-divider-ornament {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: rgb(var(--color-highlight-400));
+    font-size: 0.65em;
+    letter-spacing: 0.35em;
+    white-space: nowrap;
+  }
+
+  /* ── Scroll hint ── */
+  .hero-scroll-hint {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    color: rgb(var(--color-highlight-500) / 0.5);
+    font-size: 1rem;
+    animation: bounce 2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%       { transform: translateX(-50%) translateY(6px); }
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 480px) {
+    .hero-section { padding: calc(3.5rem + 3rem) 1rem 2rem; }
+    .hero-ctas { gap: 0.6rem; }
+    .hero-btn-primary,
+    .hero-btn-outline { width: 100%; justify-content: center; }
+    .hero-btn-ghost { margin-top: 0.25rem; }
+    .hero-stats { font-size: 0.72rem; padding: 0.4rem 0.9rem; }
+  }
+</style>

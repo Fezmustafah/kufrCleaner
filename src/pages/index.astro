@@ -7,7 +7,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
 import Icon from '@/components/Icon.astro';
 import { optimizePostImagePath } from '@/utils/images';
-import Banner from '@/components/Banner.astro';
+import HomepageHero from '@/components/HomepageHero.astro';
 
 // Get all posts and filter by visibility
 const allPosts = await getCollection('posts');
@@ -58,6 +58,10 @@ const categoryPostCounts = allCategories.reduce((acc: Record<string, number>, ca
   return acc;
 }, {} as Record<string, number>);
 
+// Stats for hero
+const postCount = visiblePosts.length;
+const categoryCount = allCategories.length;
+
 // Determine which content types are being displayed
 const hasFeaturedPost = siteConfig.homeOptions.featuredPost.enabled && featuredPost;
 const hasRecentPosts = siteConfig.homeOptions.recentPosts.enabled && previewPosts.length > 0;
@@ -107,34 +111,35 @@ const structuredData = {
     )}
   </Fragment>
 
-  {siteConfig.banner.enable && <Banner />}
+  <HomepageHero postCount={postCount} categoryCount={categoryCount} />
 
   <div class="py-8 relative">
     <div class="mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
 
       <!-- ═══════════════════ BROWSE BY CATEGORY ═══════════════════ -->
       {siteConfig.postOptions.categories && allCategories.length > 0 && (
-        <section class="mb-12">
+        <section class="mb-12 mt-10">
           <div class="flex items-center justify-between mb-5">
-            <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50">
-              Browse by Category
+            <h2 class="section-heading">
+              <span aria-hidden="true" class="section-heading-ornament">◆</span>
+              Browse by Topic
             </h2>
-            <a href={`${import.meta.env.BASE_URL}posts`} class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors">
-              All posts →
+            <a href={`${import.meta.env.BASE_URL}posts`} class="text-sm text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all">
+              All articles →
             </a>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {allCategories.map((cat: string) => (
               <a
                 href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(cat)}`}
-                class="group flex flex-col gap-1 p-4 rounded-xl border border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-900 hover:border-highlight-400 dark:hover:border-highlight-500 hover:shadow-md transition-all duration-200"
+                class="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/60 hover:bg-primary-100 dark:hover:bg-primary-800/60 hover:border-highlight-400/60 dark:hover:border-highlight-600/40 transition-all duration-150"
               >
-                <Icon name="folder" class="w-5 h-5 text-highlight-500 dark:text-highlight-400 mb-1" />
-                <span class="font-semibold text-sm text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors leading-tight">
+                <Icon name="book-open" class="w-3.5 h-3.5 text-highlight-500 dark:text-highlight-400 shrink-0" />
+                <span class="font-medium text-xs text-primary-800 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors truncate flex-1">
                   {cat}
                 </span>
-                <span class="text-xs text-primary-500 dark:text-primary-400">
-                  {categoryPostCounts[cat]} {categoryPostCounts[cat] === 1 ? 'post' : 'posts'}
+                <span class="text-[0.65rem] text-primary-400 dark:text-primary-500 tabular-nums shrink-0">
+                  {categoryPostCounts[cat]}
                 </span>
               </a>
             ))}
@@ -170,8 +175,9 @@ const structuredData = {
           {siteConfig.homeOptions.featuredPost.enabled && featuredPost && (
             <section class="mb-12">
               <div class="flex items-center justify-between mb-5">
-                <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50">
-                  {siteConfig.homeOptions.featuredPost.type === "latest" ? "Latest Post" : "Featured Post"}
+                <h2 class="section-heading">
+                  <span aria-hidden="true" class="section-heading-ornament">◆</span>
+                  {siteConfig.homeOptions.featuredPost.type === "latest" ? "Latest" : "Featured"}
                 </h2>
               </div>
               <PostCard post={featuredPost} featured={true} eager={true} context="featured" />
@@ -182,14 +188,15 @@ const structuredData = {
           {siteConfig.homeOptions.recentPosts.enabled && previewPosts.length > 0 && (
             <section class="mb-12">
               <div class="flex items-center justify-between mb-5">
-                <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50">
-                  Recent Posts
+                <h2 class="section-heading">
+                  <span aria-hidden="true" class="section-heading-ornament">◆</span>
+                  Recent Articles
                 </h2>
                 <a
                   href={`${import.meta.env.BASE_URL}posts`}
-                  class="text-sm text-primary-600 dark:text-primary-300 hover:text-highlight-600 dark:hover:text-highlight-400 font-medium transition-colors"
+                  class="text-sm text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all"
                 >
-                  View all posts →
+                  View all {postCount} →
                 </a>
               </div>
               <div class="space-y-4">
@@ -231,12 +238,24 @@ const structuredData = {
 
 
 <style>
-  /* Enhanced homepage styles */
-  .btn-primary {
-    @apply inline-flex items-center px-6 py-3 font-medium rounded-lg transition-all duration-200 hover:shadow-lg transform hover:scale-105;
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-heading, serif);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-600));
   }
-
-  .btn-primary:focus-visible {
-    @apply outline-none ring-2 ring-highlight-500 ring-offset-2;
+  :global(.dark) .section-heading {
+    color: rgb(var(--color-primary-400));
+  }
+  .section-heading-ornament {
+    color: rgb(var(--color-highlight-500));
+    font-size: 0.5em;
+    opacity: 0.7;
+    vertical-align: middle;
   }
 </style>

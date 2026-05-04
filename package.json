@@ -57,6 +57,7 @@
     "katex": "^0.16.38",
     "mdast-util-to-markdown": "^2.1.2",
     "mermaid": "^11.13.0",
+    "ogl": "^1.0.11",
     "rehype-autolink-headings": "^7.1.0",
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",

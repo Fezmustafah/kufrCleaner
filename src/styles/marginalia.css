@@ -23,18 +23,18 @@
  * JS reads these at runtime, so overrides take effect immediately.
  */
 :root {
-  --ann-highlight: rgba(250, 204,  21, 0.52); /* yellow  */
-  --ann-underline: rgb(220,  38,  38);         /* red     */
-  --ann-box:       rgb(234,  88,  12);         /* orange  */
-  --ann-circle:    rgb( 22, 163,  74);         /* green   */
-  --ann-bracket:   rgb(124,  58, 237);         /* purple  */
+  --ann-highlight: rgba(200, 150,  62, 0.40); /* Alhambra gold  */
+  --ann-underline: rgb(176,  74,  50);         /* terracotta     */
+  --ann-box:       rgb( 45, 106, 106);         /* azulejo teal   */
+  --ann-circle:    rgb(139,  38,  53);         /* pomegranate    */
+  --ann-bracket:   rgb( 44,  82, 130);         /* lapis lazuli   */
 }
 .dark {
-  --ann-highlight: rgba(253, 224,  71, 0.38);
-  --ann-underline: rgb(252, 165, 165);
-  --ann-box:       rgb(253, 186, 116);
-  --ann-circle:    rgb(134, 239, 172);
-  --ann-bracket:   rgb(196, 181, 253);
+  --ann-highlight: rgba(212, 172,  82, 0.38); /* pale gold      */
+  --ann-underline: rgb(220, 130, 110);         /* light terracotta */
+  --ann-box:       rgb( 87, 163, 163);         /* light teal     */
+  --ann-circle:    rgb(200,  90, 100);         /* light pomegranate */
+  --ann-bracket:   rgb( 90, 140, 200);         /* light lapis    */
 }
 
 /* ── Margin offset vars ──────────────────────────────────────────────────── */
@@ -65,7 +65,7 @@ label.footnote-number {
   counter-increment: footnote-counter;
   cursor: pointer;
   display: inline;
-  border-bottom: 2px dashed rgb(var(--color-highlight-600));
+  border-bottom: 1px solid rgb(var(--color-highlight-600) / 0.7);
   color: rgb(var(--color-highlight-600));
   transition: border-bottom-color 0.2s ease, background-color 0.2s ease;
   border-radius: 2px;
@@ -115,8 +115,9 @@ label.footnote-number::after {
   font-size: 0.875rem;
   line-height: 1.5;
   color: rgb(var(--color-primary-700));
-  border: 2px dashed transparent;
-  border-radius: 0.5rem;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 0 0.25rem 0.25rem 0;
   padding: 0.75rem 1rem;
   background-color: rgb(var(--color-primary-50));
   box-sizing: border-box;
@@ -214,9 +215,9 @@ label.footnote-number::after {
   z-index: 100;
   width: 260px;
   padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0 0.25rem 0.25rem 0;
   border: 1px solid rgb(var(--color-primary-200));
-  border-left: 2px solid rgb(var(--color-highlight-400));
+  border-left: 3px solid rgb(var(--color-highlight-400));
   background: rgb(var(--color-primary-50));
   color: rgb(var(--color-primary-700));
   font-size: 0.8rem;

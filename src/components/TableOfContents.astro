@@ -39,7 +39,7 @@ const processedHeadings = filteredHeadings.map(h => {
           >
             <div class={`toc-badge ${h.isTop ? 'toc-badge-index' : ''}`}>
               {h.isTop
-                ? h.count
+                ? String(h.count).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)])
                 : h.level === 2
                   ? <span class="toc-badge-dot"></span>
                   : <span class="toc-badge-dot toc-badge-dot-sm"></span>
@@ -322,9 +322,10 @@ const processedHeadings = filteredHeadings.map(h => {
     position: absolute;
     left: 0;
     right: 0;
-    background: rgb(var(--color-primary-100) / 0.78);
-    border-radius: 0.875rem;
-    border: 2px dashed transparent;
+    background: rgb(var(--color-highlight-400) / 0.07);
+    border-radius: 0.2rem;
+    border: 1px dashed transparent;
+    border-left: 2px solid rgb(var(--color-highlight-400) / 0.55);
     transition:
       top 0.18s ease,
       height 0.18s ease,
@@ -335,15 +336,18 @@ const processedHeadings = filteredHeadings.map(h => {
     pointer-events: none;
   }
   :global(.dark) .toc-active-indicator {
-    background: rgb(var(--color-primary-800) / 0.78);
+    background: rgb(var(--color-highlight-500) / 0.08);
+    border-left-color: rgb(var(--color-highlight-400) / 0.5);
   }
-  /* Hover: transparent fill + visible dashed border (fuwari group-hover effect) */
+  /* Hover: show gold dashed border */
   .toc-nav:hover .toc-active-indicator {
-    background: transparent;
-    border-color: rgb(var(--color-primary-400) / 0.8);
+    background: rgb(var(--color-highlight-400) / 0.05);
+    border-color: rgb(var(--color-highlight-400) / 0.4);
+    border-left-color: rgb(var(--color-highlight-500) / 0.7);
   }
   :global(.dark) .toc-nav:hover .toc-active-indicator {
-    border-color: rgb(var(--color-primary-500) / 0.8);
+    border-color: rgb(var(--color-highlight-500) / 0.4);
+    border-left-color: rgb(var(--color-highlight-400) / 0.6);
   }
 
   /* ── Badge ─────────────────────────────────────────────────────────────── */
@@ -353,33 +357,36 @@ const processedHeadings = filteredHeadings.map(h => {
     flex-shrink: 0;
     width: 1.35rem;
     height: 1.35rem;
-    border-radius: 0.5rem;
+    border-radius: 0.2rem;
     font-size: 0.68rem;
     font-weight: 700;
     line-height: 1;
   }
   .toc-badge-index {
-    background: rgb(var(--color-primary-100));
-    color: rgb(var(--color-primary-600));
+    background: rgb(var(--color-highlight-100) / 0.6);
+    color: rgb(var(--color-highlight-700));
+    border: 1px solid rgb(var(--color-highlight-300) / 0.4);
   }
   :global(.dark) .toc-badge-index {
-    background: rgb(var(--color-primary-800));
-    color: rgb(var(--color-primary-300));
+    background: rgb(var(--color-highlight-900) / 0.35);
+    color: rgb(var(--color-highlight-300));
+    border-color: rgb(var(--color-highlight-700) / 0.4);
   }
   .toc-badge-dot {
     display: block;
-    width: 0.48rem;
-    height: 0.48rem;
-    border-radius: 999px;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 0;
+    transform: rotate(45deg);
     background: rgb(var(--color-primary-300));
-    transition: background-color 0.14s ease;
+    transition: background-color 0.14s ease, transform 0.14s ease;
   }
   :global(.dark) .toc-badge-dot {
     background: rgb(var(--color-primary-600));
   }
   .toc-badge-dot-sm {
-    width: 0.34rem;
-    height: 0.34rem;
+    width: 0.28rem;
+    height: 0.28rem;
     background: rgb(var(--color-primary-200));
   }
   :global(.dark) .toc-badge-dot-sm {
@@ -397,10 +404,12 @@ const processedHeadings = filteredHeadings.map(h => {
   .toc-item.visible .toc-badge-dot,
   .toc-item.visible .toc-badge-dot-sm {
     background: rgb(var(--color-highlight-500));
+    transform: rotate(45deg) scale(1.15);
   }
   :global(.dark) .toc-item.visible .toc-badge-dot,
   :global(.dark) .toc-item.visible .toc-badge-dot-sm {
     background: rgb(var(--color-highlight-400));
+    transform: rotate(45deg) scale(1.15);
   }
   .toc-item.visible .toc-badge-index {
     background: rgb(var(--color-highlight-100));

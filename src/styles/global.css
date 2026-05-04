@@ -201,13 +201,13 @@ p:has(.katex-display) {
 /* CSS Custom Properties - Essential globals only */
 :root {
   /* Code block colors for light theme */
-  --code-bg: 33 33 33;
-  --code-text: 240 240 240;
-  --inline-code-bg: 240 240 240;
-  --inline-code-text: 33 33 33;
+  --code-bg: 26 18 8;
+  --code-text: 240 232 218;
+  --inline-code-bg: 226 206 175;
+  --inline-code-text: 78 56 34;
 
-  /* Highlight/selection colors */
-  --selection-bg: 112 135 148;
+  /* Highlight/selection colors — burnished Alhambra gold */
+  --selection-bg: 200 150 62;
 }
 
 .dark {
@@ -332,6 +332,66 @@ code ::-moz-selection,
   @apply outline-2 outline-highlight-500 dark:outline-highlight-400 outline-offset-2;
 }
 
+/* ── Andalusian post card hover accent ──────────────────────────────────── */
+.post-card {
+  border-left: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+.post-card:hover {
+  border-left-color: rgb(var(--color-highlight-400) / 0.55);
+}
+
+/* ── Andalusian image radius ─────────────────────────────────────────────── */
+.prose img {
+  border-radius: 0.2rem;
+}
+
+
+/* ── Andalusian HR divider ──────────────────────────────────────────────── */
+.prose hr {
+  border: none;
+  height: 1px;
+  /* Each gradient covers 46% from its edge, solid-to-transparent inward — leaves a clean ~8% gap */
+  background:
+    linear-gradient(to right, transparent, rgb(var(--color-highlight-400) / 0.55)) 0 0 / 46% 1px no-repeat,
+    linear-gradient(to left,  transparent, rgb(var(--color-highlight-400) / 0.55)) 100% 0 / 46% 1px no-repeat;
+  position: relative;
+  margin: 2.5em auto;
+  overflow: visible;
+}
+.prose hr::before {
+  content: '◇ ✦ ◇';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgb(var(--color-highlight-500));
+  font-size: 0.65em;
+  letter-spacing: 0.35em;
+  white-space: nowrap;
+}
+.dark .prose hr {
+  background:
+    linear-gradient(to right, transparent, rgb(var(--color-highlight-600) / 0.45)) 0 0 / 46% 1px no-repeat,
+    linear-gradient(to left,  transparent, rgb(var(--color-highlight-600) / 0.45)) 100% 0 / 46% 1px no-repeat;
+}
+.dark .prose hr::before {
+  color: rgb(var(--color-highlight-400));
+}
+
+/* ── Andalusian heading accents ─────────────────────────────────────────── */
+.prose h2 {
+  border-bottom: 1px solid rgb(var(--color-highlight-400) / 0.22);
+  padding-bottom: 0.3em;
+}
+.prose h3::before {
+  content: '◆';
+  color: rgb(var(--color-highlight-400) / 0.55);
+  font-size: 0.45em;
+  margin-right: 0.5em;
+  vertical-align: middle;
+}
+
 /* Typography - Dynamic fonts will be applied via CSS custom properties */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -428,9 +488,10 @@ code, pre, .astro-code, kbd, .font-mono {
 code:not(pre code),
 .prose code:not(pre code) {
   font-size: 0.875em !important;
-  padding: 0.125rem 0.25rem !important;
-  @apply bg-primary-100 dark:bg-primary-800 text-primary-900 dark:text-primary-100;
-  border-radius: 0.25rem !important;
+  padding: 0.125rem 0.35rem !important;
+  @apply bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200;
+  border-radius: 0.2rem !important;
+  border: 1px solid rgb(var(--color-primary-300) / 0.6);
 }
 
 /* Syntax highlighting (astro-code) */
@@ -480,18 +541,30 @@ pre::-webkit-scrollbar-track, .prose pre::-webkit-scrollbar-track,
 
 pre::-webkit-scrollbar-thumb, .prose pre::-webkit-scrollbar-thumb,
 .astro-code::-webkit-scrollbar-thumb, .prose .astro-code::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5) !important;
+  background-color: rgba(200, 150, 62, 0.4) !important;
   border-radius: 4px !important;
 }
 
 pre::-webkit-scrollbar-thumb:hover, .prose pre::-webkit-scrollbar-thumb:hover,
 .astro-code::-webkit-scrollbar-thumb:hover, .prose .astro-code::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.8) !important;
+  background-color: rgba(200, 150, 62, 0.7) !important;
 }
 
 /* Keyboard Shortcuts */
 kbd {
-  @apply inline-flex items-center px-2 py-1 text-xs font-medium bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-primary-200 border border-primary-300 dark:border-primary-600 rounded shadow-sm;
+  @apply inline-flex items-center px-2 py-0.5 text-xs font-medium;
+  background: rgb(var(--color-primary-100));
+  color: rgb(var(--color-primary-700));
+  border: 1px solid rgb(var(--color-primary-400) / 0.6);
+  border-bottom-width: 2px;
+  border-radius: 0.2rem;
+  box-shadow: 0 1px 0 rgb(var(--color-primary-400) / 0.25);
+}
+.dark kbd {
+  background: rgb(var(--color-primary-800));
+  color: rgb(var(--color-primary-200));
+  border-color: rgb(var(--color-primary-600) / 0.6);
+  box-shadow: 0 1px 0 rgb(var(--color-primary-600) / 0.4);
 }
 
 /* Button Styles - Consolidated */
@@ -597,71 +670,79 @@ textarea {
  * selectors so equal-specificity (0,2,0) source order determines which type wins.
  */
 .callout {
-  border: 1px solid var(--callout-border, #448aff44);
+  border: none;
+  border-left: 3px solid var(--callout-border, #448aff44);
   background-color: var(--callout-bg, #448aff10);
-  border-radius: 0.5rem;
+  border-radius: 0 0.25rem 0.25rem 0;
   padding: 0 1rem;
   overflow-y: hidden;
   box-sizing: border-box;
   margin: 1.5rem 0;
 }
 
-/* Default for any typed callout — blue (note) */
+/* Default for any typed callout — lapis lazuli (note) */
 .callout[data-callout] {
-  --callout-color: #448aff;
-  --callout-border: #448aff44;
-  --callout-bg: #448aff10;
+  --callout-color: #2C5282;
+  --callout-border: #2C528244;
+  --callout-bg: #2C528210;
 }
 
+/* note/info/todo — lapis lazuli */
 .callout[data-callout='note'],
 .callout[data-callout='info'],
 .callout[data-callout='todo'] {
-  --callout-color: #448aff;
-  --callout-border: #448aff44;
-  --callout-bg: #448aff10;
+  --callout-color: #2C5282;
+  --callout-border: #2C528244;
+  --callout-bg: #2C528210;
 }
 
+/* tip — azulejo teal */
 .callout[data-callout='tip'] {
-  --callout-color: #00bfa5;
-  --callout-border: #00bfa544;
-  --callout-bg: #00bfa510;
+  --callout-color: #2D6A6A;
+  --callout-border: #2D6A6A44;
+  --callout-bg: #2D6A6A10;
 }
 
+/* success — Andalusian sage */
 .callout[data-callout='success'] {
-  --callout-color: #09ad7a;
-  --callout-border: #09ad7a44;
-  --callout-bg: #09ad7a10;
+  --callout-color: #4A6B3A;
+  --callout-border: #4A6B3A44;
+  --callout-bg: #4A6B3A10;
 }
 
+/* warning — terracotta */
 .callout[data-callout='warning'] {
-  --callout-color: #db8942;
-  --callout-border: #db894244;
-  --callout-bg: #db894210;
+  --callout-color: #B05A32;
+  --callout-border: #B05A3244;
+  --callout-bg: #B05A3210;
 }
 
+/* danger/caution — pomegranate */
 .callout[data-callout='caution'],
 .callout[data-callout='danger'],
 .callout[data-callout='failure'],
 .callout[data-callout='bug'] {
-  --callout-color: #db4242;
-  --callout-border: #db424244;
-  --callout-bg: #db424210;
+  --callout-color: #8B2635;
+  --callout-border: #8B263544;
+  --callout-bg: #8B263510;
 }
 
+/* important/question — deep lapis */
 .callout[data-callout='important'],
 .callout[data-callout='question'],
 .callout[data-callout='abstract'],
 .callout[data-callout='summary'],
 .callout[data-callout='tldr'] {
-  --callout-color: #7a43b5;
-  --callout-border: #7a43b544;
-  --callout-bg: #7a43b510;
+  --callout-color: #1A3A5C;
+  --callout-border: #1A3A5C44;
+  --callout-bg: #1A3A5C10;
 }
 
+/* example — azulejo mid */
 .callout[data-callout='example'] {
-  --callout-color: #00b0ff;
-  --callout-border: #00b0ff44;
-  --callout-bg: #00b0ff10;
+  --callout-color: #3D7A7A;
+  --callout-border: #3D7A7A44;
+  --callout-bg: #3D7A7A10;
 }
 
 .callout[data-callout='quote'] {
@@ -909,7 +990,15 @@ textarea {
 }
 
 .prose mark {
-  @apply bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 px-1 py-0.5 rounded;
+  background: rgba(200, 150, 62, 0.32);
+  color: inherit;
+  padding: 0.08em 0.25em;
+  border-radius: 0.1rem;
+  border-bottom: 1px solid rgba(200, 150, 62, 0.45);
+}
+.dark .prose mark {
+  background: rgba(200, 150, 62, 0.22);
+  border-bottom-color: rgba(200, 150, 62, 0.35);
 }
 
 /* Lists */
@@ -1412,6 +1501,30 @@ img + p em {
 /* Handle specific edge cases as they come up */
 /* TODO: Add specific overrides for problematic elements */
 
+/* ── Andalusian parchment grain texture ─────────────────────────────────── */
+/* Nearly invisible — just enough to kill sterile digital white */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* ── Andalusian footer ornament ─────────────────────────────────────────── */
+footer::before {
+  content: '◇ ✦ ◇';
+  display: block;
+  text-align: center;
+  color: rgb(var(--color-highlight-400) / 0.4);
+  letter-spacing: 0.4em;
+  font-size: 0.65em;
+  margin-bottom: 0.75rem;
+}
+
 /* Print Styles */
 @media print {
   .no-print { display: none !important; }
@@ -1644,18 +1757,18 @@ svg:has(text:contains("mermaid version")) {
 :root {
   --page-width: 75rem;
   --primary: rgb(var(--color-highlight-600));
-  --card-bg: white;
+  --card-bg: rgb(var(--color-primary-50) / 0.82);   /* semi-transparent glass navbar */
   --btn-plain-bg-hover: rgb(var(--color-primary-100));
   --btn-plain-bg-active: rgb(var(--color-primary-200));
-  --radius-large: 1rem;
-  --float-panel-bg: white;
+  --radius-large: 0.5rem;
+  --float-panel-bg: rgb(var(--color-primary-50) / 0.96);
 }
 .dark {
   --primary: rgb(var(--color-highlight-400));
-  --card-bg: rgb(var(--color-primary-900));
+  --card-bg: rgb(var(--color-primary-900) / 0.82);
   --btn-plain-bg-hover: rgb(var(--color-primary-800));
   --btn-plain-bg-active: rgb(var(--color-primary-700));
-  --float-panel-bg: rgb(var(--color-primary-900));
+  --float-panel-bg: rgb(var(--color-primary-900) / 0.96);
 }
 
 /* ── Fuwari utility classes (plain CSS — @apply pseudo-element variants are unreliable) ── */

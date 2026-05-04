@@ -269,10 +269,8 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             aria-controls="sidebar-toc-content"
             title="Toggle table of contents"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/>
-            </svg>
-            <span>Contents</span>
+            <span class="sidebar-toc-ornament" aria-hidden="true">◈</span>
+            <span class="sidebar-toc-fihris">فهرس</span>
             <svg class="sidebar-toc-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="18 15 12 9 6 15"/>
             </svg>
@@ -540,22 +538,35 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       window['initializeMarginalia']   = initMarginalia;
       window['layoutMarginaliaFloats'] = layoutMarginaliaFloats;
 
+      // Double rAF: first frame exits font-swap reflow, second ensures paint is done
+      function scheduleLayout() {
+        requestAnimationFrame(() => requestAnimationFrame(() => layoutMarginaliaFloats()));
+      }
+
+      // Fresh browser load
       document.addEventListener('DOMContentLoaded', () => {
         initMarginalia();
-        document.fonts.ready.then(() => layoutMarginaliaFloats());
+        scheduleLayout();
+        // Belt-and-suspenders: re-run after fonts settle (CDN swap may land late)
+        document.fonts.ready.then(scheduleLayout);
       });
-      // Swup navigation — fires after content is replaced
-      document.addEventListener('astro:page-load', () => {
+
+      // Swup page transition — this is the correct event for this codebase
+      document.addEventListener('swup:page:view', () => {
         initMarginalia();
-        document.fonts.ready.then(() => layoutMarginaliaFloats());
+        scheduleLayout();
       });
-      // Self-init: script loaded into already-ready page (command palette from non-post page,
-      // script is new so it missed both DOMContentLoaded and astro:page-load)
+
+      // Self-init: script evaluated into an already-live page (missed DOMContentLoaded)
+      // Wrap in rAF so we don't read getBoundingClientRect before paint
       if (document.readyState !== 'loading') {
-        initMarginalia();
-        document.fonts.ready.then(() => layoutMarginaliaFloats());
+        requestAnimationFrame(() => {
+          initMarginalia();
+          scheduleLayout();
+        });
       }
-      window.addEventListener('pageshow', (e) => { if (e.persisted) initMarginalia(); });
+
+      window.addEventListener('pageshow', (e) => { if (e.persisted) { initMarginalia(); scheduleLayout(); } });
     </script>
 
     <!-- Contents sidebar collapse toggle -->
@@ -845,20 +856,35 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         width: 100%;
         background: none;
         border: none;
+        border-bottom: 1px solid rgb(var(--color-highlight-400) / 0.2);
         cursor: pointer;
         padding: 0.15rem 0 0.5rem;
-        color: rgb(var(--color-primary-400));
-        font-size: 0.68rem;
-        font-weight: 600;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
+        color: rgb(var(--color-highlight-600));
         user-select: none;
         flex-shrink: 0;
-        transition: color 0.15s;
+        transition: color 0.15s, border-color 0.15s;
       }
-      .sidebar-toc-header:hover { color: rgb(var(--color-primary-700)); }
-      :global(.dark) .sidebar-toc-header { color: rgb(var(--color-primary-500)); }
-      :global(.dark) .sidebar-toc-header:hover { color: rgb(var(--color-primary-200)); }
+      .sidebar-toc-header:hover {
+        color: rgb(var(--color-highlight-500));
+        border-bottom-color: rgb(var(--color-highlight-400) / 0.4);
+      }
+      :global(.dark) .sidebar-toc-header { color: rgb(var(--color-highlight-400)); }
+      :global(.dark) .sidebar-toc-header:hover { color: rgb(var(--color-highlight-300)); }
+
+      /* ◈ ornament */
+      .sidebar-toc-ornament {
+        font-size: 0.8rem;
+        opacity: 0.7;
+        flex-shrink: 0;
+      }
+      /* فهرس label — Arabic script, italic Cormorant feel */
+      .sidebar-toc-fihris {
+        font-family: var(--font-heading, serif);
+        font-size: 0.88rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        direction: rtl;
+      }
 
       .sidebar-toc-chevron {
         margin-left: auto;

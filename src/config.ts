@@ -198,19 +198,19 @@ export const siteConfig: SiteConfig = {
 
   // Global Settings
   // [CONFIG:THEME]
-  theme: "minimal", // Available themes: "minimal" (bare reader-friendly default) | "custom" (Al Andalus, future — loaded from src/themes/custom/<customThemeFile>.ts)
+  theme: "custom", // Available themes: "minimal" (bare reader-friendly default) | "custom" (Al Andalus — loaded from src/themes/custom/<customThemeFile>.ts)
   // [CONFIG:CUSTOM_THEME_FILE]
   customThemeFile: "custom", // Only used if theme is set to "custom" above. Filename in src/themes/custom/ (without .ts extension)
   // [CONFIG:AVAILABLE_THEMES]
   availableThemes: "default", // "default" to show all built-in themes, or array of theme names like ["oxygen", "minimal", "obsidianite"] to limit choices (can include custom theme filenames)
   fonts: {
     // [CONFIG:FONT_SOURCE]
-    source: "local", // "local" for self-hosted @fontsource fonts, "cdn" for Google Fonts CDN
+    source: "cdn", // "local" for self-hosted @fontsource fonts, "cdn" for Google Fonts CDN
     families: {
       // [CONFIG:FONT_BODY]
-      body: "Inter",      // Body text font family
+      body: "Lora",                // Humanist serif — warm, readable at length
       // [CONFIG:FONT_HEADING]
-      heading: "Inter",   // Heading font family  
+      heading: "Cormorant Garamond", // High-contrast literary serif — Andalusian manuscript feel
       // [CONFIG:FONT_MONO]
       mono: "JetBrains Mono", // Monospace font family
     },
@@ -219,7 +219,7 @@ export const siteConfig: SiteConfig = {
   },
   layout: {
     // [CONFIG:LAYOUT_CONTENT_WIDTH]
-    contentWidth: "45rem",
+    contentWidth: "55rem",
   },
   tableOfContents: {
     // [CONFIG:TABLE_OF_CONTENTS_ENABLED]
@@ -236,7 +236,7 @@ export const siteConfig: SiteConfig = {
     showSocialIconsInFooter: true,
   },
   //[CONFIG:HIDE_SCROLL_BAR]
-  hideScrollBar: false,
+  hideScrollBar: true,
   // [CONFIG:SCROLL_TO_TOP]
   scrollToTop: true,
   // [CONFIG:FEATURE_BUTTON]
@@ -249,7 +249,7 @@ export const siteConfig: SiteConfig = {
   // Banner
   banner: {
     // [CONFIG:BANNER_ENABLE]
-    enable: true,
+    enable: false,
     // [CONFIG:BANNER_SRC] Path to banner image (place file in public/)
     src: '/open-graph.png',
     // [CONFIG:BANNER_POSITION] CSS object-position: 'top' | 'center' | 'bottom'
@@ -506,6 +506,7 @@ export function getFontFamily(fontName: string): string {
     'Source Sans Pro': "'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     'Nunito': "'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     'Montserrat': "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    'Cormorant Garamond': "'Cormorant Garamond', Georgia, 'Times New Roman', serif",
     'Playfair Display': "'Playfair Display', Georgia, 'Times New Roman', serif",
     'Merriweather': "'Merriweather', Georgia, 'Times New Roman', serif",
     'Lora': "'Lora', Georgia, 'Times New Roman', serif",
@@ -525,9 +526,9 @@ export function getFontFamily(fontName: string): string {
 export function getGoogleFontsUrl(headingFont: string, bodyFont: string): string {
   // Google Fonts that are commonly used and available
   const googleFonts = [
-    'Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins', 'Source Sans Pro', 
-    'Nunito', 'Montserrat', 'Playfair Display', 'Merriweather', 'Lora', 
-    'Crimson Text', 'PT Serif', 'Libre Baskerville', 'Fira Code', 
+    'Inter', 'Roboto', 'Open Sans', 'Lato', 'Poppins', 'Source Sans Pro',
+    'Nunito', 'Montserrat', 'Cormorant Garamond', 'Playfair Display', 'Merriweather', 'Lora',
+    'Crimson Text', 'PT Serif', 'Libre Baskerville', 'Fira Code',
     'JetBrains Mono', 'Source Code Pro', 'IBM Plex Mono', 'Cascadia Code'
   ];
   
@@ -547,10 +548,16 @@ export function getGoogleFontsUrl(headingFont: string, bodyFont: string): string
   }
   
   // Generate Google Fonts URL
+  const serifItalicFonts = ['Cormorant Garamond', 'Lora', 'Merriweather', 'Playfair Display', 'Crimson Text', 'EB Garamond'];
   const fontList = Array.from(fonts).map(font => {
-    // Add common weights for each font
-    const weights = font.includes('Mono') ? '300;400;500;600;700' : '300;400;500;600;700';
-    return `${font.replace(/\s+/g, '+')}:wght@${weights}`;
+    if (font.includes('Mono')) {
+      return `${font.replace(/\s+/g, '+')}:wght@300;400;500;600;700`;
+    }
+    if (serifItalicFonts.includes(font)) {
+      // Load both normal and italic axes — essential for serif literary fonts
+      return `${font.replace(/\s+/g, '+')}:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700`;
+    }
+    return `${font.replace(/\s+/g, '+')}:wght@300;400;500;600;700`;
   }).join('&family=');
   
   return `https://fonts.googleapis.com/css2?family=${fontList}&display=swap`;

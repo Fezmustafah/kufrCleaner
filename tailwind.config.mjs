@@ -56,12 +56,14 @@ export default {
               scrollMarginTop: '2rem',
             },
             a: {
-              color: siteConfig.theme === 'oxygen' ? '#0ea5e9' : '#708794',
+              color: '#9A6C05',
               textDecoration: 'none',
               fontWeight: '500',
+              borderBottom: '1px dotted rgba(200, 150, 62, 0.5)',
               '&:hover': {
-                color: siteConfig.theme === 'oxygen' ? '#0284c7' : '#5a6d77',
-                textDecoration: 'underline',
+                color: '#C8963E',
+                borderBottomStyle: 'solid',
+                textDecoration: 'none',
               }
             },
             code: {
@@ -79,8 +81,8 @@ export default {
               content: '""',
             },
             pre: {
-              backgroundColor: '#1e293b',
-              borderRadius: '0.5rem',
+              backgroundColor: '#1A1208',
+              borderRadius: '0.25rem',
               padding: '1rem',
               overflow: 'auto',
               fontSize: '1em',
@@ -99,14 +101,46 @@ export default {
             },
             blockquote: {
               fontWeight: '400',
-              fontStyle: 'normal',
+              fontStyle: 'italic',
               color: 'inherit',
-              borderLeftWidth: '0.25rem',
-              borderLeftColor: '#e2e8f0',
+              borderLeftWidth: '3px',
+              borderLeftColor: '#C8963E',
+              backgroundColor: 'rgba(200, 150, 62, 0.04)',
+              borderRadius: '0 0.25rem 0.25rem 0',
               quotes: '"\\201C""\\201D""\\2018""\\2019"',
               marginTop: '1.6em',
               marginBottom: '1.6em',
-              paddingLeft: '1em',
+              paddingLeft: '1.25em',
+              paddingTop: '0.25em',
+              paddingBottom: '0.25em',
+            },
+            h2: {
+              borderBottomWidth: '1px',
+              borderBottomColor: 'rgba(200, 150, 62, 0.22)',
+              paddingBottom: '0.3em',
+            },
+            hr: {
+              borderColor: 'transparent',
+              marginTop: '2.5em',
+              marginBottom: '2.5em',
+            },
+            table: {
+              borderTopWidth: '2px',
+              borderTopColor: 'rgba(200, 150, 62, 0.35)',
+              borderBottomWidth: '2px',
+              borderBottomColor: 'rgba(200, 150, 62, 0.35)',
+            },
+            thead: {
+              backgroundColor: 'rgba(200, 150, 62, 0.06)',
+              borderBottomWidth: '1px',
+              borderBottomColor: 'rgba(200, 150, 62, 0.25)',
+            },
+            'thead th': {
+              letterSpacing: '0.04em',
+              fontWeight: '600',
+            },
+            'tbody tr': {
+              borderBottomColor: 'rgba(200, 150, 62, 0.12)',
             },
             'blockquote p:first-of-type::before': {
               content: '""',
@@ -120,11 +154,18 @@ export default {
           css: {
             color: '#e2e8f0',
             code: {
-              backgroundColor: 'rgb(30 41 59 / 0.8)',
+              backgroundColor: 'rgb(42 28 12 / 0.8)',
             },
             blockquote: {
-              borderLeftColor: '#475569',
-              color: '#94a3b8',
+              borderLeftColor: '#C8963E',
+              backgroundColor: 'rgba(200, 150, 62, 0.06)',
+              color: 'inherit',
+            },
+            a: {
+              color: '#D4AC52',
+              '&:hover': {
+                color: '#EAD08A',
+              }
             },
           }
         }
@@ -163,11 +204,11 @@ export default {
         },
         '.text-selection-highlight': {
           '::selection': {
-            backgroundColor: siteConfig.theme === 'oxygen' ? '#0ea5e9' : '#708794',
+            backgroundColor: '#C8963E',
             color: '#ffffff'
           },
           '::-moz-selection': {
-            backgroundColor: siteConfig.theme === 'oxygen' ? '#0ea5e9' : '#708794',
+            backgroundColor: '#C8963E',
             color: '#ffffff'
           }
         }
