@@ -104,9 +104,9 @@ const pagination = {
 
       <div class="relative">
         <div class="max-w-none">
-          <div class="space-y-6 mb-12">
+          <div class="posts-cards-grid mb-8">
             {paginatedPosts.map((post: any, index: number) => (
-              <PostCard post={post} context="tags" eager={index < 2} />
+              <PostCard post={post} context="posts" eager={index < 2} />
             ))}
           </div>
           <Pagination pagination={pagination} baseUrl={baseUrl} />

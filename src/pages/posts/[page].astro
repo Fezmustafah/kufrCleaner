@@ -3,11 +3,9 @@ import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
 import { siteConfig } from '@/config';
 import { generatePageSEO } from '@/utils/seo';
-import { shouldShowPost, sortPostsByDate, extractTags, extractCategories } from '@/utils/markdown';
+import { shouldShowPost, sortPostsByDate } from '@/utils/markdown';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
-import Tags from '@/components/Tags.astro';
-import Categories from '@/components/Categories.astro';
 import Pagination from '@/components/Pagination.astro';
 import Icon from '@/components/Icon.astro';
 
@@ -66,8 +64,6 @@ const startIndex = (currentPage - 1) * postsPerPage;
 const endIndex = Math.min(startIndex + postsPerPage, filteredPosts.length);
 const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
 
-// Extract all unique tags
-const allTags = extractTags(posts);
 
 // Generate SEO data
 const pageTitle = selectedTag
@@ -96,99 +92,45 @@ const pagination = {
 ---
 
 <BaseLayout seoData={seoData}>
-  <div class="py-8 relative">
-    <div class="mx-auto px-4 sm:px-6 lg:px-8 mb-12" style={`max-width: ${siteConfig.layout.contentWidth}`}>
-      <!-- Header -->
-      <header class="mb-8">
-        <div class="flex items-start justify-between mb-3">
-          <h1 class="text-lg font-bold text-primary-900 dark:text-primary-50">
-            {selectedTag ? (
-              <>Posts tagged "{selectedTag}"</>
-            ) : (
-              <>All Posts</>
-            )}
-          </h1>
-        </div>
-        <p class="text-base text-primary-600 dark:text-primary-300">
-          Page {currentPage} of {totalPages} • <strong>{filteredPosts.length}</strong>
+  <div class="py-8">
+    <div class="mx-auto px-4 sm:px-6" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+
+      <header class="mb-6">
+        <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 mb-1">
+          {selectedTag ? <>Posts tagged "{selectedTag}"</> : <>All Posts</>}
+        </h1>
+        <p class="text-sm text-primary-500 dark:text-primary-400">
+          Page {currentPage} of {totalPages} · <strong>{filteredPosts.length}</strong>
           {selectedTag ? (
-            <>posts tagged with
-            <span class="inline-flex items-center px-2 py-1 bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 rounded text-sm font-medium ml-1">
-              #{selectedTag}
-            </span></>
+            <> posts tagged <span class="inline-flex items-center px-2 py-0.5 bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 rounded text-sm font-medium ml-1">#{selectedTag}</span></>
           ) : (
-            <>total posts</>
+            <> total posts</>
           )}
         </p>
-
-        <div class="mt-4">
-          <a
-            href={`${import.meta.env.BASE_URL}posts`}
-            class="inline-flex items-center text-sm text-primary-600 dark:text-primary-300 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
-          >
-            <Icon name="arrow-left" class="w-4 h-4 mr-1" />
-            Show all posts
-          </a>
-        </div>
+        <a
+          href={`${import.meta.env.BASE_URL}posts`}
+          class="inline-flex items-center mt-3 text-sm text-primary-500 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
+        >
+          <Icon name="arrow-left" class="w-4 h-4 mr-1" />Show all posts
+        </a>
       </header>
 
-      <div class="relative">
-        <!-- Main content -->
-        <div class="max-w-none">
-          {paginatedPosts.length > 0 ? (
-            <>
-              <!-- Posts list -->
-              <div class="space-y-6 mb-12">
-                {paginatedPosts.map((post, index) => (
-                  <PostCard post={post} eager={index < 2} context="posts" />
-                ))}
-              </div>
-
-              <!-- Pagination -->
-              <Pagination pagination={pagination} baseUrl="/posts" />
-            </>
-          ) : (
-            <!-- No posts found -->
-            <div class="text-center py-16">
-              <Icon name="search-x" class="w-16 h-16 text-primary-400 dark:text-primary-500 mx-auto mb-6" />
-              <h2 class="text-2xl font-semibold text-primary-900 dark:text-primary-50 mb-4">
-                No posts found on this page
-              </h2>
-              <p class="text-primary-600 dark:text-primary-300 mb-8">
-                Try going back to an earlier page or removing filters.
-              </p>
-              <div class="space-x-4">
-                <a href={`${import.meta.env.BASE_URL}posts`} class="btn-secondary">
-                  View All Posts
-                </a>
-                {currentPage > 1 && (
-                  <a href={pagination.prevUrl} class="btn-outline">
-                    Previous Page
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <!-- Mobile sidebar - appears below content on mobile/tablet -->
-        <div class="xl:hidden mt-12 space-y-6">
-          <!-- Tags -->
-          {siteConfig.postOptions.tags && allTags.length > 0 && (
-            <Tags tags={allTags} currentTag={selectedTag} />
-          )}
-        </div>
-
-        <!-- Desktop sidebar - floats to the right of the content container -->
-        <div class="hidden xl:block absolute top-0 left-full ml-8 w-64">
-          <div class="sticky top-24 space-y-3 max-h-[calc(100vh-12rem)] overflow-y-auto pb-6">
-            <!-- Tags -->
-            {siteConfig.postOptions.tags && allTags.length > 0 && (
-              <Tags tags={allTags} currentTag={selectedTag} />
-            )}
+      {paginatedPosts.length > 0 ? (
+        <>
+          <div class="posts-cards-grid mb-8">
+            {paginatedPosts.map((post, index) => (
+              <PostCard post={post} eager={index < 2} context="posts" />
+            ))}
           </div>
+          <Pagination pagination={pagination} baseUrl={`${import.meta.env.BASE_URL}posts`} />
+        </>
+      ) : (
+        <div class="text-center py-16">
+          <Icon name="search-x" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
+          <p class="text-primary-500 dark:text-primary-400">No posts found. <a href={`${import.meta.env.BASE_URL}posts`} class="hover:underline">View all posts</a>.</p>
         </div>
-      </div>
+      )}
+
     </div>
   </div>
 </BaseLayout>

@@ -7,7 +7,7 @@ export interface Props {
   baseUrl?: string;
 }
 
-const { pagination, baseUrl = '/posts' } = Astro.props;
+const { pagination, baseUrl = `${import.meta.env.BASE_URL}posts` } = Astro.props;
 const { currentPage, totalPages, hasNext, hasPrev } = pagination;
 
 // Generate page numbers to show

@@ -15,221 +15,170 @@ interface Props {
 
 const { post, featured = false, eager = false, context = 'posts' } = Astro.props;
 
-// Get reading time and word count from markdown processing
 const { excerpt, wordCount } = processMarkdown(post.body || '');
 const readingTime = calculateReadingTime(post.body || '');
-
 const { title, description, date, tags, image: rawImage, imageAlt, category } = post.data as any;
 
-// Process Obsidian bracket syntax in image field
 const image = (() => {
   if (!rawImage) return rawImage;
-  
-  // Handle case where rawImage is an array (unquoted YAML syntax)
-  let imageValue = rawImage;
-  if (Array.isArray(rawImage)) {
-    // If it's an array, take the first element
-    imageValue = rawImage[0];
-  }
-  
-  // Ensure imageValue is a string before calling string methods
-  if (typeof imageValue !== 'string') {
-    console.warn('PostCard: imageValue is not a string:', imageValue);
-    return imageValue;
-  }
-  
-  // Check if it's Obsidian double bracket syntax
-  if (imageValue.startsWith('[[') && imageValue.endsWith(']]')) {
-    // Extract the content inside the double brackets
-    return imageValue.slice(2, -2);
-  }
-  
-  return imageValue;
+  let v = Array.isArray(rawImage) ? rawImage[0] : rawImage;
+  if (typeof v !== 'string') return v;
+  if (v.startsWith('[[') && v.endsWith(']]')) return v.slice(2, -2);
+  return v;
 })();
 
-// Determine if we should show the cover image based on configuration and context
 const shouldShowCoverImage = (() => {
-  // Only check if image exists - hideCoverImage only affects post content, not cards
-  if (!image) {
-    return false;
-  }
-
-  const showCoverImages = siteConfig.postOptions.showPostCardCoverImages;
-
-  switch (showCoverImages) {
-    case 'all':
-      return true;
-    case 'featured':
-      return context === 'featured' || featured;
-    case 'home':
-      return context === 'featured' || context === 'recent';
-    case 'posts':
-      return context === 'posts' || context === 'tags';
-    case 'featured-and-posts':
-      return context === 'featured' || context === 'posts' || context === 'tags' || featured;
-    case 'none':
-    default:
-      return false;
+  if (!image) return false;
+  const s = siteConfig.postOptions.showPostCardCoverImages;
+  switch (s) {
+    case 'all': return true;
+    case 'featured': return context === 'featured' || featured;
+    case 'home': return context === 'featured' || context === 'recent';
+    case 'posts': return context === 'posts' || context === 'tags';
+    case 'featured-and-posts': return context === 'featured' || context === 'posts' || context === 'tags' || featured;
+    default: return false;
   }
 })();
 
-// No need for dynamic image import - ImageWrapper handles this
+const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
 ---
 
+<!--
+  Card link pattern: title <a> has ::before overlay covering the whole card.
+  Category + tag <a> elements sit above it via z-index.
+  This avoids invalid nested <a> HTML and makes the ENTIRE card clickable.
+-->
 <article class={`group ${featured ? 'featured-post' : 'post-card'}`} role="article" aria-labelledby={`post-title-${post.id}`}>
-  <a href={`${import.meta.env.BASE_URL}posts/${post.id}`} class="block" aria-label={`View post: ${title}`}>
-    {image && shouldShowCoverImage && (
-      <div class="overflow-hidden rounded-t-lg bg-primary-100 dark:bg-primary-800" style={`aspect-ratio: ${getPostCardAspectRatio()};`}>
-        <ImageWrapper
-          src={(() => {
-            // Clean the image path by removing Obsidian brackets
-            let cleanImagePath = image;
-            if (!cleanImagePath || typeof cleanImagePath !== 'string') return '';
-            if (cleanImagePath.startsWith('[[') && cleanImagePath.endsWith(']]')) {
-              cleanImagePath = cleanImagePath.slice(2, -2);
-            }
-            
-            // Handle external URLs
-            if (cleanImagePath.startsWith('http')) {
-              return cleanImagePath;
-            }
-            
-            // Detect folder-based vs file-based: if image path starts with 'attachments/',
-            // it's a single-file post (shared attachments folder)
-            const isFileBased = cleanImagePath.startsWith('attachments/');
-            
-            if (isFileBased) {
-              // Single-file post - remove attachments/ prefix
-              cleanImagePath = cleanImagePath.replace('attachments/', '');
-            } else {
-              // Folder-based post - sync script copies images to post folder root
-              // Remove 'images/' or 'attachments/' prefixes if present (sync script removes them)
-              if (cleanImagePath.startsWith('images/') || cleanImagePath.startsWith('attachments/')) {
-                cleanImagePath = cleanImagePath.replace(/^(images|attachments)\//, '');
-              }
-            }
-            
-            // Convert to WebP if applicable (sync-images.js creates WebP versions)
-            return getOptimizedFormat(cleanImagePath);
-          })()}
-          basePath={(() => {
-            // 1. External URLs - no basePath needed
-            if (typeof image === 'string' && image.startsWith('http')) {
-              return '';
-            }
-            
-            // 2. Clean the image path to check for attachments/ prefix
-            let cleanImagePath = image;
-            if (typeof cleanImagePath === 'string' && cleanImagePath.startsWith('[[') && cleanImagePath.endsWith(']]')) {
-              cleanImagePath = cleanImagePath.slice(2, -2);
-            }
-            
-            // 3. Detect folder-based vs file-based: if image path starts with 'attachments/',
-            // it's a single-file post (shared attachments folder)
-            if (typeof cleanImagePath === 'string' && cleanImagePath.startsWith('attachments/')) {
-              // Single-file post with image in attachments folder
-              return '/posts/attachments/';
-            }
-            
-            // 4. Folder-based post - sync script copies images to post folder root
-            // Safety check: ensure post.id exists before using it
-            if (post.id) {
-              return `/posts/${post.id}/`;
-            } else {
-              // Fallback to attachments directory if post.id is undefined
-              return '/posts/attachments/';
-            }
-          })()}
-          alt={imageAlt || `Featured image for post: ${title}`}
-          class="w-full h-full group-hover:scale-102 dark:group-hover:brightness-100 transition-all duration-300"
-          width={800}
-          height={450}
-          format="webp"
-          quality={85}
-          loading={featured || eager ? "eager" : "lazy"}
-          fetchpriority={featured || eager ? "high" : "auto"}
-        />
+
+  {/* ── Top: image or same-height placeholder ── */}
+  {image && shouldShowCoverImage ? (
+    <div class="overflow-hidden rounded-t-lg bg-primary-100 dark:bg-primary-800" style={`aspect-ratio: ${getPostCardAspectRatio()};`}>
+      <ImageWrapper
+        src={(() => {
+          let p = image;
+          if (!p || typeof p !== 'string') return '';
+          if (p.startsWith('[[') && p.endsWith(']]')) p = p.slice(2, -2);
+          if (p.startsWith('http')) return p;
+          const fileBased = p.startsWith('attachments/');
+          if (fileBased) p = p.replace('attachments/', '');
+          else if (p.startsWith('images/') || p.startsWith('attachments/')) p = p.replace(/^(images|attachments)\//, '');
+          return getOptimizedFormat(p);
+        })()}
+        basePath={(() => {
+          if (typeof image === 'string' && image.startsWith('http')) return '';
+          let p = image;
+          if (typeof p === 'string' && p.startsWith('[[') && p.endsWith(']]')) p = p.slice(2, -2);
+          if (typeof p === 'string' && p.startsWith('attachments/')) return '/posts/attachments/';
+          if (post.id) return `/posts/${post.id}/`;
+          return '/posts/attachments/';
+        })()}
+        alt={imageAlt || `Featured image for post: ${title}`}
+        class="w-full h-full group-hover:scale-102 transition-all duration-300"
+        width={800} height={450} format="webp" quality={85}
+        loading={featured || eager ? 'eager' : 'lazy'}
+        fetchpriority={featured || eager ? 'high' : 'auto'}
+      />
+    </div>
+  ) : null}
+
+  {/* ── Card body ── */}
+  <div class={`p-4 ${image && shouldShowCoverImage ? 'rounded-b-lg' : 'rounded-lg'}`}>
+
+    {/* Category — prominent, z-10 so it's clickable above the card overlay */}
+    {category && siteConfig.postOptions.categories && (
+      <div class="mb-2.5 relative z-10">
+        <a
+          href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`}
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-highlight-500/15 dark:bg-highlight-600/20 text-highlight-700 dark:text-highlight-300 border border-highlight-400/40 dark:border-highlight-600/40 hover:bg-highlight-500/25 hover:border-highlight-500/60 transition-colors"
+          aria-label={`View posts in ${category}`}
+        >
+          <Icon name="book-open" class="w-3 h-3" />
+          {category}
+        </a>
       </div>
     )}
 
-    <div class={`p-4 ${image && shouldShowCoverImage ? 'rounded-b-lg' : 'rounded-lg'}`}>
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-primary-500 dark:text-primary-400 mb-1">
-        <time datetime={date.toISOString()}>
-          <span class="hidden sm:inline">{formatDate(date)}</span>
-          <span class="sm:hidden">{formatDateMobile(date)}</span>
-        </time>
-
-        {siteConfig.postOptions.readingTime && readingTime && (
-          <>
-            <span class="text-primary-300 dark:text-primary-600 hidden sm:inline">•</span>
-            <span class="text-primary-300 dark:text-primary-600 sm:hidden">•</span>
-            <span>
-              <span class="hidden sm:inline">{readingTime.text && readingTime.text !== 'read0' && readingTime.text !== '' ? readingTime.text : '1 min read'}</span>
-              <span class="sm:hidden">{getReadingTimeMobile(readingTime)}</span>
-            </span>
-          </>
-        )}
-
-        {siteConfig.postOptions.wordCount && wordCount !== undefined && (
-          <>
-            <span class="text-primary-300 dark:text-primary-600 hidden sm:inline">•</span>
-            <span class="text-primary-300 dark:text-primary-600 sm:hidden">•</span>
-            <span class="min-w-0">
-              <span class="hidden sm:inline">{wordCount === 1 ? '1 word' : `${wordCount} words`}</span>
-              <span class="sm:hidden">{wordCount === 1 ? '1 word' : `${wordCount.toLocaleString()} words`}</span>
-            </span>
-          </>
-        )}
-      </div>
-
-      <h3 id={`post-title-${post.id}`} class={`font-medium text-primary-900 dark:text-primary-100 leading-relaxed group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors ${
-        featured ? 'text-lg' : 'text-base'
-      }`}>
+    {/* Title — ::before pseudo covers the whole card as the primary click target */}
+    <h3
+      id={`post-title-${post.id}`}
+      class={`font-medium leading-snug mb-2 ${featured ? 'text-lg' : 'text-base'}`}
+    >
+      <a href={postUrl} class="card-link text-primary-900 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
         {title}
-      </h3>
+      </a>
+    </h3>
 
-      {featured && description && (
-        <p class="text-primary-600 dark:text-primary-300 line-clamp-3 text-sm leading-relaxed mt-1">
-          {description}
-        </p>
+    {/* Description — featured only */}
+    {featured && description && (
+      <p class="text-primary-600 dark:text-primary-300 line-clamp-2 text-sm leading-relaxed mb-2">
+        {description}
+      </p>
+    )}
+
+    {/* Meta */}
+    <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-primary-400 dark:text-primary-500">
+      <time datetime={date.toISOString()}>
+        <span class="hidden sm:inline">{formatDate(date)}</span>
+        <span class="sm:hidden">{formatDateMobile(date)}</span>
+      </time>
+      {siteConfig.postOptions.readingTime && readingTime && (
+        <>
+          <span aria-hidden="true">·</span>
+          <span>
+            <span class="hidden sm:inline">{readingTime.text && readingTime.text !== 'read0' && readingTime.text !== '' ? readingTime.text : '1 min read'}</span>
+            <span class="sm:hidden">{getReadingTimeMobile(readingTime)}</span>
+          </span>
+        </>
       )}
-
-      {category && siteConfig.postOptions.categories && (
-        <div class="mt-2">
-          <a
-            href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`}
-            class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold bg-highlight-100/60 dark:bg-highlight-900/20 text-highlight-700 dark:text-highlight-300 border border-highlight-300/50 dark:border-highlight-700/50 hover:border-highlight-400 dark:hover:border-highlight-500 transition-colors"
-            style="border-radius: 0.2rem;"
-            aria-label={`View posts in ${category}`}
-          >
-            <Icon name="folder" class="w-3 h-3 opacity-70" />
-            {category}
-          </a>
-        </div>
-      )}
-
-      {tags && tags.length > 0 && siteConfig.postOptions.tags && (
-        <div class="mt-3">
-          {tags.slice(0, 3).map((tag) => (
-            <a
-              href={`${import.meta.env.BASE_URL}posts/tag/${tag}`}
-              class="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-300 bg-primary-100 dark:bg-primary-800 px-2.5 py-1 rounded border border-primary-200 dark:border-primary-700 transition-colors hover:border-highlight-300 dark:hover:border-highlight-600 hover:text-highlight-700 dark:hover:text-highlight-400 mr-2 mb-1"
-              aria-label={`View posts tagged with ${tag}`}
-            >
-              <Icon name="tag" class="w-3 h-3 opacity-60" />
-              {tag}
-            </a>
-          ))}
-          {tags.length > 3 && (
-            <span 
-              class="inline-block text-xs text-primary-500 dark:text-primary-400 bg-primary-50 dark:bg-primary-800 px-2.5 py-1 rounded border border-primary-200 dark:border-primary-700 mr-2 mb-1"
-              aria-label={`${tags.length - 3} more tags available`}
-            >
-              + {tags.length - 3} more
-            </span>
-          )}
-        </div>
+      {siteConfig.postOptions.wordCount && wordCount !== undefined && (
+        <>
+          <span aria-hidden="true">·</span>
+          <span>
+            <span class="hidden sm:inline">{wordCount === 1 ? '1 word' : `${wordCount} words`}</span>
+            <span class="sm:hidden">{wordCount === 1 ? '1 word' : `${wordCount.toLocaleString()} words`}</span>
+          </span>
+        </>
       )}
     </div>
-  </a>
+
+    {/* Tags — z-10 so they're clickable above the card overlay */}
+    {tags && tags.length > 0 && siteConfig.postOptions.tags && (
+      <div class="mt-2.5 flex flex-wrap gap-1.5 relative z-10">
+        {tags.slice(0, 3).map((tag: string) => (
+          <a
+            href={`${import.meta.env.BASE_URL}posts/tag/${tag}`}
+            class="inline-flex items-center gap-1 text-xs text-primary-500 dark:text-primary-400 bg-primary-100 dark:bg-primary-800/70 px-2 py-0.5 rounded-md border border-primary-200 dark:border-primary-700 hover:border-highlight-400/50 hover:text-highlight-700 dark:hover:text-highlight-400 transition-colors"
+            aria-label={`View posts tagged with ${tag}`}
+          >
+            <Icon name="tag" class="w-2.5 h-2.5 opacity-60" />
+            {tag}
+          </a>
+        ))}
+        {tags.length > 3 && (
+          <span class="inline-flex items-center text-xs text-primary-400 dark:text-primary-500 px-2 py-0.5 rounded-md border border-primary-200 dark:border-primary-700">
+            +{tags.length - 3}
+          </span>
+        )}
+      </div>
+    )}
+
+  </div>
 </article>
+
+<style>
+  /* ── Card link overlay pattern ──────────────────────────────────────────────
+     .card-link::before covers the entire article so clicking anywhere
+     on the card (except category/tag links) navigates to the post.
+     Category + tag wrappers have z-10 to sit above this overlay.         */
+  :global(.post-card),
+  :global(.featured-post) {
+    position: relative;
+  }
+  .card-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+  }
+</style>

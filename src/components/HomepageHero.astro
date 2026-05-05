@@ -226,8 +226,17 @@ void main() {
     if ((ctn as any)._galaxyCleanup) (ctn as any)._galaxyCleanup();
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
-    const gl = renderer.gl;
+    // WebGL availability check — fails gracefully on unsupported browsers
+    const probe = document.createElement('canvas');
+    if (!probe.getContext('webgl') && !probe.getContext('experimental-webgl')) return;
+
+    let renderer: any, gl: any;
+    try {
+      renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
+      gl = renderer.gl;
+    } catch {
+      return; // WebGL context creation failed — hero stays as plain dark bg
+    }
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.clearColor(0, 0, 0, 0);
@@ -321,8 +330,8 @@ void main() {
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
 
-    // Mouse tracked on the section element, NOT the canvas.
-    // Canvas stays pointer-events:none so scroll/touch gestures pass through.
+    // Pointer/touch tracking on the section — canvas stays pointer-events:none
+    // so scroll gestures always pass through to the browser.
     function onMouseMove(e: MouseEvent) {
       const rect = section!.getBoundingClientRect();
       targetMouse  = {
@@ -332,16 +341,34 @@ void main() {
       targetActive = 1.0;
     }
     function onMouseLeave() { targetActive = 0; }
-    section.addEventListener('mousemove', onMouseMove);
+
+    // Touch: same parallax on mobile — passive so scroll is never blocked
+    function onTouchMove(e: TouchEvent) {
+      const t = e.touches[0];
+      if (!t) return;
+      const rect = section!.getBoundingClientRect();
+      targetMouse  = {
+        x: (t.clientX - rect.left) / rect.width,
+        y: 1.0 - (t.clientY - rect.top) / rect.height,
+      };
+      targetActive = 0.6; // subtler on touch than mouse
+    }
+    function onTouchEnd() { targetActive = 0; }
+
+    section.addEventListener('mousemove',  onMouseMove);
     section.addEventListener('mouseleave', onMouseLeave);
+    section.addEventListener('touchmove',  onTouchMove,  { passive: true });
+    section.addEventListener('touchend',   onTouchEnd,   { passive: true });
 
     (ctn as any)._galaxyCleanup = () => {
       cancelAnimationFrame(rafId);
       ro.disconnect();
       io.disconnect();
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      section!.removeEventListener('mousemove', onMouseMove);
+      section!.removeEventListener('mousemove',  onMouseMove);
       section!.removeEventListener('mouseleave', onMouseLeave);
+      section!.removeEventListener('touchmove',  onTouchMove);
+      section!.removeEventListener('touchend',   onTouchEnd);
       if (ctn!.contains(gl.canvas)) ctn!.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
       delete (ctn as any)._galaxyCleanup;

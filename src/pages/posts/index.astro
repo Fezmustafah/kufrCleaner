@@ -2,12 +2,10 @@
 import { getCollection } from 'astro:content';
 import { siteConfig } from '@/config';
 import { generatePageSEO } from '@/utils/seo';
-import { shouldShowPost, sortPostsByDate, extractTags, extractCategories } from '@/utils/markdown';
+import { shouldShowPost, sortPostsByDate } from '@/utils/markdown';
 import { optimizePostImagePath } from '@/utils/images';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
-import Tags from '@/components/Tags.astro';
-import Categories from '@/components/Categories.astro';
 import Pagination from '@/components/Pagination.astro';
 import Icon from '@/components/Icon.astro';
 
@@ -50,9 +48,6 @@ const startIndex = 0;
 const endIndex = Math.min(postsPerPage, totalPosts);
 const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
 
-// Extract all unique tags and categories
-const allTags = extractTags(sortedPosts);
-const allCategories = extractCategories(sortedPosts);
 
 // Generate SEO data
 const pageTitle = selectedTag
@@ -70,7 +65,7 @@ const seoData = {
 };
 
 // Pagination info
-const baseUrl = selectedTag ? `/posts/tag/${encodeURIComponent(selectedTag)}` : '/posts';
+const baseUrl = selectedTag ? `${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(selectedTag)}` : `${import.meta.env.BASE_URL}posts`;
 const pagination = {
   currentPage,
   totalPages,
@@ -95,125 +90,47 @@ const pagination = {
   </Fragment>
 
   <div class="py-8">
-    <div class="posts-index-grid">
+    <div class="mx-auto px-4 sm:px-6" style={`max-width: ${siteConfig.layout.contentWidth}`}>
 
-      <!-- Left: Categories -->
-      {siteConfig.postOptions.categories && allCategories.length > 0 && (
-        <aside class="posts-index-left">
-          <div class="sticky top-20 pt-1">
-            <Categories categories={allCategories} />
-          </div>
-        </aside>
-      )}
-
-      <!-- Main: Posts -->
-      <div class="posts-index-main min-w-0">
-        <header class="mb-6">
-          <div class="flex items-start justify-between mb-2">
-            <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50">
-              {pageTitle}
-            </h1>
-          </div>
-          <p class="text-sm text-primary-500 dark:text-primary-400">
-            {selectedTag ? (
-              <>Showing <strong>{filteredPosts.length}</strong> posts tagged <span class="inline-flex items-center px-2 py-0.5 bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 rounded text-sm font-medium ml-1">#{selectedTag}</span></>
-            ) : (
-              <>Explore all <strong>{totalPosts}</strong> posts</>
-            )}
-          </p>
-          {selectedTag && (
-            <a href={`${import.meta.env.BASE_URL}posts`} class="inline-flex items-center mt-3 text-sm text-primary-500 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">
-              <Icon name="arrow-left" class="w-4 h-4 mr-1" />Show all posts
-            </a>
+      <header class="mb-6">
+        <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 mb-1">
+          {pageTitle}
+        </h1>
+        <p class="text-sm text-primary-500 dark:text-primary-400">
+          {selectedTag ? (
+            <>Showing <strong>{filteredPosts.length}</strong> posts tagged <span class="inline-flex items-center px-2 py-0.5 bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 rounded text-sm font-medium ml-1">#{selectedTag}</span></>
+          ) : (
+            <>Explore all <strong>{totalPosts}</strong> posts</>
           )}
-        </header>
-
-        {paginatedPosts.length > 0 ? (
-          <>
-            <div class="posts-cards-grid mb-8">
-              {paginatedPosts.map((post, index) => (
-                <PostCard post={post} eager={index < 2} context="posts" />
-              ))}
-            </div>
-            <Pagination pagination={pagination} baseUrl={baseUrl} />
-          </>
-        ) : selectedTag ? (
-          <div class="text-center py-16">
-            <Icon name="tag" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
-            <p class="text-primary-500 dark:text-primary-400">No posts tagged "{selectedTag}". <a href={`${import.meta.env.BASE_URL}posts`} class="hover:underline">View all posts</a>.</p>
-          </div>
-        ) : (
-          <div class="text-center py-16">
-            <Icon name="file-text" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
-            <p class="text-primary-500 dark:text-primary-400">No posts yet.</p>
-          </div>
+        </p>
+        {selectedTag && (
+          <a href={`${import.meta.env.BASE_URL}posts`} class="inline-flex items-center mt-3 text-sm text-primary-500 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">
+            <Icon name="arrow-left" class="w-4 h-4 mr-1" />Show all posts
+          </a>
         )}
+      </header>
 
-        <!-- Mobile sidebars (hidden on desktop) -->
-        <div class="posts-index-mobile-sidebars mt-8 space-y-4">
-          {siteConfig.postOptions.categories && allCategories.length > 0 && <Categories categories={allCategories} />}
-          {siteConfig.postOptions.tags && allTags.length > 0 && <Tags tags={allTags} />}
-        </div>
-      </div>
-
-      <!-- Right: Tags -->
-      {siteConfig.postOptions.tags && allTags.length > 0 && (
-        <aside class="posts-index-right">
-          <div class="sticky top-20 pt-1">
-            <Tags tags={allTags} />
+      {paginatedPosts.length > 0 ? (
+        <>
+          <div class="posts-cards-grid mb-8">
+            {paginatedPosts.map((post, index) => (
+              <PostCard post={post} eager={index < 2} context="posts" />
+            ))}
           </div>
-        </aside>
+          <Pagination pagination={pagination} baseUrl={baseUrl} />
+        </>
+      ) : selectedTag ? (
+        <div class="text-center py-16">
+          <Icon name="tag" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
+          <p class="text-primary-500 dark:text-primary-400">No posts tagged "{selectedTag}". <a href={`${import.meta.env.BASE_URL}posts`} class="hover:underline">View all posts</a>.</p>
+        </div>
+      ) : (
+        <div class="text-center py-16">
+          <Icon name="file-text" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
+          <p class="text-primary-500 dark:text-primary-400">No posts yet.</p>
+        </div>
       )}
 
     </div>
   </div>
 </BaseLayout>
-
-<style>
-  :global(#main-content:has(.posts-index-grid)) {
-    max-width: none !important;
-  }
-
-  .posts-index-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    max-width: var(--page-width);
-    margin: 0 auto;
-    padding: 0 1rem;
-  }
-
-  .posts-index-left,
-  .posts-index-right {
-    display: none;
-  }
-
-  @media (min-width: 1100px) {
-    .posts-index-grid {
-      grid-template-columns: 260px 1fr 260px;
-      column-gap: 1.5rem;
-      padding: 0 1.5rem;
-    }
-
-    .posts-index-left,
-    .posts-index-right {
-      display: block;
-      align-self: start;
-    }
-
-    .posts-index-mobile-sidebars {
-      display: none;
-    }
-  }
-
-  .posts-cards-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  @media (min-width: 640px) {
-    .posts-cards-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-</style>

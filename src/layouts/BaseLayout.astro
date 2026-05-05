@@ -702,6 +702,19 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
             400: '#4d95f7', 500: '#1b61c2', 600: '#1c88dd', 700: '#1e40af',
             800: '#1e3a8a', 900: '#172554'
           }
+        },
+        // Al Andalus — warm parchment + Alhambra gold (hard-coded so it works on static hosts)
+        'al-andalus': {
+          primary: {
+            50: '#FAF6EF', 100: '#F2EAD8', 200: '#E0CEAF', 300: '#C9B08A',
+            400: '#A88C65', 500: '#8A6E4A', 600: '#6B5038', 700: '#4E3822',
+            800: '#332410', 900: '#1E1409', 950: '#120D05'
+          },
+          highlight: {
+            50: '#FBF5E6', 100: '#F5E9C8', 200: '#EAD08A', 300: '#D4AC52',
+            400: '#C8963E', 500: '#B8840A', 600: '#9A6C05', 700: '#7A5203',
+            800: '#5A3A02', 900: '#3A2501', 950: '#1E1200'
+          }
         }
       };
 
@@ -709,7 +722,7 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
       const builtInThemes = [
         'minimal', 'oxygen', 'atom', 'ayu', 'catppuccin', 'charcoal', 'dracula',
         'everforest', 'flexoki', 'gruvbox', 'macos', 'nord', 'obsidian',
-        'rose-pine', 'sky', 'solarized', 'things', 'custom'
+        'rose-pine', 'sky', 'solarized', 'things', 'custom', 'al-andalus'
       ];
 
       if (themeName === 'custom' || !builtInThemes.includes(themeName)) {

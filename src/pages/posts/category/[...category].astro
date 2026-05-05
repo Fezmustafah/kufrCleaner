@@ -94,16 +94,16 @@ const pagination = {
         <div class="max-w-none">
           {paginatedPosts.length > 0 ? (
             <>
-              <div class="space-y-6 mb-12">
+              <div class="posts-cards-grid mb-8">
                 {paginatedPosts.map((post: any, index: number) => (
-                  <PostCard post={post} context="tags" eager={index < 2} />
+                  <PostCard post={post} context="posts" eager={index < 2} />
                 ))}
               </div>
               <Pagination pagination={pagination} baseUrl={baseUrl} />
             </>
           ) : (
             <div class="text-center py-16">
-              <Icon name="folder" class="w-16 h-16 text-primary-400 dark:text-primary-500 mx-auto mb-6" />
+              <Icon name="book-open" class="w-16 h-16 text-primary-400 dark:text-primary-500 mx-auto mb-6" />
               <h2 class="text-2xl font-semibold text-primary-900 dark:text-primary-50 mb-4">No posts found</h2>
               <p class="text-primary-600 dark:text-primary-300 mb-8 max-w-md mx-auto">
                 There are no posts in the "{category}" category.{' '}

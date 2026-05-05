@@ -347,6 +347,21 @@ code ::-moz-selection,
 }
 
 
+/* ── Post cards grid — shared by all listing pages ─────────────────────── */
+.posts-cards-grid {
+  columns: 1;
+  column-gap: 1rem;
+}
+.posts-cards-grid > * {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}
+@media (min-width: 640px) {
+  .posts-cards-grid {
+    columns: 2;
+  }
+}
+
 /* ── Andalusian HR divider ──────────────────────────────────────────────── */
 .prose hr {
   border: none;
