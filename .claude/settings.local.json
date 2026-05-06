@@ -10,7 +10,12 @@
       "mcp__plugin_context-mode_context-mode__ctx_upgrade",
       "mcp__plugin_context-mode_context-mode__ctx_fetch_and_index",
       "mcp__plugin_context-mode_context-mode__ctx_execute",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git commit *)",
+      "Bash(where npm *)",
+      "Bash(where node *)",
+      "Bash(npm list *)",
+      "Bash(npm show *)"
     ]
   }
 }
