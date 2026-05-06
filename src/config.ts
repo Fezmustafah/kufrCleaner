@@ -17,6 +17,14 @@ export interface SiteConfig {
   title: string;
   /** Homepage-specific meta title. Falls back to title if empty. */
   homepageTitle: string;
+  hero?: {
+    /** Path to hero image, relative to public/. E.g. "/hero.jpg". Omit for plain dark background. */
+    image?: string;
+    /** Alt text for the hero image. */
+    imageAlt?: string;
+    /** Dark overlay opacity (0–1) over the image for text legibility. Default: 0.55 */
+    overlayOpacity?: number;
+  };
   description: string;
   author: string;
   language: string;
@@ -185,6 +193,12 @@ export const siteConfig: SiteConfig = {
   title: "KufrCleaner",
   // [CONFIG:HOMEPAGE_TITLE]
   homepageTitle: "",
+  // [CONFIG:HERO]
+  hero: {
+    image: "/hero.jpg",         // place your image at public/hero.jpg
+    imageAlt: "Alhambra palace",
+    overlayOpacity: 0.55,       // 0 = no overlay, 1 = fully dark
+  },
   // [CONFIG:SITE_DESCRIPTION]
   description: "Cleaning kufr.",
   // [CONFIG:SITE_AUTHOR]

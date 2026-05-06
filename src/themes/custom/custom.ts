@@ -1,53 +1,52 @@
-// Custom Theme Template
-// Rename this file to custom-theme.ts (or any name you prefer)
-// Then set theme: "custom" in src/config.ts - it will work automatically!
+// Al Andalus — Alhambra candlelight palette
+//
+// Dark mode philosophy: Gruvbox-quality steps (≥6% L gap per surface) at a
+// warm amber register — textured walnut, NOT digital void. Body bg is dark
+// enough for sharp contrast (13:1) but warm enough to feel like layered wood.
+//
+// Light mode: manuscript ivory & warm sienna — unchanged.
 
 export const customTheme = {
-  // Al Andalus — warm parchment to deep charcoal
   primary: {
-    50:  "#FAF6EF",  // manuscript ivory
-    100: "#F2EAD8",  // aged parchment
-    200: "#E0CEAF",  // warm sand
-    300: "#C9B08A",  // dry earth
-    400: "#A88C65",  // sienna mid
-    500: "#8A6E4A",  // warm sienna
-    600: "#6B5038",  // dark ochre
-    700: "#4E3822",  // deep umber
-    800: "#3D2914",  // warm surface (improved dark-mode card contrast)
-    900: "#1C1008",  // deep ink background
-    950: "#0E0A04",  // deepest ink
+    50:  "#FAF5EC",  // manuscript ivory
+    100: "#F1E6D0",  // aged parchment
+    200: "#DECFAB",  // warm sand
+    300: "#C6AB83",  // dry earth
+    400: "#A6875F",  // sienna mid
+    500: "#886944",  // warm sienna
+    600: "#6A5033",  // dark ochre
+    // Dark-mode layered surfaces — Gruvbox-quality steps, warm amber texture
+    700: "#6A4422",  // warm umber — cards, callouts, elevated surfaces  (L≈27%)
+    800: "#4A2E12",  // dark amber — sidebar, secondary bg               (L≈18%)
+    900: "#2E1C09",  // very dark walnut — body background               (L≈12%)
+    950: "#180E04",  // near-black amber — deepest: code bg, depths      (L≈6%)
   },
-  // Al Andalus — burnished Alhambra gold
   highlight: {
-    50:  "#FBF5E6",  // pale gilded parchment
-    100: "#F5E9C8",  // light gold wash
-    200: "#EAD08A",  // warm gold
-    300: "#D4AC52",  // Alhambra gold mid
-    400: "#C8963E",  // burnished gold
-    500: "#B8840A",  // deep gold
-    600: "#9A6C05",  // antique gold
-    700: "#7A5203",  // dark gold
-    800: "#5A3A02",  // bronze
-    900: "#3A2501",  // dark bronze
-    950: "#1E1200",  // near-black gold
+    // Burnished Alhambra gold — accent, links, active states
+    50:  "#FBF4E4",
+    100: "#F4E7C2",
+    200: "#E8CE82",
+    300: "#D4AD50",
+    400: "#C8953C",  // primary dark-mode link/accent
+    500: "#B8840A",
+    600: "#9A6C05",
+    700: "#7A5203",
+    800: "#5A3A02",
+    900: "#3A2401",
+    950: "#1E1200",
   },
-  // Al Andalus — Zellige (Moorish turquoise tilework)
-  // Used for info states, tags, alternative accents — provides cool relief against the warm palette
   secondary: {
-    50:  "#ECF8F5",  // morning mist on tile
-    100: "#C8ECE5",  // pale zellige
-    200: "#8DD6C9",  // zellige light
-    300: "#4CBFAD",  // zellige mid turquoise
-    400: "#27A693",  // Moorish aquamarine
-    500: "#198D7B",  // zellige deep
-    600: "#127564",  // Alhambra shadow teal
-    700: "#0D5A4D",  // deep zellige
-    800: "#084039",  // very deep teal
-    900: "#042925",  // near-black teal
-    950: "#021614",  // deepest teal
+    // Zellige turquoise — cool relief, tags, info states
+    50:  "#EBF8F5",
+    100: "#C6ECE4",
+    200: "#8BD5C7",
+    300: "#49BFAC",
+    400: "#26A692",
+    500: "#178D79",
+    600: "#107562",
+    700: "#0C5A4C",
+    800: "#073F37",
+    900: "#042823",
+    950: "#021512",
   }
 };
-
-// Usage in src/config.ts:
-// theme: "custom",
-// customTheme: customTheme

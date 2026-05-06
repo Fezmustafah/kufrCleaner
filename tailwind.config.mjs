@@ -128,11 +128,7 @@ export default {
               paddingTop: '0.25em',
               paddingBottom: '0.25em',
             },
-            h2: {
-              borderBottomWidth: '1px',
-              borderBottomColor: 'rgba(200, 150, 62, 0.22)',
-              paddingBottom: '0.3em',
-            },
+            h2: {},
             hr: {
               borderColor: 'transparent',
               marginTop: '2.5em',

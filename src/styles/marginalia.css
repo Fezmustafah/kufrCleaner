@@ -30,11 +30,11 @@
   --ann-bracket:   rgb( 44,  82, 130);         /* lapis lazuli   */
 }
 .dark {
-  --ann-highlight: rgba(212, 172,  82, 0.38); /* pale gold      */
-  --ann-underline: rgb(220, 130, 110);         /* light terracotta */
-  --ann-box:       rgb( 87, 163, 163);         /* light teal     */
-  --ann-circle:    rgb(200,  90, 100);         /* light pomegranate */
-  --ann-bracket:   rgb( 90, 140, 200);         /* light lapis    */
+  --ann-highlight: rgba(220, 180,  90, 0.42); /* warm gold — richer on lighter dark bg */
+  --ann-underline: rgb(225, 135, 112);         /* light terracotta */
+  --ann-box:       rgb( 92, 170, 168);         /* zellige teal   */
+  --ann-circle:    rgb(205,  95, 105);         /* pomegranate    */
+  --ann-bracket:   rgb( 95, 148, 210);         /* lapis lazuli   */
 }
 
 /* ── Margin offset vars ──────────────────────────────────────────────────── */
@@ -108,16 +108,15 @@ label.footnote-number::after {
 }
 
 /* ── Note base — aarnphm sidenote-content box style ────────────────────── */
-/* Always dashed transparent at rest — identical trick to TOC active indicator.
-   Only border-color transitions; background-color is instant so theme switches never get stuck. */
+/* Dashed border transparent at rest — same trick as TOC active indicator.
+   Full border (not just left) to match that pattern consistently. */
 .footnote {
   display: none;
   font-size: 0.875rem;
   line-height: 1.5;
   color: rgb(var(--color-primary-700));
-  border: none;
-  border-left: 3px solid transparent;
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border: 1px dashed transparent;
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   background-color: rgb(var(--color-primary-50));
   box-sizing: border-box;
@@ -142,15 +141,15 @@ label.footnote-number::after {
   color: rgb(var(--color-highlight-400));
 }
 
-/* ── Hover state — border-color only, matches TOC active-indicator exactly ── */
+/* ── Hover state — gold dashed border, mirrors TOC active-indicator exactly ── */
 .footnote:hover,
 .footnote-container.is-highlighted .footnote {
-  border-color: rgb(var(--color-primary-400) / 0.8);
+  border-color: rgb(var(--color-highlight-500) / 0.45);
 }
 
 .dark .footnote:hover,
 .dark .footnote-container.is-highlighted .footnote {
-  border-color: rgb(var(--color-primary-500) / 0.8);
+  border-color: rgb(var(--color-highlight-400) / 0.45);
 }
 
 /* ── Markdown content inside notes ─────────────────────────────────────── */
@@ -215,9 +214,8 @@ label.footnote-number::after {
   z-index: 100;
   width: 260px;
   padding: 0.75rem 1rem;
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  border: 1px solid rgb(var(--color-primary-200));
-  border-left: 3px solid rgb(var(--color-highlight-400));
+  border-radius: var(--radius-md);
+  border: 1px dashed rgb(var(--color-highlight-500) / 0.45);
   background: rgb(var(--color-primary-50));
   color: rgb(var(--color-primary-700));
   font-size: 0.8rem;
@@ -230,8 +228,7 @@ label.footnote-number::after {
 }
 
 .dark .marginalia-popover {
-  border-color: rgb(var(--color-primary-700));
-  border-left-color: rgb(var(--color-highlight-500));
+  border-color: rgb(var(--color-highlight-400) / 0.45);
   background: rgb(var(--color-primary-900));
   color: rgb(var(--color-primary-200));
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);

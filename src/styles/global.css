@@ -367,10 +367,7 @@ code ::-moz-selection,
 .prose hr {
   border: none;
   height: 1px;
-  /* Each gradient covers 46% from its edge, solid-to-transparent inward — leaves a clean ~8% gap */
-  background:
-    linear-gradient(to right, transparent, rgb(var(--color-highlight-400) / 0.55)) 0 0 / 46% 1px no-repeat,
-    linear-gradient(to left,  transparent, rgb(var(--color-highlight-400) / 0.55)) 100% 0 / 46% 1px no-repeat;
+  background: linear-gradient(to right, transparent, rgb(var(--color-highlight-400) / 0.55) 20%, rgb(var(--color-highlight-400) / 0.55) 80%, transparent);
   position: relative;
   margin: 2.5em auto;
   overflow: visible;
@@ -385,21 +382,18 @@ code ::-moz-selection,
   font-size: 0.65em;
   letter-spacing: 0.35em;
   white-space: nowrap;
+  background-color: rgb(var(--color-primary-50));
+  padding: 0 0.5em;
 }
 .dark .prose hr {
-  background:
-    linear-gradient(to right, transparent, rgb(var(--color-highlight-600) / 0.45)) 0 0 / 46% 1px no-repeat,
-    linear-gradient(to left,  transparent, rgb(var(--color-highlight-600) / 0.45)) 100% 0 / 46% 1px no-repeat;
+  background: linear-gradient(to right, transparent, rgb(var(--color-highlight-600) / 0.45) 20%, rgb(var(--color-highlight-600) / 0.45) 80%, transparent);
 }
 .dark .prose hr::before {
   color: rgb(var(--color-highlight-400));
+  background-color: rgb(var(--color-primary-900));
 }
 
 /* ── Andalusian heading accents ─────────────────────────────────────────── */
-.prose h2 {
-  border-bottom: 1px solid rgb(var(--color-highlight-400) / 0.22);
-  padding-bottom: 0.3em;
-}
 .prose h3::before {
   content: '◆';
   color: rgb(var(--color-highlight-400) / 0.55);
@@ -423,7 +417,7 @@ a {
 }
 
 a:hover {
-  @apply text-highlight-700 dark:text-highlight-300 opacity-80;
+  @apply text-secondary-600 dark:text-secondary-400 opacity-90;
 }
 
 /* Wikilinks */
@@ -432,7 +426,7 @@ a:hover {
 }
 
 .wikilink:hover {
-  @apply text-highlight-700 dark:text-highlight-300 opacity-80 no-underline;
+  @apply text-secondary-600 dark:text-secondary-400 opacity-90 no-underline;
 }
 
 /* Ensure wikilink styling applies even inside .prose */
@@ -441,7 +435,7 @@ a:hover {
 }
 
 .prose a.wikilink:hover {
-  @apply text-highlight-700 dark:text-highlight-300 opacity-80 no-underline !important;
+  @apply text-secondary-600 dark:text-secondary-400 opacity-90 no-underline !important;
 }
 
 /* EXCLUDE heading links from wikilink styling */
@@ -685,52 +679,53 @@ textarea {
  * Base .callout consumes vars with fallback. Vars are defined exclusively on [data-callout]
  * selectors so equal-specificity (0,2,0) source order determines which type wins.
  */
+/*
+ * Callout system — Al Andalus themed
+ * Base uses CSS vars set per [data-callout] type.
+ * Border: uniform 1px frame + 3px top accent. Fully rounded. No asymmetric left-border.
+ */
 .callout {
-  border: none;
-  border-left: 3px solid var(--callout-border, #448aff44);
-  background-color: var(--callout-bg, #448aff10);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border: 1px solid var(--callout-border, rgba(44, 82, 130, 0.22));
+  border-top: 3px solid var(--callout-color, #2C5282);
+  background-color: var(--callout-bg, rgba(44, 82, 130, 0.07));
+  border-radius: var(--radius-md);
   padding: 0 1rem;
   overflow-y: hidden;
   box-sizing: border-box;
   margin: 1.5rem 0;
 }
 
-/* Default for any typed callout — lapis lazuli (note) */
-.callout[data-callout] {
-  --callout-color: #2C5282;
-  --callout-border: #2C528244;
-  --callout-bg: #2C528210;
-}
+/* ── Light mode — Al Andalus palette ─────────────────────────────────────── */
 
-/* note/info/todo — lapis lazuli */
+/* note/info/todo — lapis lazuli (scholarly blue) */
+.callout[data-callout],
 .callout[data-callout='note'],
 .callout[data-callout='info'],
 .callout[data-callout='todo'] {
-  --callout-color: #2C5282;
-  --callout-border: #2C528244;
-  --callout-bg: #2C528210;
+  --callout-color:  #2C5080;
+  --callout-border: rgba(44, 80, 128, 0.22);
+  --callout-bg:     rgba(44, 80, 128, 0.07);
 }
 
-/* tip — azulejo teal */
+/* tip — zellige teal */
 .callout[data-callout='tip'] {
-  --callout-color: #2D6A6A;
-  --callout-border: #2D6A6A44;
-  --callout-bg: #2D6A6A10;
+  --callout-color:  #1A8070;
+  --callout-border: rgba(26, 128, 112, 0.22);
+  --callout-bg:     rgba(26, 128, 112, 0.07);
 }
 
 /* success — Andalusian sage */
 .callout[data-callout='success'] {
-  --callout-color: #4A6B3A;
-  --callout-border: #4A6B3A44;
-  --callout-bg: #4A6B3A10;
+  --callout-color:  #3D7040;
+  --callout-border: rgba(61, 112, 64, 0.22);
+  --callout-bg:     rgba(61, 112, 64, 0.07);
 }
 
 /* warning — terracotta */
 .callout[data-callout='warning'] {
-  --callout-color: #B05A32;
-  --callout-border: #B05A3244;
-  --callout-bg: #B05A3210;
+  --callout-color:  #B85A28;
+  --callout-border: rgba(184, 90, 40, 0.22);
+  --callout-bg:     rgba(184, 90, 40, 0.07);
 }
 
 /* danger/caution — pomegranate */
@@ -738,33 +733,95 @@ textarea {
 .callout[data-callout='danger'],
 .callout[data-callout='failure'],
 .callout[data-callout='bug'] {
-  --callout-color: #8B2635;
-  --callout-border: #8B263544;
-  --callout-bg: #8B263510;
+  --callout-color:  #8C2432;
+  --callout-border: rgba(140, 36, 50, 0.22);
+  --callout-bg:     rgba(140, 36, 50, 0.07);
 }
 
-/* important/question — deep lapis */
+/* important/question/abstract — deep lapis */
 .callout[data-callout='important'],
 .callout[data-callout='question'],
 .callout[data-callout='abstract'],
 .callout[data-callout='summary'],
 .callout[data-callout='tldr'] {
-  --callout-color: #1A3A5C;
-  --callout-border: #1A3A5C44;
-  --callout-bg: #1A3A5C10;
+  --callout-color:  #1A3A60;
+  --callout-border: rgba(26, 58, 96, 0.22);
+  --callout-bg:     rgba(26, 58, 96, 0.07);
 }
 
-/* example — azulejo mid */
+/* example — azulejo */
 .callout[data-callout='example'] {
-  --callout-color: #3D7A7A;
-  --callout-border: #3D7A7A44;
-  --callout-bg: #3D7A7A10;
+  --callout-color:  #2A6E7A;
+  --callout-border: rgba(42, 110, 122, 0.22);
+  --callout-bg:     rgba(42, 110, 122, 0.07);
 }
 
+/* quote — Alhambra gold */
 .callout[data-callout='quote'] {
-  --callout-color: rgb(var(--color-highlight-500));
-  --callout-border: rgb(var(--color-highlight-400) / 0.35);
-  --callout-bg: rgb(var(--color-highlight-100) / 0.12);
+  --callout-color:  #9A6C05;
+  --callout-border: rgba(154, 108, 5, 0.25);
+  --callout-bg:     rgba(154, 108, 5, 0.07);
+}
+
+/* ── Dark mode — brighter Al Andalus palette on warm walnut backgrounds ──── */
+/* Colors are lighter/brighter versions so they read against dark bg */
+
+.dark .callout[data-callout],
+.dark .callout[data-callout='note'],
+.dark .callout[data-callout='info'],
+.dark .callout[data-callout='todo'] {
+  --callout-color:  #7AAEE8;
+  --callout-border: rgba(122, 174, 232, 0.28);
+  --callout-bg:     rgba(122, 174, 232, 0.10);
+}
+
+.dark .callout[data-callout='tip'] {
+  --callout-color:  #4CBFAC;
+  --callout-border: rgba(76, 191, 172, 0.28);
+  --callout-bg:     rgba(76, 191, 172, 0.10);
+}
+
+.dark .callout[data-callout='success'] {
+  --callout-color:  #7EC07A;
+  --callout-border: rgba(126, 192, 122, 0.28);
+  --callout-bg:     rgba(126, 192, 122, 0.10);
+}
+
+.dark .callout[data-callout='warning'] {
+  --callout-color:  #E8986A;
+  --callout-border: rgba(232, 152, 106, 0.28);
+  --callout-bg:     rgba(232, 152, 106, 0.10);
+}
+
+.dark .callout[data-callout='caution'],
+.dark .callout[data-callout='danger'],
+.dark .callout[data-callout='failure'],
+.dark .callout[data-callout='bug'] {
+  --callout-color:  #E06878;
+  --callout-border: rgba(224, 104, 120, 0.28);
+  --callout-bg:     rgba(224, 104, 120, 0.10);
+}
+
+.dark .callout[data-callout='important'],
+.dark .callout[data-callout='question'],
+.dark .callout[data-callout='abstract'],
+.dark .callout[data-callout='summary'],
+.dark .callout[data-callout='tldr'] {
+  --callout-color:  #6898D8;
+  --callout-border: rgba(104, 152, 216, 0.28);
+  --callout-bg:     rgba(104, 152, 216, 0.10);
+}
+
+.dark .callout[data-callout='example'] {
+  --callout-color:  #60B0C0;
+  --callout-border: rgba(96, 176, 192, 0.28);
+  --callout-bg:     rgba(96, 176, 192, 0.10);
+}
+
+.dark .callout[data-callout='quote'] {
+  --callout-color:  #D4AC50;
+  --callout-border: rgba(212, 172, 80, 0.28);
+  --callout-bg:     rgba(212, 172, 80, 0.10);
 }
 
 /* Title row */
@@ -904,10 +961,12 @@ textarea {
 }
 
 .prose figure[data-img-w-caption] img {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   height: auto;
   border-radius: 0.5rem;
   display: block;
+  margin: 0 auto;
 }
 
 .prose figcaption,
