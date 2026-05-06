@@ -68,7 +68,7 @@ label.footnote-number {
   border-bottom: 1px solid rgb(var(--color-highlight-600) / 0.7);
   color: rgb(var(--color-highlight-600));
   transition: border-bottom-color 0.2s ease, background-color 0.2s ease;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   padding: 0 0.05em;
 }
 
@@ -117,7 +117,7 @@ label.footnote-number::after {
   color: rgb(var(--color-primary-700));
   border: none;
   border-left: 3px solid transparent;
-  border-radius: 0 0.25rem 0.25rem 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   padding: 0.75rem 1rem;
   background-color: rgb(var(--color-primary-50));
   box-sizing: border-box;
@@ -171,7 +171,7 @@ label.footnote-number::after {
   font-size: 0.85em;
   background: rgb(var(--color-primary-100));
   padding: 0.1em 0.3em;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-xs);
 }
 .dark .footnote :global(code) { background: rgb(var(--color-primary-800)); }
 
@@ -180,7 +180,7 @@ label.footnote-number::after {
   height: auto;
   display: block;
   margin: 0.5rem 0;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .footnote :global(p) { margin: 0; }
@@ -215,7 +215,7 @@ label.footnote-number::after {
   z-index: 100;
   width: 260px;
   padding: 0.75rem 1rem;
-  border-radius: 0 0.25rem 0.25rem 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   border: 1px solid rgb(var(--color-primary-200));
   border-left: 3px solid rgb(var(--color-highlight-400));
   background: rgb(var(--color-primary-50));
@@ -268,7 +268,7 @@ label.footnote-number::after {
   font-size: 0.9em;
   background: rgb(var(--color-primary-100));
   padding: 0.1em 0.3em;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .dark .marginalia-popover-text code { background: rgb(var(--color-primary-800)); }
 
@@ -277,5 +277,5 @@ label.footnote-number::after {
   height: auto;
   display: block;
   margin: 0.4rem 0;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }

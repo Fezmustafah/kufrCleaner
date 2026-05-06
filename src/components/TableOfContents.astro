@@ -289,7 +289,7 @@ const processedHeadings = filteredHeadings.map(h => {
     gap: 0.55rem;
     text-decoration: none;
     color: inherit;
-    border-radius: 0.875rem;
+    border-radius: var(--radius-md);
     transition:
       background-color 0.14s ease,
       transform 0.14s ease,
@@ -323,9 +323,8 @@ const processedHeadings = filteredHeadings.map(h => {
     left: 0;
     right: 0;
     background: rgb(var(--color-highlight-400) / 0.07);
-    border-radius: 0.2rem;
+    border-radius: var(--radius-xs);
     border: 1px dashed transparent;
-    border-left: 2px solid rgb(var(--color-highlight-400) / 0.55);
     transition:
       top 0.18s ease,
       height 0.18s ease,
@@ -337,17 +336,14 @@ const processedHeadings = filteredHeadings.map(h => {
   }
   :global(.dark) .toc-active-indicator {
     background: rgb(var(--color-highlight-500) / 0.08);
-    border-left-color: rgb(var(--color-highlight-400) / 0.5);
   }
   /* Hover: show gold dashed border */
   .toc-nav:hover .toc-active-indicator {
     background: rgb(var(--color-highlight-400) / 0.05);
-    border-color: rgb(var(--color-highlight-400) / 0.4);
-    border-left-color: rgb(var(--color-highlight-500) / 0.7);
+    border-color: rgb(var(--color-highlight-400) / 0.35);
   }
   :global(.dark) .toc-nav:hover .toc-active-indicator {
-    border-color: rgb(var(--color-highlight-500) / 0.4);
-    border-left-color: rgb(var(--color-highlight-400) / 0.6);
+    border-color: rgb(var(--color-highlight-500) / 0.35);
   }
 
   /* ── Badge ─────────────────────────────────────────────────────────────── */
@@ -357,7 +353,7 @@ const processedHeadings = filteredHeadings.map(h => {
     flex-shrink: 0;
     width: 1.35rem;
     height: 1.35rem;
-    border-radius: 0.2rem;
+    border-radius: var(--radius-xs);
     font-size: 0.68rem;
     font-weight: 700;
     line-height: 1;

@@ -703,17 +703,22 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
             800: '#1e3a8a', 900: '#172554'
           }
         },
-        // Al Andalus — warm parchment + Alhambra gold (hard-coded so it works on static hosts)
+        // Al Andalus — warm parchment + Alhambra gold + Zellige turquoise
         'al-andalus': {
           primary: {
             50: '#FAF6EF', 100: '#F2EAD8', 200: '#E0CEAF', 300: '#C9B08A',
             400: '#A88C65', 500: '#8A6E4A', 600: '#6B5038', 700: '#4E3822',
-            800: '#332410', 900: '#1E1409', 950: '#120D05'
+            800: '#3D2914', 900: '#1C1008', 950: '#0E0A04'
           },
           highlight: {
             50: '#FBF5E6', 100: '#F5E9C8', 200: '#EAD08A', 300: '#D4AC52',
             400: '#C8963E', 500: '#B8840A', 600: '#9A6C05', 700: '#7A5203',
             800: '#5A3A02', 900: '#3A2501', 950: '#1E1200'
+          },
+          secondary: {
+            50: '#ECF8F5', 100: '#C8ECE5', 200: '#8DD6C9', 300: '#4CBFAD',
+            400: '#27A693', 500: '#198D7B', 600: '#127564', 700: '#0D5A4D',
+            800: '#084039', 900: '#042925', 950: '#021614'
           }
         }
       };
@@ -819,6 +824,16 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
           root.style.setProperty(`--color-highlight-${shade}`, `${rgb.r} ${rgb.g} ${rgb.b}`);
         }
       });
+
+      // Update secondary colors if the theme defines them
+      if (theme.secondary) {
+        Object.entries(theme.secondary).forEach(([shade, color]) => {
+          const rgb = hexToRgb(color);
+          if (rgb) {
+            root.style.setProperty(`--color-secondary-${shade}`, `${rgb.r} ${rgb.g} ${rgb.b}`);
+          }
+        });
+      }
     }
 
     // Helper function to convert hex to RGB

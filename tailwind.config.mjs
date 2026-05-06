@@ -39,6 +39,20 @@ export default {
           800: 'rgb(var(--color-highlight-800) / <alpha-value>)',
           900: 'rgb(var(--color-highlight-900) / <alpha-value>)',
           950: 'rgb(var(--color-highlight-950) / <alpha-value>)',
+        },
+        // Zellige — Moorish turquoise (cool accent for tags, info states, dark-mode relief)
+        secondary: {
+          50:  'rgb(var(--color-secondary-50)  / <alpha-value>)',
+          100: 'rgb(var(--color-secondary-100) / <alpha-value>)',
+          200: 'rgb(var(--color-secondary-200) / <alpha-value>)',
+          300: 'rgb(var(--color-secondary-300) / <alpha-value>)',
+          400: 'rgb(var(--color-secondary-400) / <alpha-value>)',
+          500: 'rgb(var(--color-secondary-500) / <alpha-value>)',
+          600: 'rgb(var(--color-secondary-600) / <alpha-value>)',
+          700: 'rgb(var(--color-secondary-700) / <alpha-value>)',
+          800: 'rgb(var(--color-secondary-800) / <alpha-value>)',
+          900: 'rgb(var(--color-secondary-900) / <alpha-value>)',
+          950: 'rgb(var(--color-secondary-950) / <alpha-value>)',
         }
       },
       typography: {
@@ -152,7 +166,7 @@ export default {
         },
         dark: {
           css: {
-            color: '#e2e8f0',
+            color: '#E0CEAF',  // primary-200 — warm sand, far easier on the eyes than cold slate
             code: {
               backgroundColor: 'rgb(42 28 12 / 0.8)',
             },

@@ -184,7 +184,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
                         {i > 0 && <span class="text-primary-300 dark:text-primary-700 select-none">/</span>}
                         <a
                           href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`}
-                          class="hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
+                          class="hover:text-secondary-500 dark:hover:text-secondary-300 transition-colors"
                         >
                           {tag}
                         </a>
@@ -269,9 +269,14 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             aria-controls="sidebar-toc-content"
             title="Toggle table of contents"
           >
-            <span class="sidebar-toc-ornament" aria-hidden="true">◈</span>
-            <span class="sidebar-toc-fihris">فهرس</span>
-            <svg class="sidebar-toc-chevron" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- Ornamental divider — full width with centered diamond -->
+            <span class="sidebar-toc-divider" aria-hidden="true">
+              <span class="sidebar-toc-line"></span>
+              <span class="sidebar-toc-ornament">◈</span>
+              <span class="sidebar-toc-line"></span>
+            </span>
+            <!-- Tiny chevron below ornament indicates collapse state -->
+            <svg class="sidebar-toc-chevron" xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="18 15 12 9 6 15"/>
             </svg>
           </button>
@@ -848,49 +853,56 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       }
       /* col 3 (220px) intentionally empty — provides gutter for marginalia notes */
 
-      /* ── "Contents" header — always visible, acts as collapse toggle ─────── */
+      /* ── Ornamental divider toggle ─────────────────────────────────────── */
       .sidebar-toc-header {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.18rem;
         width: 100%;
         background: none;
         border: none;
-        border-bottom: 1px solid rgb(var(--color-highlight-400) / 0.2);
         cursor: pointer;
-        padding: 0.15rem 0 0.5rem;
+        padding: 0.1rem 0 0.55rem;
         color: rgb(var(--color-highlight-600));
         user-select: none;
         flex-shrink: 0;
-        transition: color 0.15s, border-color 0.15s;
+        transition: color 0.15s;
       }
-      .sidebar-toc-header:hover {
-        color: rgb(var(--color-highlight-500));
-        border-bottom-color: rgb(var(--color-highlight-400) / 0.4);
-      }
+      .sidebar-toc-header:hover { color: rgb(var(--color-highlight-500)); }
       :global(.dark) .sidebar-toc-header { color: rgb(var(--color-highlight-400)); }
       :global(.dark) .sidebar-toc-header:hover { color: rgb(var(--color-highlight-300)); }
 
-      /* ◈ ornament */
-      .sidebar-toc-ornament {
-        font-size: 0.8rem;
-        opacity: 0.7;
-        flex-shrink: 0;
+      /* Full-width line ─ ◈ ─ */
+      .sidebar-toc-divider {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        width: 100%;
       }
-      /* فهرس label — Arabic script, italic Cormorant feel */
-      .sidebar-toc-fihris {
-        font-family: var(--font-heading, serif);
-        font-size: 0.88rem;
-        font-weight: 500;
-        letter-spacing: 0.05em;
-        direction: rtl;
+      .sidebar-toc-line {
+        flex: 1;
+        height: 1px;
+        background: rgb(var(--color-highlight-400) / 0.25);
+        transition: background-color 0.15s;
+      }
+      .sidebar-toc-header:hover .sidebar-toc-line {
+        background: rgb(var(--color-highlight-400) / 0.5);
+      }
+      .sidebar-toc-ornament {
+        font-size: 0.7rem;
+        opacity: 0.8;
+        flex-shrink: 0;
+        line-height: 1;
       }
 
+      /* Chevron centered below ornament */
       .sidebar-toc-chevron {
-        margin-left: auto;
         flex-shrink: 0;
-        transition: transform 0.2s ease;
+        opacity: 0.55;
+        transition: transform 0.2s ease, opacity 0.15s;
       }
+      .sidebar-toc-header:hover .sidebar-toc-chevron { opacity: 0.85; }
       .post-layout-left-col.is-collapsed .sidebar-toc-chevron {
         transform: rotate(180deg);
       }

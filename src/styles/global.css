@@ -224,6 +224,7 @@ p:has(.katex-display) {
 }
 
 html {
+  font-size: 115%;
   scroll-behavior: auto;
   scroll-padding-top: 2rem;
 }
@@ -343,7 +344,7 @@ code ::-moz-selection,
 
 /* ── Andalusian image radius ─────────────────────────────────────────────── */
 .prose img {
-  border-radius: 0.2rem;
+  border-radius: var(--radius-md);
 }
 
 
@@ -505,7 +506,7 @@ code:not(pre code),
   font-size: 0.875em !important;
   padding: 0.125rem 0.35rem !important;
   @apply bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200;
-  border-radius: 0.2rem !important;
+  border-radius: var(--radius-xs) !important;
   border: 1px solid rgb(var(--color-primary-300) / 0.6);
 }
 
@@ -572,7 +573,7 @@ kbd {
   color: rgb(var(--color-primary-700));
   border: 1px solid rgb(var(--color-primary-400) / 0.6);
   border-bottom-width: 2px;
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   box-shadow: 0 1px 0 rgb(var(--color-primary-400) / 0.25);
 }
 .dark kbd {
@@ -688,7 +689,7 @@ textarea {
   border: none;
   border-left: 3px solid var(--callout-border, #448aff44);
   background-color: var(--callout-bg, #448aff10);
-  border-radius: 0 0.25rem 0.25rem 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   padding: 0 1rem;
   overflow-y: hidden;
   box-sizing: border-box;
@@ -1008,7 +1009,7 @@ textarea {
   background: rgba(200, 150, 62, 0.32);
   color: inherit;
   padding: 0.08em 0.25em;
-  border-radius: 0.1rem;
+  border-radius: var(--radius-xs);
   border-bottom: 1px solid rgba(200, 150, 62, 0.45);
 }
 .dark .prose mark {
@@ -1046,7 +1047,7 @@ textarea {
   overflow-y: hidden !important; /* Maintains rounded corners while allowing horizontal scroll */
   -webkit-overflow-scrolling: touch;
   margin: 1.5rem 0 !important;
-  border-radius: 0.75rem !important;
+  border-radius: var(--radius-lg) !important;
   @apply border border-primary-300 dark:border-primary-600 bg-white dark:bg-primary-800;
   position: relative; /* Enable edge hint pseudo-elements */
 }
@@ -1055,7 +1056,7 @@ textarea {
   margin: 0 !important;
   width: 100%;
   min-width: 500px;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -1775,7 +1776,11 @@ svg:has(text:contains("mermaid version")) {
   --card-bg: rgb(var(--color-primary-50) / 0.82);   /* semi-transparent glass navbar */
   --btn-plain-bg-hover: rgb(var(--color-primary-100));
   --btn-plain-bg-active: rgb(var(--color-primary-200));
-  --radius-large: 0.5rem;
+  --radius-xs:    0.25rem;   /* inline elements: code, kbd, tiny chips */
+  --radius-sm:    0.375rem;  /* small UI: tags, badges, input borders */
+  --radius-md:    0.5rem;    /* standard: cards, code blocks, callouts */
+  --radius-lg:    0.75rem;   /* prominent panels: tables, modals, sidebars */
+  --radius-large: 0.5rem;    /* legacy alias → radius-md */
   --float-panel-bg: rgb(var(--color-primary-50) / 0.96);
 }
 .dark {
