@@ -9,7 +9,10 @@ const { postCount, categoryCount } = Astro.props;
 const baseUrl = import.meta.env.BASE_URL;
 
 const hero = siteConfig.hero ?? {};
-const heroImage = hero.image;
+const heroImageRaw = hero.image;
+const heroImage = heroImageRaw
+  ? (heroImageRaw.startsWith('http') ? heroImageRaw : `${baseUrl}${heroImageRaw.replace(/^\//, '')}`)
+  : undefined;
 const overlayOpacity = hero.overlayOpacity ?? 0.55;
 ---
 
