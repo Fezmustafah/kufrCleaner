@@ -89,7 +89,7 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
       <div class="mb-1 relative z-10">
         <a
           href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`}
-          class="text-[0.6rem] font-bold tracking-[0.14em] uppercase text-highlight-600 dark:text-highlight-400 hover:text-highlight-700 dark:hover:text-highlight-300 transition-colors"
+          class="text-[0.7rem] font-bold tracking-[0.14em] uppercase text-highlight-600 dark:text-highlight-400 hover:text-highlight-700 dark:hover:text-highlight-300 transition-colors"
           aria-label={`View posts in ${category}`}
         >
           {category}
@@ -100,7 +100,7 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
     {/* Title */}
     <h3
       id={`post-title-${post.id}`}
-      class={`font-medium leading-snug mb-2 ${featured ? 'text-lg' : 'text-base'}`}
+      class={`font-medium leading-snug mb-2 ${featured ? 'text-xl' : 'text-lg'}`}
     >
       <a href={postUrl} class="card-link text-primary-900 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
         {title}
@@ -109,13 +109,13 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
 
     {/* Description — featured only */}
     {featured && description && (
-      <p class="text-primary-600 dark:text-primary-300 line-clamp-2 text-sm leading-relaxed mb-2">
+      <p class="text-primary-600 dark:text-primary-300 line-clamp-2 text-base leading-relaxed mb-2">
         {description}
       </p>
     )}
 
     {/* Meta row */}
-    <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-primary-400 dark:text-primary-500">
+    <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-primary-400 dark:text-primary-500">
       <time datetime={date.toISOString()}>
         <span class="hidden sm:inline">{formatDate(date)}</span>
         <span class="sm:hidden">{formatDateMobile(date)}</span>
@@ -146,7 +146,7 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
         {tags.slice(0, 3).map((tag: string) => (
           <a
             href={`${import.meta.env.BASE_URL}posts/tag/${tag}`}
-            class="inline-flex items-center gap-1 text-xs text-highlight-600 dark:text-highlight-300 bg-highlight-500/10 dark:bg-highlight-600/15 px-2 py-0.5 rounded-md border border-highlight-400/30 dark:border-highlight-600/35 hover:bg-highlight-500/20 dark:hover:bg-highlight-600/25 hover:border-highlight-400/50 hover:text-highlight-700 dark:hover:text-highlight-200 transition-colors"
+            class="inline-flex items-center gap-1 text-[0.8rem] text-highlight-600 dark:text-highlight-300 bg-highlight-500/10 dark:bg-highlight-600/15 px-2 py-0.5 rounded-md border border-highlight-400/30 dark:border-highlight-600/35 hover:bg-highlight-500/20 dark:hover:bg-highlight-600/25 hover:border-highlight-400/50 hover:text-highlight-700 dark:hover:text-highlight-200 transition-colors"
             aria-label={`View posts tagged with ${tag}`}
           >
             <Icon name="tag" class="w-2.5 h-2.5 opacity-70" />
@@ -154,7 +154,7 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
           </a>
         ))}
         {tags.length > 3 && (
-          <span class="inline-flex items-center text-xs text-highlight-500 dark:text-highlight-400 px-2 py-0.5 rounded-md border border-highlight-400/25 dark:border-highlight-600/30">
+          <span class="inline-flex items-center text-[0.8rem] text-highlight-500 dark:text-highlight-400 px-2 py-0.5 rounded-md border border-highlight-400/25 dark:border-highlight-600/30">
             +{tags.length - 3}
           </span>
         )}

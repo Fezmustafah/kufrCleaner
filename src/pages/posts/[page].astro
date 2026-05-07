@@ -96,10 +96,10 @@ const pagination = {
     <div class="mx-auto px-4 sm:px-6" style={`max-width: ${siteConfig.layout.contentWidth}`}>
 
       <header class="mb-6">
-        <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 mb-1">
+        <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50 mb-1">
           {selectedTag ? <>Posts tagged "{selectedTag}"</> : <>All Posts</>}
         </h1>
-        <p class="text-sm text-primary-500 dark:text-primary-400">
+        <p class="text-base text-primary-500 dark:text-primary-400">
           Page {currentPage} of {totalPages} · <strong>{filteredPosts.length}</strong>
           {selectedTag ? (
             <> posts tagged <span class="inline-flex items-center px-2 py-0.5 bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 rounded text-sm font-medium ml-1">#{selectedTag}</span></>
@@ -109,7 +109,7 @@ const pagination = {
         </p>
         <a
           href={`${import.meta.env.BASE_URL}posts`}
-          class="inline-flex items-center mt-3 text-sm text-primary-500 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
+          class="inline-flex items-center mt-3 text-base text-primary-500 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
         >
           <Icon name="arrow-left" class="w-4 h-4 mr-1" />Show all posts
         </a>

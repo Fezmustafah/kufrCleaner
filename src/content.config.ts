@@ -140,6 +140,20 @@ const tagsCollection = defineCollection({
   }),
 });
 
+// Define schema for category (Map of Content) pages
+const categoriesCollection = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/categories' }),
+  schema: z.object({
+    title: z.string().optional(),
+    description: z.string().nullable().optional(),
+    date: z.coerce.date().optional(),
+    modified: z.coerce.date().optional(),
+    created: z.coerce.date().optional(),
+    image: z.string().nullable().optional(),
+    imageAlt: z.string().nullable().optional(),
+  }),
+});
+
 // Export collections
 export const collections = {
   posts: postsCollection,
@@ -147,5 +161,6 @@ export const collections = {
   manuscripts: manuscriptsCollection,
   special: specialCollection,
   tags: tagsCollection,
+  categories: categoriesCollection,
 };
 

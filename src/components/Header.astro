@@ -66,7 +66,7 @@ const paletteIcon = allSectionsDisabled ? 'search' : 'command';
             <!-- Radial gradient hover glow (mirrors astro-obsidian's mouse-follow effect) -->
             <div id="nav-pill-glow" class="absolute -inset-px rounded-full opacity-0 pointer-events-none transition-opacity duration-500" aria-hidden="true"></div>
 
-            <div class="relative text-sm px-4 flex items-center">
+            <div class="relative text-base px-4 flex items-center">
               {links.map(l => (
                 <a
                   href={l.url}
@@ -290,7 +290,7 @@ document.addEventListener('swup:page:view', loadNavScript);
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-weight: 700;
     text-decoration: none;
     color: rgb(var(--color-primary-700));

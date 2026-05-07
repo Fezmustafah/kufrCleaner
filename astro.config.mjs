@@ -311,6 +311,7 @@ image: {
       updateHead: true,
       updateBodyClass: false,
       globalInstance: true,
+      reloadScripts: false, // SwupScriptsPlugin breaks ES module scripts (import X as Y syntax error)
       plugins: [], // Disable all plugins including scroll
       skipPopStateHandling: (event) => {
         // ALWAYS skip Swup handling for back/forward navigation

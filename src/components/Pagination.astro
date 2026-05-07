@@ -59,13 +59,13 @@ const prevUrl = hasPrev
       {hasPrev ? (
         <a
           href={prevUrl || `${baseUrl}/${currentPage - 1}`}
-          class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-300 bg-white dark:bg-primary-900 border border-primary-300 dark:border-primary-600 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-800 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
+          class="inline-flex items-center px-4 py-2 text-base font-medium text-primary-600 dark:text-primary-300 bg-white dark:bg-primary-900 border border-primary-300 dark:border-primary-600 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-800 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
         >
           <Icon name="arrow-left" class="w-4 h-4 mr-2" />
           Previous
         </a>
       ) : (
-        <span class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-400 dark:text-primary-500 bg-primary-100 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 rounded-lg cursor-not-allowed">
+        <span class="inline-flex items-center px-4 py-2 text-base font-medium text-primary-400 dark:text-primary-500 bg-primary-100 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 rounded-lg cursor-not-allowed">
           <Icon name="arrow-left" class="w-4 h-4 mr-2" />
           Previous
         </span>
@@ -78,7 +78,7 @@ const prevUrl = hasPrev
         typeof page === 'number' ? (
           <a
             href={page === 1 ? baseUrl : `${baseUrl}/${page}`}
-            class={`inline-flex items-center justify-center w-10 h-10 text-sm font-medium rounded-lg transition-colors ${
+            class={`inline-flex items-center justify-center w-10 h-10 text-base font-medium rounded-lg transition-colors ${
               page === currentPage
                 ? 'btn-primary'
                 : 'text-primary-600 dark:text-primary-300 bg-white dark:bg-primary-900 border border-primary-300 dark:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-800 hover:text-primary-800 dark:hover:text-primary-200'
@@ -88,7 +88,7 @@ const prevUrl = hasPrev
             {page}
           </a>
         ) : (
-          <span class="inline-flex items-center justify-center w-10 h-10 text-sm text-primary-400 dark:text-primary-500">
+          <span class="inline-flex items-center justify-center w-10 h-10 text-base text-primary-400 dark:text-primary-500">
             {page}
           </span>
         )
@@ -96,7 +96,7 @@ const prevUrl = hasPrev
     </div>
 
     <!-- Mobile page indicator -->
-    <div class="md:hidden flex items-center space-x-2 text-sm text-primary-600 dark:text-primary-300">
+    <div class="md:hidden flex items-center space-x-2 text-base text-primary-600 dark:text-primary-300">
       <span>
         Page {currentPage} of {totalPages}
       </span>
@@ -107,13 +107,13 @@ const prevUrl = hasPrev
       {hasNext ? (
         <a
           href={nextUrl || `${baseUrl}/${currentPage + 1}`}
-          class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-300 bg-white dark:bg-primary-900 border border-primary-300 dark:border-primary-600 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-800 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
+          class="inline-flex items-center px-4 py-2 text-base font-medium text-primary-600 dark:text-primary-300 bg-white dark:bg-primary-900 border border-primary-300 dark:border-primary-600 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-800 hover:text-primary-800 dark:hover:text-primary-200 transition-colors"
         >
           Next
           <Icon name="arrow-right" class="w-4 h-4 ml-2" />
         </a>
       ) : (
-        <span class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-400 dark:text-primary-500 bg-primary-100 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 rounded-lg cursor-not-allowed">
+        <span class="inline-flex items-center px-4 py-2 text-base font-medium text-primary-400 dark:text-primary-500 bg-primary-100 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 rounded-lg cursor-not-allowed">
           Next
           <Icon name="arrow-right" class="w-4 h-4 ml-2" />
         </span>

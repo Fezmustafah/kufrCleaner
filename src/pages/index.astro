@@ -124,7 +124,7 @@ const structuredData = {
               <span aria-hidden="true" class="section-heading-ornament">◆</span>
               Browse by Topic
             </h2>
-            <a href={`${import.meta.env.BASE_URL}posts`} class="text-sm text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all">
+            <a href={`${import.meta.env.BASE_URL}posts`} class="text-base text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all">
               All articles →
             </a>
           </div>
@@ -135,10 +135,10 @@ const structuredData = {
                 class="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/60 hover:bg-primary-100 dark:hover:bg-primary-800/60 hover:border-highlight-400/60 dark:hover:border-highlight-600/40 transition-all duration-150"
               >
                 <Icon name="book-open" class="w-3.5 h-3.5 text-secondary-500 dark:text-secondary-400 shrink-0" />
-                <span class="font-medium text-xs text-primary-800 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors truncate flex-1">
+                <span class="font-medium text-sm text-primary-800 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors truncate flex-1">
                   {cat}
                 </span>
-                <span class="text-[0.65rem] text-primary-400 dark:text-primary-500 tabular-nums shrink-0">
+                <span class="text-xs text-primary-400 dark:text-primary-500 tabular-nums shrink-0">
                   {categoryPostCounts[cat]}
                 </span>
               </a>
@@ -194,7 +194,7 @@ const structuredData = {
                 </h2>
                 <a
                   href={`${import.meta.env.BASE_URL}posts`}
-                  class="text-sm text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all"
+                  class="text-base text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all"
                 >
                   View all {postCount} →
                 </a>
@@ -243,7 +243,7 @@ const structuredData = {
     align-items: center;
     gap: 0.45rem;
     font-family: var(--font-heading, serif);
-    font-size: 0.72rem;
+    font-size: 0.82rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;

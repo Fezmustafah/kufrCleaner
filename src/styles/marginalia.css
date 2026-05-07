@@ -13,30 +13,6 @@
  *   </span>
  */
 
-/* ── Rough annotation semantic colors ───────────────────────────────────── */
-/*
- * One CSS var per annotation type — distinct semantic color, light + dark.
- * Override any of these per-theme with a [data-theme="name"] selector:
- *
- *   [data-theme="ocean"] { --ann-underline: rgb(59, 130, 246); }
- *
- * JS reads these at runtime, so overrides take effect immediately.
- */
-:root {
-  --ann-highlight: rgba(200, 150,  62, 0.40); /* Alhambra gold  */
-  --ann-underline: rgb(176,  74,  50);         /* terracotta     */
-  --ann-box:       rgb( 45, 106, 106);         /* azulejo teal   */
-  --ann-circle:    rgb(139,  38,  53);         /* pomegranate    */
-  --ann-bracket:   rgb( 44,  82, 130);         /* lapis lazuli   */
-}
-.dark {
-  --ann-highlight: rgba(220, 180,  90, 0.42); /* warm gold — richer on lighter dark bg */
-  --ann-underline: rgb(225, 135, 112);         /* light terracotta */
-  --ann-box:       rgb( 92, 170, 168);         /* zellige teal   */
-  --ann-circle:    rgb(205,  95, 105);         /* pomegranate    */
-  --ann-bracket:   rgb( 95, 148, 210);         /* lapis lazuli   */
-}
-
 /* ── Margin offset vars ──────────────────────────────────────────────────── */
 #post-content {
   --ma-offset: 3rem;

@@ -338,20 +338,36 @@ export const siteConfig: SiteConfig = {
       { title: "Search", url: "/search/" },
       { title: "About", url: "/about/",
         children: [
+          { title: "Contact", url: "/contact/" },
           { title: "Privacy Policy", url: "/privacy-policy/" }
         ] },
     ],
     // [CONFIG:NAVIGATION_SOCIAL]
     social: [
       {
-        title: "X",
-        url: "https://x.com/davidvkimball",
+        title: "X / Twitter",
+        url: "#",
         icon: "x-twitter",
       },
       {
-        title: "GitHub",
-        url: "https://github.com/davidvkimball",
-        icon: "github",
+        title: "YouTube",
+        url: "#",
+        icon: "youtube",
+      },
+      {
+        title: "WhatsApp",
+        url: "#",
+        icon: "whatsapp",
+      },
+      {
+        title: "Discord",
+        url: "#",
+        icon: "discord",
+      },
+      {
+        title: "Telegram",
+        url: "#",
+        icon: "telegram",
       },
     ],
   },

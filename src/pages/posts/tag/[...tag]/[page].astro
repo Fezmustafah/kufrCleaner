@@ -134,7 +134,7 @@ const pagination = {
 
         <!-- Card grid -->
         <div class="p-6">
-          <div class="moc-card-grid">
+          <div class="posts-cards-grid">
             {paginatedPosts.map((post: any, index: number) => (
               <PostCard post={post} context="tags" eager={index < 4} />
             ))}
@@ -183,17 +183,6 @@ const pagination = {
     pointer-events: none;
   }
 
-  .moc-card-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
-
-  @media (min-width: 640px) {
-    .moc-card-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
 
   @media (min-width: 1280px) {
     .tag-moc-grid { padding: 0 1.5rem; }

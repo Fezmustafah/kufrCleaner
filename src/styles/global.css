@@ -11,6 +11,28 @@
 /* Custom callouts from Obsidian Callout Manager (auto-generated at build time) */
 @import './callouts-custom.css';
 
+/* ── Rough annotation semantic colors ───────────────────────────────────── */
+/*
+ * --ann-highlight:  palette-derived (always tracks --color-highlight-*).
+ * --ann-underline/box/circle/bracket: resolved from --ann-*-l (light) or
+ *   --ann-*-d (dark), injected per-theme by updateThemeCSSVariables() in
+ *   BaseLayout. Hex fallbacks cover custom/unknown themes.
+ */
+:root {
+  --ann-highlight: rgb(var(--color-highlight-500) / 0.38);
+  --ann-underline: var(--ann-underline-l, #B45309);
+  --ann-box:       var(--ann-box-l,       #0F766E);
+  --ann-circle:    var(--ann-circle-l,    #B91C1C);
+  --ann-bracket:   var(--ann-bracket-l,   #1E40AF);
+}
+.dark {
+  --ann-highlight: rgb(var(--color-highlight-400) / 0.42);
+  --ann-underline: var(--ann-underline-d, #FCD34D);
+  --ann-box:       var(--ann-box-d,       #2DD4BF);
+  --ann-circle:    var(--ann-circle-d,    #F87171);
+  --ann-bracket:   var(--ann-bracket-d,   #93C5FD);
+}
+
 @tailwind base;
 
 /* Immediately override Tailwind preflight border styles for KaTeX */
