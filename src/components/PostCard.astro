@@ -84,21 +84,20 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
   {/* ── Card body ── */}
   <div class={`p-4 ${image && shouldShowCoverImage ? 'rounded-b-lg' : 'rounded-lg'}`}>
 
-    {/* Category — prominent, z-10 so it's clickable above the card overlay */}
+    {/* Category — own line, right-aligned, above title */}
     {category && siteConfig.postOptions.categories && (
-      <div class="mb-2.5 relative z-10">
+      <div class="mb-1 relative z-10">
         <a
           href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`}
-          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-highlight-500/15 dark:bg-highlight-600/20 text-highlight-700 dark:text-highlight-300 border border-highlight-400/40 dark:border-highlight-600/40 hover:bg-highlight-500/25 hover:border-highlight-500/60 transition-colors"
+          class="text-[0.6rem] font-bold tracking-[0.14em] uppercase text-highlight-600 dark:text-highlight-400 hover:text-highlight-700 dark:hover:text-highlight-300 transition-colors"
           aria-label={`View posts in ${category}`}
         >
-          <Icon name="book-open" class="w-3 h-3" />
           {category}
         </a>
       </div>
     )}
 
-    {/* Title — ::before pseudo covers the whole card as the primary click target */}
+    {/* Title */}
     <h3
       id={`post-title-${post.id}`}
       class={`font-medium leading-snug mb-2 ${featured ? 'text-lg' : 'text-base'}`}
@@ -115,7 +114,7 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
       </p>
     )}
 
-    {/* Meta */}
+    {/* Meta row */}
     <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-primary-400 dark:text-primary-500">
       <time datetime={date.toISOString()}>
         <span class="hidden sm:inline">{formatDate(date)}</span>
@@ -141,13 +140,13 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
       )}
     </div>
 
-    {/* Tags — z-10 so they're clickable above the card overlay */}
+    {/* Tags — bottom left, z-10 above card overlay */}
     {tags && tags.length > 0 && siteConfig.postOptions.tags && (
-      <div class="mt-2.5 flex flex-wrap gap-1.5 relative z-10">
+      <div class="mt-2 flex flex-wrap gap-1.5 relative z-10">
         {tags.slice(0, 3).map((tag: string) => (
           <a
             href={`${import.meta.env.BASE_URL}posts/tag/${tag}`}
-            class="inline-flex items-center gap-1 text-xs text-secondary-600 dark:text-secondary-300 bg-secondary-50 dark:bg-secondary-900/30 px-2 py-0.5 rounded-md border border-secondary-200/70 dark:border-secondary-700/50 hover:bg-secondary-100 dark:hover:bg-secondary-800/40 hover:border-secondary-400/60 hover:text-secondary-700 dark:hover:text-secondary-200 transition-colors"
+            class="inline-flex items-center gap-1 text-xs text-highlight-600 dark:text-highlight-300 bg-highlight-500/10 dark:bg-highlight-600/15 px-2 py-0.5 rounded-md border border-highlight-400/30 dark:border-highlight-600/35 hover:bg-highlight-500/20 dark:hover:bg-highlight-600/25 hover:border-highlight-400/50 hover:text-highlight-700 dark:hover:text-highlight-200 transition-colors"
             aria-label={`View posts tagged with ${tag}`}
           >
             <Icon name="tag" class="w-2.5 h-2.5 opacity-70" />
@@ -155,7 +154,7 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
           </a>
         ))}
         {tags.length > 3 && (
-          <span class="inline-flex items-center text-xs text-secondary-500 dark:text-secondary-400 px-2 py-0.5 rounded-md border border-secondary-200/50 dark:border-secondary-700/40">
+          <span class="inline-flex items-center text-xs text-highlight-500 dark:text-highlight-400 px-2 py-0.5 rounded-md border border-highlight-400/25 dark:border-highlight-600/30">
             +{tags.length - 3}
           </span>
         )}

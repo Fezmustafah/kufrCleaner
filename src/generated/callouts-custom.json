@@ -1,0 +1,17 @@
+{
+  "hadith": {
+    "icon": "scroll-text",
+    "iconType": "lucide",
+    "title": "Hadith"
+  },
+  "bible": {
+    "icon": "book-plus",
+    "iconType": "lucide",
+    "title": "Bible"
+  },
+  "quran": {
+    "icon": "book-heart",
+    "iconType": "lucide",
+    "title": "Quran"
+  }
+}

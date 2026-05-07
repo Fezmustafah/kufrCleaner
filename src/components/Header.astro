@@ -345,6 +345,13 @@ document.addEventListener('swup:page:view', loadNavScript);
   :global(#theme-toggle:active) {
     transform: scale(0.9);
   }
+  @media (hover: none) and (pointer: coarse) {
+    :global(.nav-glass-btn),
+    :global(#theme-toggle) {
+      width: 2.75rem;
+      height: 2.75rem;
+    }
+  }
 
   /* ── Scrolled state: buttons shed glass and blend into the frosted header ── */
   #navbar-wrapper:not(.nav-at-top) :global(.nav-glass-btn),

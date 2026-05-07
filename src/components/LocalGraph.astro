@@ -55,7 +55,7 @@ const { currentSlug } = Astro.props;
     return {
       current: v(dk ? '--color-highlight-400' : '--color-highlight-600'),
       post:    v(dk ? '--color-primary-400'   : '--color-primary-500'),
-      tag:     v(dk ? '--color-secondary-400' : '--color-secondary-500'),
+      tag:     v(dk ? '--color-highlight-500'  : '--color-highlight-300'),
       link:    v(dk ? '--color-primary-700'   : '--color-primary-300'),
       label:   v(dk ? '--color-primary-300'   : '--color-primary-600'),
       bg:      v(dk ? '--color-primary-900'   : '--color-primary-50'),
@@ -96,6 +96,7 @@ const { currentSlug } = Astro.props;
     slug: string,
     W: number, H: number,
     onNodeClick?: (n: GNode) => void,
+    initialScale = 1,
   ): (()=>void) | null {
     canvas.innerHTML = '';
     if (data.nodes.length <= 1) { canvas.style.display = 'none'; return null; }
@@ -126,8 +127,12 @@ const { currentSlug } = Astro.props;
     svg.appendChild(g);
 
     // ── Zoom / pan ────────────────────────────────────────────────────────
-    let tx = 0, ty = 0, sc = 1;
+    // initialScale > 1 keeps the graph center (cx,cy) at the viewport center
+    let sc = initialScale;
+    let tx = cx * (1 - sc);   // = 0 when sc=1, negative offset when sc>1
+    let ty = cy * (1 - sc);
     const applyT = () => g.setAttribute('transform', `translate(${tx},${ty}) scale(${sc})`);
+    applyT(); // apply initial transform immediately
 
     svg.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -140,12 +145,17 @@ const { currentSlug } = Astro.props;
     }, { passive: false });
 
     let panning = false, pdx = 0, pdy = 0;
+    const lockSelection  = () => { document.body.style.userSelect = 'none'; };
+    const restoreSelection = () => { document.body.style.userSelect = ''; };
+
     const panStart = (e: MouseEvent) => {
       if ((e.target as Element).closest('[data-node]')) return;
+      e.preventDefault();
+      lockSelection();
       panning = true; pdx = e.clientX - tx; pdy = e.clientY - ty; svg.style.cursor = 'grabbing';
     };
     const panMove = (e: MouseEvent) => { if (!panning) return; tx = e.clientX-pdx; ty = e.clientY-pdy; applyT(); };
-    const panEnd  = () => { panning = false; svg.style.cursor = 'default'; };
+    const panEnd  = () => { panning = false; svg.style.cursor = 'default'; restoreSelection(); };
     svg.addEventListener('mousedown', panStart);
     window.addEventListener('mousemove', panMove);
     window.addEventListener('mouseup',   panEnd);
@@ -198,6 +208,8 @@ const { currentSlug } = Astro.props;
       let dragStartX = 0, dragStartY = 0, draggingNode = false;
       grp.addEventListener('mousedown', (e) => {
         e.stopPropagation(); // don't start pan
+        e.preventDefault();  // prevent text selection on drag-out
+        lockSelection();
         draggingNode = true;
         dragStartX = e.clientX; dragStartY = e.clientY;
         sim.alphaTarget(0.3).restart();
@@ -209,6 +221,7 @@ const { currentSlug } = Astro.props;
         };
         const onDragEnd = (ev: MouseEvent) => {
           draggingNode = false;
+          restoreSelection();
           sim.alphaTarget(0);
           const dist = Math.hypot(ev.clientX - dragStartX, ev.clientY - dragStartY);
           if (dist < 5) {
@@ -324,11 +337,11 @@ const { currentSlug } = Astro.props;
     const fsCanvas = overlay.querySelector<HTMLElement>('.lg-fs-canvas')!;
     let fsClean: (()=>void)|null = null;
 
-    // Build fullscreen graph — node click navigates + closes
+    // Build fullscreen graph — node click navigates + closes; initialScale=2 zooms in by default
     fsClean = buildGraph(fsCanvas, data, slug, W, H, (n) => {
       close();
       navigateTo(n);
-    });
+    }, 2);
 
     const close = () => {
       if (fsClean) { fsClean(); fsClean = null; }
@@ -339,7 +352,7 @@ const { currentSlug } = Astro.props;
       const canvas = document.getElementById('local-graph-canvas');
       if (canvas && data.nodes.length > 1) {
         _sidebarCleanup?.(); _sidebarCleanup = null;
-        _sidebarCleanup = buildGraph(canvas, data, slug, canvas.offsetWidth||240, 210);
+        _sidebarCleanup = buildGraph(canvas, data, slug, canvas.offsetWidth||240, 210, undefined, 1.8);
       }
     };
 
@@ -385,7 +398,7 @@ const { currentSlug } = Astro.props;
           document.querySelector<HTMLElement>('.left-sidebar-graph')?.remove();
           return;
         }
-        _sidebarCleanup = buildGraph(canvas, filtered, slug, canvas.offsetWidth||240, 210);
+        _sidebarCleanup = buildGraph(canvas, filtered, slug, canvas.offsetWidth||240, 210, undefined, 1.8);
 
         // Wire buttons
         const fsBtn = document.getElementById('local-graph-fullscreen-btn');
@@ -443,7 +456,7 @@ const { currentSlug } = Astro.props;
     const canvas = document.getElementById('local-graph-canvas');
     if (canvas && cached?.data && cached.data.nodes.length > 1) {
       _sidebarCleanup?.(); _sidebarCleanup = null;
-      _sidebarCleanup = buildGraph(canvas, cached.data, cached.slug, canvas.offsetWidth||240, 210);
+      _sidebarCleanup = buildGraph(canvas, cached.data, cached.slug, canvas.offsetWidth||240, 210, undefined, 1.8);
     }
   });
 

@@ -126,7 +126,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
        preserving the navbar hide-on-scroll behaviour without the visual banner. -->
   <div id="post-banner" aria-hidden="true" style="position:absolute;height:clamp(260px,44vh,520px);width:1px;pointer-events:none;visibility:hidden;"></div>
 
-  <div class="py-8">
+  <div class="pt-3 pb-8">
     <div
       class:list={["post-layout-grid", (shouldShowTOC || hasLocalGraphConnections) && "has-left-col"]}
       style={`--contentWidth: ${siteConfig.layout.contentWidth}`}
@@ -336,7 +336,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
           return;
         }
 
-        const NOTE_WIDTH = 200;
+        const NOTE_WIDTH = 260;
         const NOTE_GAP  = 8;   // px between stacked notes
         const SIDE_GAP  = 12;  // px from article right edge to note left edge
 
@@ -556,8 +556,8 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         document.fonts.ready.then(scheduleLayout);
       });
 
-      // Swup page transition — this is the correct event for this codebase
-      document.addEventListener('swup:page:view', () => {
+      // Swup navigation — astro:page-load is the canonical event for @swup/astro
+      document.addEventListener('astro:page-load', () => {
         initMarginalia();
         scheduleLayout();
       });
@@ -708,7 +708,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       }
 
       document.addEventListener('DOMContentLoaded', initHeadingPermalinks);
-      document.addEventListener('swup:page:view', initHeadingPermalinks);
+      document.addEventListener('astro:page-load', initHeadingPermalinks);
     </script>
 
     <!-- Rough annotations -->
@@ -824,7 +824,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
      */
     @media (min-width: 1100px) {
       .post-layout-grid.has-left-col {
-        grid-template-columns: 260px 1fr 220px;
+        grid-template-columns: 300px 1fr 280px;
         column-gap: 0.75rem;
         max-width: var(--page-width);
         margin-left: auto;

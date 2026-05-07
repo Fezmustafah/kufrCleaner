@@ -250,7 +250,7 @@ export const siteConfig: SiteConfig = {
     showSocialIconsInFooter: true,
   },
   //[CONFIG:HIDE_SCROLL_BAR]
-  hideScrollBar: true,
+  hideScrollBar: false,
   // [CONFIG:SCROLL_TO_TOP]
   scrollToTop: true,
   // [CONFIG:FEATURE_BUTTON]

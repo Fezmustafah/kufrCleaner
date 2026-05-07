@@ -1,10 +1,13 @@
 import { visit } from 'unist-util-visit';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 import type { Plugin } from 'unified';
 import type { Root, Blockquote, Paragraph, Text } from 'mdast';
 
 interface CalloutMapping {
   type: string;
-  icon: string;
+  icon: string;        // Lucide icon name (no prefix) OR emoji string
+  iconType?: 'lucide' | 'emoji';
   title: string;
 }
 
@@ -26,45 +29,112 @@ function extractTextFromNode(node: any): string {
   return '';
 }
 
-// Official Lucide SVG icon paths for callouts
+// Lucide SVG paths — covers all Obsidian built-in callout icons + common custom ones
 const iconPaths: Record<string, string> = {
-  'info': '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="m12 8 .01 0"/>',
-  'lightbulb': '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
-  'star': '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>',
-  'triangle-alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17 .01 0"/>',
-  'circle-alert': '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="m12 16 .01 0"/>',
-  'circle-x': '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
-  'circle-help': '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
-  'circle-check': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
-  'bug': '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>',
-  'code': '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
-  'quote': '<path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>',
-  'file-text': '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>'
+  // ── Informational ──
+  'info':            '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="m12 8 .01 0"/>',
+  'lightbulb':       '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  'pencil':          '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
+  'file-text':       '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  'clipboard-list':  '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+  'book-open':       '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 0 3-3h7z"/>',
+  'list':            '<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>',
+  'message-circle':  '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  'quote':           '<path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>',
+  // ── Status / outcome ──
+  'circle-check':    '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  'check-circle-2':  '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  'check':           '<path d="M20 6 9 17l-5-5"/>',
+  'circle-x':        '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+  'x':               '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  'circle-alert':    '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="m12 16 .01 0"/>',
+  'triangle-alert':  '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17 .01 0"/>',
+  'alert-triangle':  '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17 .01 0"/>',
+  'circle-help':     '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  'help-circle':     '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  'bug':             '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>',
+  // ── Emphasis / priority ──
+  'star':            '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>',
+  'flame':           '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3z"/>',
+  'zap':             '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  'bookmark':        '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+  'flag':            '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
+  'heart':           '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  'target':          '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  'trophy':          '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  // ── Time / reference ──
+  'clock':           '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  'calendar':        '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>',
+  'link':            '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  // ── Security / access ──
+  'lock':            '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  'key':             '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+  'shield':          '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  // ── Media / UI ──
+  'eye':             '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  'code':            '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+  'plus':            '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  'wrench':          '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  'edit-3':          '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  // ── Extended for custom callouts ──
+  'search':          '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  'type':            '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/>',
+  'landmark':        '<line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="22"/><line x1="10" x2="10" y1="18" y2="22"/><line x1="14" x2="14" y1="18" y2="22"/><line x1="18" x2="18" y1="18" y2="22"/><path d="M3 18h18"/><path d="M3 14h18"/><path d="m2 14 10-10 10 10"/>',
+  'graduation-cap':  '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+  'message-square':  '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  'scroll':          '<path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 0-2 2z"/><path d="M19 7V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2"/><path d="M19 11H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h14"/>',
+  'book':            '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/>',
+  'scale':           '<path d="m16 2-2.3 2.3"/><path d="M3 22h18"/><path d="M9 22V6"/><path d="M15 22V6"/><path d="m8 2 2.3 2.3"/><path d="m6 7 3 3"/><path d="m15 7 3-3"/><path d="m18 10-3 3"/>',
+  'swords':          '<polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/>',
+  // ── Callout Manager custom icons ──
+  'scroll-text':     '<path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1H10v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2h4"/>',
+  'book-plus':       '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 10h6"/><path d="M12 7v6"/>',
+  'book-heart':      '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M16 8.5c0-.83-.67-1.5-1.5-1.5-.28 0-.54.08-.76.22A1.5 1.5 0 0 0 11 8.5c0 1.2 1.5 2.5 2.25 3.09a.5.5 0 0 0 .57 0C14.5 11 16 9.7 16 8.5"/>',
 };
 
-function getIconSVG(iconName: string): string {
+function getIconSVG(iconName: string, iconType: 'lucide' | 'emoji' = 'lucide'): string {
+  if (iconType === 'emoji') {
+    return `<span class="callout-icon callout-icon-emoji" aria-hidden="true">${iconName}</span>`;
+  }
   const path = iconPaths[iconName] || iconPaths['info'];
   return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="callout-icon">${path}</svg>`;
 }
 
 const calloutMappings: Record<string, CalloutMapping> = {
-  note: { type: 'note', icon: 'info', title: 'Note' },
-  tip: { type: 'tip', icon: 'lightbulb', title: 'Tip' },
-  important: { type: 'important', icon: 'star', title: 'Important' },
-  warning: { type: 'warning', icon: 'triangle-alert', title: 'Warning' },
-  caution: { type: 'caution', icon: 'circle-alert', title: 'Caution' },
-  danger: { type: 'caution', icon: 'circle-x', title: 'Danger' },
-  info: { type: 'note', icon: 'info', title: 'Info' },
-  question: { type: 'important', icon: 'circle-help', title: 'Question' },
-  success: { type: 'tip', icon: 'circle-check', title: 'Success' },
-  failure: { type: 'caution', icon: 'circle-x', title: 'Failure' },
-  bug: { type: 'caution', icon: 'bug', title: 'Bug' },
-  example: { type: 'tip', icon: 'code', title: 'Example' },
-  quote: { type: 'note', icon: 'quote', title: 'Quote' },
-  abstract: { type: 'important', icon: 'file-text', title: 'Abstract' },
-  summary: { type: 'important', icon: 'file-text', title: 'Summary' },
-  tldr: { type: 'important', icon: 'file-text', title: 'TL;DR' }
+  note:      { type: 'note',      icon: 'info',           title: 'Note' },
+  tip:       { type: 'tip',       icon: 'lightbulb',      title: 'Tip' },
+  important: { type: 'important', icon: 'star',           title: 'Important' },
+  warning:   { type: 'warning',   icon: 'triangle-alert', title: 'Warning' },
+  caution:   { type: 'caution',   icon: 'circle-alert',   title: 'Caution' },
+  danger:    { type: 'caution',   icon: 'circle-x',       title: 'Danger' },
+  info:      { type: 'note',      icon: 'info',           title: 'Info' },
+  question:  { type: 'important', icon: 'circle-help',    title: 'Question' },
+  success:   { type: 'tip',       icon: 'circle-check',   title: 'Success' },
+  failure:   { type: 'caution',   icon: 'circle-x',       title: 'Failure' },
+  bug:       { type: 'caution',   icon: 'bug',            title: 'Bug' },
+  example:   { type: 'tip',       icon: 'code',           title: 'Example' },
+  quote:     { type: 'note',      icon: 'quote',          title: 'Quote' },
+  abstract:  { type: 'important', icon: 'clipboard-list', title: 'Abstract' },
+  summary:   { type: 'important', icon: 'clipboard-list', title: 'Summary' },
+  tldr:      { type: 'important', icon: 'clipboard-list', title: 'TL;DR' },
+  todo:      { type: 'note',      icon: 'check-circle-2', title: 'Todo' },
 };
+
+// Merge custom callouts from Callout Manager (generated at build time)
+try {
+  const metaPath = join(process.cwd(), 'src/generated/callouts-custom.json');
+  if (existsSync(metaPath)) {
+    const custom: Record<string, { icon: string; iconType: 'lucide' | 'emoji'; title: string }> =
+      JSON.parse(readFileSync(metaPath, 'utf-8'));
+    for (const [id, meta] of Object.entries(custom)) {
+      if (!calloutMappings[id]) {
+        calloutMappings[id] = { type: id, icon: meta.icon, iconType: meta.iconType, title: meta.title };
+      }
+    }
+  }
+} catch {
+  // If metadata not found, custom callouts fall back to default icon
+}
 
 const remarkCallouts: Plugin<[], Root> = () => {
   return (tree) => {
@@ -79,7 +149,7 @@ const remarkCallouts: Plugin<[], Root> = () => {
       
       // Match callout pattern at the start of the paragraph text
       // The custom title capture should stop at newline (title is on same line as callout)
-      const calloutMatch = paragraphText.match(/^\[!([\w-]+)\]([+\-]?)(?:\s+([^\n]+))?/);
+      const calloutMatch = paragraphText.match(/^\[!([\w-]+)\]([+\-]?)(?:[ \t]+([^\n]+))?/);
       
       if (!calloutMatch) return;
       
@@ -112,10 +182,8 @@ const remarkCallouts: Plugin<[], Root> = () => {
                                 calloutStartsOnOwnLine !== null || 
                                 remainingText.length === 0;
       
-      // Determine the actual title to use - ALWAYS use mapped title when callout is on its own line
-      const calloutTitle = isCalloutOnOwnLine
-        ? mapping.title  // Use mapped title when callout is on its own line
-        : (customTitle || mapping.title);  // Use custom title if provided, otherwise mapped title
+      // Custom title on the [!type] line always wins; fall back to mapped title
+      const calloutTitle = customTitle || mapping.title;
       
       // Determine if callout should be collapsible and its initial state
       const isCollapsible = collapseState === '+' || collapseState === '-';
@@ -177,7 +245,7 @@ const remarkCallouts: Plugin<[], Root> = () => {
         type: 'html',
         value: `<div class="callout${isCollapsible ? ' is-collapsible' : ''}${isCollapsed ? ' is-collapsed' : ''}" data-callout="${calloutKey}">
           <div class="callout-title">
-            ${getIconSVG(mapping.icon)}
+            ${getIconSVG(mapping.icon, mapping.iconType ?? 'lucide')}
             <div class="callout-title-inner"><span>${calloutTitle}</span></div>
             ${foldIcon}
           </div>

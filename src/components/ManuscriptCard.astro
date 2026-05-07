@@ -114,8 +114,9 @@ const pdfHref = pdf ? `${import.meta.env.BASE_URL}manuscripts/${pdf}` : null;
     {tags && tags.length > 0 && (
       <div class="flex flex-wrap gap-1 mb-4">
         {tags.slice(0, 5).map(tag => (
-          <span class="text-xs px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-800 text-primary-600 dark:text-primary-300">
-            #{tag}
+          <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-highlight-500/10 dark:bg-highlight-600/15 text-highlight-600 dark:text-highlight-300 border border-highlight-400/30 dark:border-highlight-600/35">
+            <Icon name="tag" class="w-2.5 h-2.5 opacity-70" />
+            {tag}
           </span>
         ))}
       </div>

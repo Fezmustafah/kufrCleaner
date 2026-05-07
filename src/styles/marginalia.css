@@ -191,7 +191,7 @@ label.footnote-number::after {
   .footnote {
     display: block;
     position: absolute;
-    width: 200px;
+    width: 260px;
     margin: 0;
     cursor: pointer;
     /* top + left are set by layoutMarginaliaFloats() */

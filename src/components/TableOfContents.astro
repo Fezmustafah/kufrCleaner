@@ -209,6 +209,10 @@ const processedHeadings = filteredHeadings.map(h => {
         if (headingId) flashHeadingAnnotation(headingId);
       });
     });
+
+    // Only show dashed border after genuine mouse movement — not on cursor-already-over-element
+    nav.addEventListener('mousemove', () => nav.classList.add('is-hovered'), { once: false });
+    nav.addEventListener('mouseleave', () => nav.classList.remove('is-hovered'));
   }
 
   (window as any).initializeTableOfContents = initializeTableOfContents;
@@ -301,8 +305,8 @@ const processedHeadings = filteredHeadings.map(h => {
     overflow: hidden;
     box-sizing: border-box;
     position: relative;
-    padding: 0.48rem 0.62rem;
-    min-height: 2.2rem;
+    padding: 0.28rem 0.62rem;
+    min-height: 1.8rem;
   }
   .toc-item:hover {
     background: rgb(var(--color-primary-100) / 0.84);
@@ -337,12 +341,12 @@ const processedHeadings = filteredHeadings.map(h => {
   :global(.dark) .toc-active-indicator {
     background: rgb(var(--color-highlight-500) / 0.08);
   }
-  /* Hover: show gold dashed border */
-  .toc-nav:hover .toc-active-indicator {
+  /* Dashed border only after intentional mouse movement (JS adds .is-hovered) */
+  .toc-nav.is-hovered .toc-active-indicator {
     background: rgb(var(--color-highlight-400) / 0.05);
     border-color: rgb(var(--color-highlight-400) / 0.35);
   }
-  :global(.dark) .toc-nav:hover .toc-active-indicator {
+  :global(.dark) .toc-nav.is-hovered .toc-active-indicator {
     border-color: rgb(var(--color-highlight-500) / 0.35);
   }
 
@@ -351,10 +355,10 @@ const processedHeadings = filteredHeadings.map(h => {
     display: grid;
     place-items: center;
     flex-shrink: 0;
-    width: 1.35rem;
-    height: 1.35rem;
+    width: 1.6rem;
+    height: 1.6rem;
     border-radius: var(--radius-xs);
-    font-size: 0.68rem;
+    font-size: 0.9rem;
     font-weight: 700;
     line-height: 1;
   }

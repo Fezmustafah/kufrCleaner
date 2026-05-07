@@ -39,12 +39,11 @@ export interface Props {
 
 const { seoData, bodyClass = '' } = Astro.props;
 
-// Determine scrollbar class based on configuration
-const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
+const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrollbars';
 ---
 
 <!DOCTYPE html>
-<html lang={siteConfig.language} class={`scrollbar-hide ${scrollbarClass}`} data-theme-config={siteConfig.theme} data-custom-theme-file={siteConfig.customThemeFile} data-available-themes={JSON.stringify(siteConfig.availableThemes)} data-command-palette-enabled={siteConfig.commandPalette.enabled} data-command-palette-change-theme={siteConfig.commandPalette.quickActions.changeTheme} data-feature-button={siteConfig.featureButton} data-favicon-theme-adaptive={siteConfig.faviconThemeAdaptive}>
+<html lang={siteConfig.language} class={`${scrollbarClass}`} data-theme-config={siteConfig.theme} data-custom-theme-file={siteConfig.customThemeFile} data-available-themes={JSON.stringify(siteConfig.availableThemes)} data-command-palette-enabled={siteConfig.commandPalette.enabled} data-command-palette-change-theme={siteConfig.commandPalette.quickActions.changeTheme} data-feature-button={siteConfig.featureButton} data-favicon-theme-adaptive={siteConfig.faviconThemeAdaptive}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1390,39 +1389,44 @@ const scrollbarClass = siteConfig.hideScrollBar ? '' : 'show-scrollbars';
     // Single place for all global re-initialization. Fires on initial load + every Swup navigation.
     // Component-specific init (lightbox, graph, annotations, marginalia) lives in each component.
     document.addEventListener('astro:page-load', () => {
-      const theme = getThemeWithoutClearing();
-      document.documentElement.setAttribute('data-theme', theme);
-      updateThemeCSSVariables(theme).catch(console.error);
-      setFavicon();
+      // Each call isolated — one failure must not block the rest
+      const safe = (fn: () => void) => { try { fn(); } catch (e) { if (isDev) console.warn('[page-load]', e); } };
 
-      if (document.querySelector('#giscus-comments')) window.initializeGiscusComments?.();
-      window.initializeLinkedMentions?.();
-      window.initializeWikilinks?.();
-      window.initializeTableOfContents?.();
-      window.initializeCategoryFiltering?.();
-      window.initializeDocCategoryFiltering?.();
-      window.initializeProjectCategoryFiltering?.();
-      window.initializeGraphModal?.();
-      window.initSidebarToggle?.();
-      window.resetGraph?.();
-      window.initializeGraph?.();
-      window.setupGraphButtons?.();
-      window.processExternalLinks?.();
-      window.initializeTwitterWidgets?.();
-      window.initializeCategoryScroll?.();
-      window.initializeTagsSidebar?.();
-      window.initializeCategoriesSidebar?.();
-      initializeCollapsibleCallouts();
-      setupSmoothScrolling();
-      updateNavigationHighlighting();
+      safe(() => {
+        const theme = getThemeWithoutClearing();
+        document.documentElement.setAttribute('data-theme', theme);
+        updateThemeCSSVariables(theme).catch(console.error);
+        setFavicon();
+      });
+
+      if (document.querySelector('#giscus-comments')) safe(() => window.initializeGiscusComments?.());
+      safe(() => window.initializeLinkedMentions?.());
+      safe(() => window.initializeWikilinks?.());
+      safe(() => window.initializeTableOfContents?.());
+      safe(() => window.initializeCategoryFiltering?.());
+      safe(() => window.initializeDocCategoryFiltering?.());
+      safe(() => window.initializeProjectCategoryFiltering?.());
+      safe(() => window.initializeGraphModal?.());
+      safe(() => window.initSidebarToggle?.());
+      safe(() => window.resetGraph?.());
+      safe(() => window.initializeGraph?.());
+      safe(() => window.setupGraphButtons?.());
+      safe(() => window.processExternalLinks?.());
+      safe(() => window.initializeTwitterWidgets?.());
+      safe(() => window.initializeCategoryScroll?.());
+      safe(() => window.initializeTagsSidebar?.());
+      safe(() => window.initializeCategoriesSidebar?.());
+      safe(() => initializeCollapsibleCallouts());
+      safe(() => setupSmoothScrolling());
+      safe(() => updateNavigationHighlighting());
 
       // Slight delay for embeds/tables/Mermaid that depend on other scripts settling
       setTimeout(() => {
-        window.initializeBaseEmbeds?.();
-        window.initializeTableWrappers?.();
-        window.initializeMermaid?.();
-        window.updateTOCHeight?.();
-        window.initializeCollapsibleCategories?.();
+        safe(() => window.initializeBaseEmbeds?.());
+        safe(() => window.initializeTableWrappers?.());
+        safe(() => window.initializeMermaid?.());
+        safe(() => window.updateTOCHeight?.());
+        safe(() => window.initializeCollapsibleCategories?.());
       }, 50);
     });
 

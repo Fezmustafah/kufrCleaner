@@ -512,8 +512,37 @@ import Icon from './Icon.astro';
 
       simulation.alpha(1).restart();
 
-      // Don't auto-fit to graph - let user control the view
-      // Only fit if explicitly requested via keyboard shortcut
+      // Fit graph to viewport at given zoom multiplier (used by 'c' keyboard shortcut)
+      function fitGraphView(multiplier = 1) {
+        const svgNode = svg.node();
+        if (!svgNode) return;
+        const { width, height } = svgNode.getBoundingClientRect();
+        const nodeEls = svg.selectAll('g[data-id]').nodes();
+        if (!nodeEls.length) return;
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        nodeEls.forEach((node) => {
+          if (!(node instanceof Element)) return;
+          const m = node.getAttribute('transform')?.match(/translate\(([^,]+),\s*([^)]+)\)/);
+          if (m) {
+            const x = parseFloat(m[1]), y = parseFloat(m[2]);
+            minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+          }
+        });
+
+        const pad = 60;
+        const scale = Math.max(0.1, Math.min(4,
+          Math.min(width / (maxX - minX + pad * 2), height / (maxY - minY + pad * 2)) * multiplier
+        ));
+        const cx = (width  / 2) / scale - (minX + maxX) / 2;
+        const cy = (height / 2) / scale - (minY + maxY) / 2;
+
+        svg.transition().duration(400).call(
+          zoom.transform as any,
+          d3.zoomIdentity.scale(scale).translate(cx, cy)
+        );
+      }
 
       // Set up cleanup function
       cleanup = () => {
@@ -540,61 +569,7 @@ import Icon from './Icon.astro';
               }
               break;
             case 'c':
-              if (svg) {
-                // Get the SVG dimensions
-                const svgNode = svg.node();
-                if (!svgNode) return;
-                const svgRect = svgNode.getBoundingClientRect();
-                const width = svgRect.width;
-                const height = svgRect.height;
-                
-                // Get all nodes to calculate bounds
-                const nodes = svg.selectAll('g[data-id]').nodes();
-                if (nodes.length === 0) return;
-                
-                // Calculate bounding box of all nodes
-                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                nodes.forEach((node) => {
-                  if (node && node instanceof Element) {
-                    const transform = node.getAttribute('transform');
-                    if (transform) {
-                      const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-                      if (match) {
-                        const x = parseFloat(match[1]);
-                        const y = parseFloat(match[2]);
-                        minX = Math.min(minX, x);
-                        maxX = Math.max(maxX, x);
-                        minY = Math.min(minY, y);
-                        maxY = Math.max(maxY, y);
-                      }
-                    }
-                  }
-                });
-                
-                // Add padding
-                const padding = 50;
-                const boundsWidth = maxX - minX + padding * 2;
-                const boundsHeight = maxY - minY + padding * 2;
-                
-                // Calculate scale to fit viewport
-                const scaleX = width / boundsWidth;
-                const scaleY = height / boundsHeight;
-                const scale = Math.min(scaleX, scaleY); // Allow zoom out (scale < 1)
-                
-                // Constrain scale to reasonable bounds (0.1 to 3)
-                const constrainedScale = Math.max(0.1, Math.min(3, scale));
-                
-                // Calculate translation to center
-                const graphCenterX = (minX + maxX) / 2;
-                const graphCenterY = (minY + maxY) / 2;
-                const centerX = (width / 2) / constrainedScale - graphCenterX;
-                const centerY = (height / 2) / constrainedScale - graphCenterY;
-                
-                svg.transition().duration(300).call(
-                  zoom.transform as any,
-                  d3.zoomIdentity.scale(constrainedScale).translate(centerX, centerY)
-                );
-              }
+              fitGraphView(1);
               break;
           }
         }

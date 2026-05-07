@@ -8,6 +8,9 @@
 /* Swup page transition animations */
 @import './transition.css';
 
+/* Custom callouts from Obsidian Callout Manager (auto-generated at build time) */
+@import './callouts-custom.css';
+
 @tailwind base;
 
 /* Immediately override Tailwind preflight border styles for KaTeX */
@@ -206,8 +209,7 @@ p:has(.katex-display) {
   --inline-code-bg: 226 206 175;
   --inline-code-text: 78 56 34;
 
-  /* Highlight/selection colors — burnished Alhambra gold */
-  --selection-bg: 200 150 62;
+  /* Selection color — derived from highlight at runtime, no hardcoding needed */
 }
 
 .dark {
@@ -224,7 +226,7 @@ p:has(.katex-display) {
 }
 
 html {
-  font-size: 115%;
+  font-size: 100%;
   scroll-behavior: auto;
   scroll-padding-top: 2rem;
 }
@@ -240,63 +242,52 @@ body {
   font-display: var(--font-display, swap);
 }
 
-/* Scrollbar Configuration */
-:root {
-  --scrollbar-display: none;
-  --scrollbar-width: none;
-  --scrollbar-ms-overflow: none;
+/* ── Custom scrollbars — thin, palette-compatible, matches TOC style ── */
+
+/* Hide-all mode (hideScrollBar: true in config) */
+.scrollbar-hide, .scrollbar-hide * {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+.scrollbar-hide ::-webkit-scrollbar {
+  display: none !important;
 }
 
-/* Hide scrollbars by default */
-::-webkit-scrollbar {
-  display: none;
-}
-
-* {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Show minimal modern scrollbars when hideScrollBar is false */
+/* Custom scrollbar mode (hideScrollBar: false in config) */
 .show-scrollbars {
-  --scrollbar-display: block !important;
-  --scrollbar-width: auto !important;
-  --scrollbar-ms-overflow: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-primary-300) / 0.5) transparent;
+}
+.dark.show-scrollbars,
+.dark .show-scrollbars {
+  scrollbar-color: rgb(var(--color-primary-600) / 0.45) transparent;
 }
 
-/* Use completely native scrollbars - no custom styling */
 .show-scrollbars ::-webkit-scrollbar,
-body.show-scrollbars ::-webkit-scrollbar {
-  display: block !important;
-  /* Remove all custom width, colors, and styling - use browser defaults */
+.show-scrollbars::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
-
-/* Override the global scrollbar hiding for show-scrollbars */
-.show-scrollbars * {
-  -ms-overflow-style: auto !important;
-  scrollbar-width: auto !important;
+.show-scrollbars ::-webkit-scrollbar-track,
+.show-scrollbars::-webkit-scrollbar-track {
+  background: transparent;
 }
-
-/* Firefox-specific scrollbar styling */
-.show-scrollbars,
-body.show-scrollbars,
-html.show-scrollbars {
-  scrollbar-width: auto !important;
-  /* Remove custom colors to use browser default */
+.show-scrollbars ::-webkit-scrollbar-thumb,
+.show-scrollbars::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-primary-300) / 0.5);
+  border-radius: 3px;
 }
-
-/* Force scrollbars to appear in Firefox - but don't interfere with sticky positioning */
-.show-scrollbars {
-  /* Use min-height instead of overflow to force scrollbars without breaking sticky positioning */
-  min-height: 100vh;
-  /* Don't set overflow as it can interfere with sticky positioning */
-  /* overflow: auto !important; */
+.show-scrollbars ::-webkit-scrollbar-thumb:hover,
+.show-scrollbars::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--color-primary-400) / 0.7);
 }
-
-/* Ensure body and html have scrollbars when needed - but don't interfere with sticky positioning */
-body.show-scrollbars {
-  /* Don't set overflow on body element as it can interfere with sticky positioning */
-  /* overflow: auto !important; */
+.dark .show-scrollbars ::-webkit-scrollbar-thumb,
+.dark.show-scrollbars::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-primary-600) / 0.45);
+}
+.dark .show-scrollbars ::-webkit-scrollbar-thumb:hover,
+.dark.show-scrollbars::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--color-primary-500) / 0.65);
 }
 
 html.show-scrollbars {
@@ -304,14 +295,14 @@ html.show-scrollbars {
   /* overflow: auto !important; */
 }
 
-/* Selection Colors */
+/* Selection Colors — tracks the active palette highlight */
 ::selection {
-  background-color: rgb(var(--selection-bg) / 0.2);
+  background-color: rgb(var(--color-highlight-500) / 0.25);
   color: inherit;
 }
 
 ::-moz-selection {
-  background-color: rgb(var(--selection-bg) / 0.2);
+  background-color: rgb(var(--color-highlight-500) / 0.25);
   color: inherit;
 }
 
@@ -417,7 +408,7 @@ a {
 }
 
 a:hover {
-  @apply text-secondary-600 dark:text-secondary-400 opacity-90;
+  @apply text-highlight-700 dark:text-highlight-300 opacity-90;
 }
 
 /* Wikilinks */
@@ -426,7 +417,7 @@ a:hover {
 }
 
 .wikilink:hover {
-  @apply text-secondary-600 dark:text-secondary-400 opacity-90 no-underline;
+  @apply text-highlight-700 dark:text-highlight-300 opacity-90 no-underline;
 }
 
 /* Ensure wikilink styling applies even inside .prose */
@@ -435,7 +426,7 @@ a:hover {
 }
 
 .prose a.wikilink:hover {
-  @apply text-secondary-600 dark:text-secondary-400 opacity-90 no-underline !important;
+  @apply text-highlight-700 dark:text-highlight-300 opacity-90 no-underline !important;
 }
 
 /* EXCLUDE heading links from wikilink styling */
@@ -551,13 +542,13 @@ pre::-webkit-scrollbar-track, .prose pre::-webkit-scrollbar-track,
 
 pre::-webkit-scrollbar-thumb, .prose pre::-webkit-scrollbar-thumb,
 .astro-code::-webkit-scrollbar-thumb, .prose .astro-code::-webkit-scrollbar-thumb {
-  background-color: rgba(200, 150, 62, 0.4) !important;
+  background-color: rgb(var(--color-highlight-500) / 0.4) !important;
   border-radius: 4px !important;
 }
 
 pre::-webkit-scrollbar-thumb:hover, .prose pre::-webkit-scrollbar-thumb:hover,
 .astro-code::-webkit-scrollbar-thumb:hover, .prose .astro-code::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(200, 150, 62, 0.7) !important;
+  background-color: rgb(var(--color-highlight-500) / 0.7) !important;
 }
 
 /* Keyboard Shortcuts */
@@ -675,19 +666,16 @@ textarea {
 .animate-slide-up { animation: slideUp 0.3s ease-out; }
 .animate-scale-in { animation: scaleIn 0.2s ease-out; }
 
-/* Callout Styles — aarnphm visual language
+/* Callout Styles
  * Base .callout consumes vars with fallback. Vars are defined exclusively on [data-callout]
  * selectors so equal-specificity (0,2,0) source order determines which type wins.
- */
-/*
- * Callout system — Al Andalus themed
- * Base uses CSS vars set per [data-callout] type.
- * Border: uniform 1px frame + 3px top accent. Fully rounded. No asymmetric left-border.
+ * Neutral types (note/info/example/quote) use palette highlight vars.
+ * Semantic types (tip/success/warning/danger) keep universal semantic colors.
  */
 .callout {
-  border: 1px solid var(--callout-border, rgba(44, 82, 130, 0.22));
-  border-top: 3px solid var(--callout-color, #2C5282);
-  background-color: var(--callout-bg, rgba(44, 82, 130, 0.07));
+  border: 1px solid var(--callout-border, rgb(var(--color-highlight-500) / 0.22));
+  border-top: 3px solid var(--callout-color, rgb(var(--color-highlight-600)));
+  background-color: var(--callout-bg, rgb(var(--color-highlight-500) / 0.07));
   border-radius: var(--radius-md);
   padding: 0 1rem;
   overflow-y: hidden;
@@ -695,111 +683,108 @@ textarea {
   margin: 1.5rem 0;
 }
 
-/* ── Light mode — Al Andalus palette ─────────────────────────────────────── */
+/* ── Light mode ───────────────────────────────────────────────────────────── */
 
-/* note/info/todo — lapis lazuli (scholarly blue) */
-.callout[data-callout],
+/* note/info/todo — palette highlight */
 .callout[data-callout='note'],
 .callout[data-callout='info'],
 .callout[data-callout='todo'] {
-  --callout-color:  #2C5080;
-  --callout-border: rgba(44, 80, 128, 0.22);
-  --callout-bg:     rgba(44, 80, 128, 0.07);
+  --callout-color:  rgb(var(--color-highlight-600));
+  --callout-border: rgb(var(--color-highlight-500) / 0.22);
+  --callout-bg:     rgb(var(--color-highlight-500) / 0.07);
 }
 
-/* tip — zellige teal */
+/* tip — teal (semantic) */
 .callout[data-callout='tip'] {
-  --callout-color:  #1A8070;
-  --callout-border: rgba(26, 128, 112, 0.22);
-  --callout-bg:     rgba(26, 128, 112, 0.07);
+  --callout-color:  #0F766E;
+  --callout-border: rgba(15, 118, 110, 0.22);
+  --callout-bg:     rgba(15, 118, 110, 0.07);
 }
 
-/* success — Andalusian sage */
+/* success — emerald (semantic) */
 .callout[data-callout='success'] {
-  --callout-color:  #3D7040;
-  --callout-border: rgba(61, 112, 64, 0.22);
-  --callout-bg:     rgba(61, 112, 64, 0.07);
+  --callout-color:  #15803D;
+  --callout-border: rgba(21, 128, 61, 0.22);
+  --callout-bg:     rgba(21, 128, 61, 0.07);
 }
 
-/* warning — terracotta */
+/* warning — amber (semantic) */
 .callout[data-callout='warning'] {
-  --callout-color:  #B85A28;
-  --callout-border: rgba(184, 90, 40, 0.22);
-  --callout-bg:     rgba(184, 90, 40, 0.07);
+  --callout-color:  #B45309;
+  --callout-border: rgba(180, 83, 9, 0.22);
+  --callout-bg:     rgba(180, 83, 9, 0.07);
 }
 
-/* danger/caution — pomegranate */
+/* danger/caution — red (semantic) */
 .callout[data-callout='caution'],
 .callout[data-callout='danger'],
 .callout[data-callout='failure'],
 .callout[data-callout='bug'] {
-  --callout-color:  #8C2432;
-  --callout-border: rgba(140, 36, 50, 0.22);
-  --callout-bg:     rgba(140, 36, 50, 0.07);
+  --callout-color:  #B91C1C;
+  --callout-border: rgba(185, 28, 28, 0.22);
+  --callout-bg:     rgba(185, 28, 28, 0.07);
 }
 
-/* important/question/abstract — deep lapis */
+/* important/question/abstract — palette highlight (darker shade = more prominent) */
 .callout[data-callout='important'],
 .callout[data-callout='question'],
 .callout[data-callout='abstract'],
 .callout[data-callout='summary'],
 .callout[data-callout='tldr'] {
-  --callout-color:  #1A3A60;
-  --callout-border: rgba(26, 58, 96, 0.22);
-  --callout-bg:     rgba(26, 58, 96, 0.07);
+  --callout-color:  rgb(var(--color-highlight-700));
+  --callout-border: rgb(var(--color-highlight-600) / 0.22);
+  --callout-bg:     rgb(var(--color-highlight-600) / 0.07);
 }
 
-/* example — azulejo */
+/* example — palette highlight (mid shade) */
 .callout[data-callout='example'] {
-  --callout-color:  #2A6E7A;
-  --callout-border: rgba(42, 110, 122, 0.22);
-  --callout-bg:     rgba(42, 110, 122, 0.07);
+  --callout-color:  rgb(var(--color-highlight-500));
+  --callout-border: rgb(var(--color-highlight-400) / 0.22);
+  --callout-bg:     rgb(var(--color-highlight-400) / 0.07);
 }
 
-/* quote — Alhambra gold */
+/* quote — palette highlight */
 .callout[data-callout='quote'] {
-  --callout-color:  #9A6C05;
-  --callout-border: rgba(154, 108, 5, 0.25);
-  --callout-bg:     rgba(154, 108, 5, 0.07);
+  --callout-color:  rgb(var(--color-highlight-600));
+  --callout-border: rgb(var(--color-highlight-500) / 0.25);
+  --callout-bg:     rgb(var(--color-highlight-500) / 0.07);
 }
 
-/* ── Dark mode — brighter Al Andalus palette on warm walnut backgrounds ──── */
-/* Colors are lighter/brighter versions so they read against dark bg */
+/* ── Dark mode ────────────────────────────────────────────────────────────── */
 
-.dark .callout[data-callout],
 .dark .callout[data-callout='note'],
 .dark .callout[data-callout='info'],
 .dark .callout[data-callout='todo'] {
-  --callout-color:  #7AAEE8;
-  --callout-border: rgba(122, 174, 232, 0.28);
-  --callout-bg:     rgba(122, 174, 232, 0.10);
+  --callout-color:  rgb(var(--color-highlight-400));
+  --callout-border: rgb(var(--color-highlight-400) / 0.28);
+  --callout-bg:     rgb(var(--color-highlight-400) / 0.10);
 }
 
 .dark .callout[data-callout='tip'] {
-  --callout-color:  #4CBFAC;
-  --callout-border: rgba(76, 191, 172, 0.28);
-  --callout-bg:     rgba(76, 191, 172, 0.10);
+  --callout-color:  #2DD4BF;
+  --callout-border: rgba(45, 212, 191, 0.28);
+  --callout-bg:     rgba(45, 212, 191, 0.10);
 }
 
 .dark .callout[data-callout='success'] {
-  --callout-color:  #7EC07A;
-  --callout-border: rgba(126, 192, 122, 0.28);
-  --callout-bg:     rgba(126, 192, 122, 0.10);
+  --callout-color:  #4ADE80;
+  --callout-border: rgba(74, 222, 128, 0.28);
+  --callout-bg:     rgba(74, 222, 128, 0.10);
 }
 
 .dark .callout[data-callout='warning'] {
-  --callout-color:  #E8986A;
-  --callout-border: rgba(232, 152, 106, 0.28);
-  --callout-bg:     rgba(232, 152, 106, 0.10);
+  --callout-color:  #FCD34D;
+  --callout-border: rgba(252, 211, 77, 0.28);
+  --callout-bg:     rgba(252, 211, 77, 0.10);
 }
 
 .dark .callout[data-callout='caution'],
 .dark .callout[data-callout='danger'],
 .dark .callout[data-callout='failure'],
 .dark .callout[data-callout='bug'] {
-  --callout-color:  #E06878;
-  --callout-border: rgba(224, 104, 120, 0.28);
-  --callout-bg:     rgba(224, 104, 120, 0.10);
+  --callout-color:  #F87171;
+  --callout-border: rgba(248, 113, 113, 0.28);
+  --callout-bg:     rgba(248, 113, 113, 0.10);
 }
 
 .dark .callout[data-callout='important'],
@@ -807,21 +792,21 @@ textarea {
 .dark .callout[data-callout='abstract'],
 .dark .callout[data-callout='summary'],
 .dark .callout[data-callout='tldr'] {
-  --callout-color:  #6898D8;
-  --callout-border: rgba(104, 152, 216, 0.28);
-  --callout-bg:     rgba(104, 152, 216, 0.10);
+  --callout-color:  rgb(var(--color-highlight-300));
+  --callout-border: rgb(var(--color-highlight-400) / 0.28);
+  --callout-bg:     rgb(var(--color-highlight-400) / 0.10);
 }
 
 .dark .callout[data-callout='example'] {
-  --callout-color:  #60B0C0;
-  --callout-border: rgba(96, 176, 192, 0.28);
-  --callout-bg:     rgba(96, 176, 192, 0.10);
+  --callout-color:  rgb(var(--color-highlight-400));
+  --callout-border: rgb(var(--color-highlight-400) / 0.28);
+  --callout-bg:     rgb(var(--color-highlight-400) / 0.10);
 }
 
 .dark .callout[data-callout='quote'] {
-  --callout-color:  #D4AC50;
-  --callout-border: rgba(212, 172, 80, 0.28);
-  --callout-bg:     rgba(212, 172, 80, 0.10);
+  --callout-color:  rgb(var(--color-highlight-300));
+  --callout-border: rgb(var(--color-highlight-400) / 0.28);
+  --callout-bg:     rgb(var(--color-highlight-400) / 0.10);
 }
 
 /* Title row */
@@ -846,6 +831,14 @@ textarea {
   flex-shrink: 0;
 }
 
+/* Emoji icon variant */
+.callout-icon-emoji {
+  width: auto;
+  height: auto;
+  font-size: 1rem;
+  line-height: 1;
+}
+
 /* Title text */
 .callout-title-inner {
   font-weight: 600;
@@ -856,6 +849,20 @@ textarea {
 .callout-title-inner > span {
   color: var(--callout-color, #448aff);
   margin: 0;
+}
+
+/* Strip prose paragraph margins inside callouts */
+.callout .callout-content p {
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+}
+
+.callout .callout-content p:first-child {
+  margin-top: 0;
+}
+
+.callout .callout-content p:last-child {
+  margin-bottom: 0;
 }
 
 /* Fold chevron */
@@ -999,9 +1006,9 @@ textarea {
   font-display: var(--font-display, swap);
 }
 
-.prose h1 { @apply text-xl mt-8 mb-6; }
-.prose h2 { @apply text-lg mt-8 mb-4; }
-.prose h3 { @apply text-base mt-6 mb-3; }
+.prose h1 { @apply mt-8 mb-6; }
+.prose h2 { @apply mt-7 mb-3; }
+.prose h3 { @apply mt-5 mb-2; }
 .prose h4 { @apply text-base mt-5 mb-2; }
 .prose h5 { @apply text-base mt-4 mb-2; }
 .prose h6 { @apply text-base mt-4 mb-2; }
@@ -1065,15 +1072,15 @@ textarea {
 }
 
 .prose mark {
-  background: rgba(200, 150, 62, 0.32);
+  background: rgb(var(--color-highlight-500) / 0.25);
   color: inherit;
   padding: 0.08em 0.25em;
   border-radius: var(--radius-xs);
-  border-bottom: 1px solid rgba(200, 150, 62, 0.45);
+  border-bottom: 1px solid rgb(var(--color-highlight-500) / 0.45);
 }
 .dark .prose mark {
-  background: rgba(200, 150, 62, 0.22);
-  border-bottom-color: rgba(200, 150, 62, 0.35);
+  background: rgb(var(--color-highlight-400) / 0.22);
+  border-bottom-color: rgb(var(--color-highlight-400) / 0.4);
 }
 
 /* Lists */
@@ -1830,7 +1837,7 @@ svg:has(text:contains("mermaid version")) {
 
 /* ── Fuwari-compatible CSS vars ──────────────────────────────────────────── */
 :root {
-  --page-width: 75rem;
+  --page-width: 82rem;
   --primary: rgb(var(--color-highlight-600));
   --card-bg: rgb(var(--color-primary-50) / 0.82);   /* semi-transparent glass navbar */
   --btn-plain-bg-hover: rgb(var(--color-primary-100));

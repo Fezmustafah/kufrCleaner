@@ -436,6 +436,9 @@ function processExcerptLinks(text: string, targetSlug: string): string {
     initializeLinkedMentions();
   }
 
+  // Reinit on Swup navigation
+  document.addEventListener('astro:page-load', initializeLinkedMentions);
+
   // Make function globally accessible for Swup hooks
   (window as any).initializeLinkedMentions = initializeLinkedMentions;
 </script>

@@ -165,7 +165,7 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     font-weight: 600;
     letter-spacing: clamp(0.06em, 2vw, 0.15em);
     color: rgb(var(--color-primary-50));
-    text-shadow: 0 0 60px rgba(200, 150, 62, 0.3);
+    text-shadow: 0 0 60px rgb(var(--color-highlight-500) / 0.3);
     line-height: 1.1;
     margin: 0 0 0.85rem;
     text-transform: uppercase;
@@ -200,8 +200,8 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     font-style: italic;
     font-size: 0.78rem;
     color: rgb(var(--color-primary-300));
-    border-top: 1px solid rgb(var(--color-secondary-400) / 0.35);
-    border-bottom: 1px solid rgb(var(--color-secondary-400) / 0.35);
+    border-top: 1px solid rgb(var(--color-highlight-500) / 0.35);
+    border-bottom: 1px solid rgb(var(--color-highlight-500) / 0.35);
     padding: 0.45rem 1.25rem;
     margin: 0 auto 2rem;
     letter-spacing: 0.04em;
@@ -222,6 +222,7 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     display: inline-flex;
     align-items: center;
     padding: 0.55rem 1.35rem;
+    min-height: 2.75rem;
     background: rgb(var(--color-highlight-500));
     color: #fff;
     font-family: var(--font-prose, serif);
@@ -245,6 +246,7 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     align-items: center;
     gap: 0.5rem;
     padding: 0.55rem 1.1rem;
+    min-height: 2.75rem;
     background: transparent;
     color: rgb(var(--color-highlight-300));
     font-family: var(--font-prose, serif);
@@ -270,6 +272,9 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     border-radius: 0.15rem;
     color: rgb(var(--color-primary-300));
   }
+  @media (hover: none) and (pointer: coarse) {
+    .hero-btn-outline kbd { display: none; }
+  }
 
   .hero-btn-ghost {
     display: inline-flex;
@@ -279,7 +284,8 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     color: rgb(var(--color-primary-400));
     text-decoration: none;
     border-bottom: 1px dotted rgb(var(--color-primary-600));
-    padding-bottom: 0.05em;
+    padding: 0.6rem 0.25rem 0.05em;
+    min-height: 2.75rem;
     transition: color 0.15s, border-color 0.15s;
     white-space: nowrap;
   }
@@ -328,13 +334,20 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     50%       { transform: translateX(-50%) translateY(6px); }
   }
 
-  /* ── Mobile ── */
+  /* ── Tablet (481px–768px) ── */
+  @media (max-width: 768px) {
+    .hero-inner { max-width: 38rem; margin: 0 auto; }
+    .hero-mission { font-size: clamp(0.85rem, 3vw, 1rem); }
+  }
+
+  /* ── Mobile (≤480px) ── */
   @media (max-width: 480px) {
     .hero-section { padding: calc(3.5rem + 3rem) 1rem 2rem; }
-    .hero-ctas { gap: 0.6rem; }
+    .hero-ornament-top { margin-bottom: 1.25rem; }
+    .hero-ctas { gap: 0.6rem; flex-direction: column; align-items: stretch; }
     .hero-btn-primary,
     .hero-btn-outline { width: 100%; justify-content: center; }
-    .hero-btn-ghost { margin-top: 0.25rem; }
+    .hero-btn-ghost { margin-top: 0.25rem; justify-content: center; }
     .hero-stats { font-size: 0.72rem; padding: 0.4rem 0.9rem; }
   }
 </style>

@@ -60,9 +60,23 @@ export default {
           css: {
             maxWidth: 'none',
             color: 'inherit',
+            fontSize: '1.0625rem',
+            lineHeight: '1.75',
             p: {
-              marginTop: '1.25em',
-              marginBottom: '1.25em',
+              marginTop: '0.85em',
+              marginBottom: '0.85em',
+            },
+            'h2 + *': { marginTop: '0.6em' },
+            'h3 + *': { marginTop: '0.5em' },
+            h2: {
+              fontSize: '1.4em',
+              marginTop: '1.75em',
+              marginBottom: '0.6em',
+            },
+            h3: {
+              fontSize: '1.35em',
+              marginTop: '1.5em',
+              marginBottom: '0.5em',
             },
             'h1, h2, h3, h4, h5, h6': {
               fontFamily: getFontFamily(siteConfig.fonts.families.heading),
@@ -70,12 +84,12 @@ export default {
               scrollMarginTop: '2rem',
             },
             a: {
-              color: '#9A6C05',
+              color: 'rgb(var(--color-highlight-600))',
               textDecoration: 'none',
               fontWeight: '500',
-              borderBottom: '1px dotted rgba(200, 150, 62, 0.5)',
+              borderBottom: '1px dotted rgb(var(--color-highlight-500) / 0.5)',
               '&:hover': {
-                color: '#C8963E',
+                color: 'rgb(var(--color-highlight-700))',
                 borderBottomStyle: 'solid',
                 textDecoration: 'none',
               }
@@ -118,8 +132,8 @@ export default {
               fontStyle: 'italic',
               color: 'inherit',
               borderLeftWidth: '3px',
-              borderLeftColor: '#C8963E',
-              backgroundColor: 'rgba(200, 150, 62, 0.04)',
+              borderLeftColor: 'rgb(var(--color-highlight-500))',
+              backgroundColor: 'rgb(var(--color-highlight-500) / 0.04)',
               borderRadius: '0 0.25rem 0.25rem 0',
               quotes: '"\\201C""\\201D""\\2018""\\2019"',
               marginTop: '1.6em',
@@ -136,21 +150,21 @@ export default {
             },
             table: {
               borderTopWidth: '2px',
-              borderTopColor: 'rgba(200, 150, 62, 0.35)',
+              borderTopColor: 'rgb(var(--color-highlight-500) / 0.35)',
               borderBottomWidth: '2px',
-              borderBottomColor: 'rgba(200, 150, 62, 0.35)',
+              borderBottomColor: 'rgb(var(--color-highlight-500) / 0.35)',
             },
             thead: {
-              backgroundColor: 'rgba(200, 150, 62, 0.06)',
+              backgroundColor: 'rgb(var(--color-highlight-500) / 0.06)',
               borderBottomWidth: '1px',
-              borderBottomColor: 'rgba(200, 150, 62, 0.25)',
+              borderBottomColor: 'rgb(var(--color-highlight-500) / 0.25)',
             },
             'thead th': {
               letterSpacing: '0.04em',
               fontWeight: '600',
             },
             'tbody tr': {
-              borderBottomColor: 'rgba(200, 150, 62, 0.12)',
+              borderBottomColor: 'rgb(var(--color-highlight-500) / 0.12)',
             },
             'blockquote p:first-of-type::before': {
               content: '""',
@@ -162,19 +176,19 @@ export default {
         },
         dark: {
           css: {
-            color: '#E0CEAF',  // primary-200 — warm sand, far easier on the eyes than cold slate
+            color: 'rgb(var(--color-primary-200))',
             code: {
               backgroundColor: 'rgb(42 28 12 / 0.8)',
             },
             blockquote: {
-              borderLeftColor: '#C8963E',
-              backgroundColor: 'rgba(200, 150, 62, 0.06)',
+              borderLeftColor: 'rgb(var(--color-highlight-500))',
+              backgroundColor: 'rgb(var(--color-highlight-500) / 0.06)',
               color: 'inherit',
             },
             a: {
-              color: '#D4AC52',
+              color: 'rgb(var(--color-highlight-400))',
               '&:hover': {
-                color: '#EAD08A',
+                color: 'rgb(var(--color-highlight-300))',
               }
             },
           }
@@ -214,12 +228,12 @@ export default {
         },
         '.text-selection-highlight': {
           '::selection': {
-            backgroundColor: '#C8963E',
-            color: '#ffffff'
+            backgroundColor: 'rgb(var(--color-highlight-500))',
+            color: 'rgb(var(--color-primary-50))'
           },
           '::-moz-selection': {
-            backgroundColor: '#C8963E',
-            color: '#ffffff'
+            backgroundColor: 'rgb(var(--color-highlight-500))',
+            color: 'rgb(var(--color-primary-50))'
           }
         }
       })
