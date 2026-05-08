@@ -272,14 +272,14 @@
   force = true
 
 [[redirects]]
-  from = "/posts/debunking-the-myth-that-life-originated-by-chance-through-serendipitous-chemical-reactions-and-res"
-  to = "/posts/can-life-arise-by-chance-debunking-abiogenesis-through-logic-and-cell-biology"
+  from = "/posts/with-the-eyes"
+  to = "/posts/can-believers-see-allah-resolving-the-alleged-contradiction-between-quran-75-22-83-15-and-6-103"
   status = 301
   force = true
 
 [[redirects]]
-  from = "/posts/65-4-surah-talaq-4-child-marriage"
-  to = "/posts/child-marriage-in-islam-main-article"
+  from = "/posts/debunking-the-myth-that-life-originated-by-chance-through-serendipitous-chemical-reactions-and-res"
+  to = "/posts/can-life-arise-by-chance-debunking-abiogenesis-through-logic-and-cell-biology"
   status = 301
   force = true
 
@@ -358,12 +358,6 @@
 [[redirects]]
   from = "/posts/the-response-to-christs-claim-is-that-god-creates-from-clay-the-shape-of-a-bird-and-it-becomes-a-b"
   to = "/posts/did-jesus-creating-a-bird-from-clay-prove-he-is-god-quran-gospel-scholars-answer"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/ahmad"
-  to = "/posts/did-jesus-prophesy-ahmad-in-john-16-the-greek-arabic-connection-explained"
   status = 301
   force = true
 
@@ -496,6 +490,12 @@
 [[redirects]]
   from = "/posts/dawud-4449-trust-tawrat"
   to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-place-his-hand-on-the-torah-refuting-the-weak-hisham-ibn-sad-report"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/wrestled-with-satan"
+  to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-really-wrestle-the-devil-refuting-the-missionary-doubt-with-their-own-bible"
   status = 301
   force = true
 
@@ -676,6 +676,12 @@
 [[redirects]]
   from = "/posts/the-response-to-the-doubt-and-he-made-the-moon-a-light-in-them"
   to = "/posts/does-the-moon-light-up-all-seven-heavens-surah-nuh-71-1516-explained-with-tafsir-arabic-grammar"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/word-of-god-and-spirit-of-god"
+  to = "/posts/does-the-quran-prove-jesus-is-god-the-word-of-god-missionary-deception-exposed"
   status = 301
   force = true
 
@@ -890,6 +896,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/why-does-the-quran-describe-birds-as-speaking"
+  to = "/posts/mantiq-al-tayr-did-the-quran-misuse-the-word-for-speech-the-linguistic-doubt-refuted"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/marginalia"
   to = "/posts/marginalia-test"
   status = 301
@@ -914,8 +926,14 @@
   force = true
 
 [[redirects]]
-  from = "/posts/historical-proofs-december-2024-update"
-  to = "/posts/moon-split-2"
+  from = "/posts/moon-split"
+  to = "/posts/moon-split-miracle-nasa-mayan-and-indian-evidence-that-critics-ignore"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/moon-split-2"
+  to = "/posts/moon-split-notes"
   status = 301
   force = true
 
@@ -934,6 +952,12 @@
 [[redirects]]
   from = "/posts/noahs-flood-peace-be-upon-him"
   to = "/posts/noahs-flood-was-it-global-or-local-the-quran-vs-the-torah"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/why-does-god-swear-by-his-creatures-and-not-by-his-divine-self"
+  to = "/posts/oaths-in-the-quran-why-does-allah-swear-by-his-creation-the-eloquence-and-purpose-explained"
   status = 301
   force = true
 
@@ -976,6 +1000,12 @@
 [[redirects]]
   from = "/posts/update-2026-1468269937515823264"
   to = "/posts/refuting-the-dirham-anachronism-how-the-quran-accurately-describes-ancient-currency"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/why-is-there-repetition-in-quran"
+  to = "/posts/repetition-in-the-quran-weakness-or-eloquence-a-complete-refutation"
   status = 301
   force = true
 
@@ -1082,12 +1112,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/mecca-in-the-bible-the-hidden-prophecy-of-psalm-84-bakkah"
-  to = "/posts/the-man-of-bakkah-in-psalm-84-ancient-manuscripts-hebrew-linguistics-the-prophet-صلى-الله-عليه-وسلم"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/aisha-broke-plates"
   to = "/posts/the-prophet-صلى-الله-عليه-وسلم-aishas-jealousy-and-the-bowl-incident-refuting-claims-of-lust-and-misconduct"
   status = 301
@@ -1162,6 +1186,12 @@
 [[redirects]]
   from = "/posts/ajwa-dates"
   to = "/posts/the-seven-ajwa-dates-does-the-prophet-being-bewitched-disprove-the-hadith"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/who-is-speaking-in-surat-al-fatihah"
+  to = "/posts/the-shift-from-third-person-to-second-person-in-surah-al-fatihah-linguistic-error-or-rhetorical-mastery"
   status = 301
   force = true
 
@@ -1292,6 +1322,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/why-did-god-create-pigs-and-then-forbid-them-the-importance-of-harmful-and-harmful-animals"
+  to = "/posts/why-did-god-create-pigs-if-theyre-forbidden-the-hidden-purpose-of-harmful-animals-in-islam"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/and-then-sends-a-prophet"
   to = "/posts/why-did-god-leave-people-for-600-years-before-sending-prophet-muhammad"
   status = 301
@@ -1324,6 +1360,12 @@
 [[redirects]]
   from = "/posts/circumcision-a-medical-and-legislative-miracle-in-the-final-message"
   to = "/posts/why-islam-prescribed-circumcision-modern-medicine-confirms-the-sunnah"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/why-was-the-quran-not-compiled-during-the-era-of-the-prophet"
+  to = "/posts/why-was-the-quran-not-compiled-during-the-prophets-lifetime-the-doubt-answered"
   status = 301
   force = true
 

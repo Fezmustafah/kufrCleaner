@@ -469,17 +469,27 @@ const { currentSlug } = Astro.props;
     initializeLocalGraph();
     setupLocalGraphButtons();
   });
-  // astro:page-load: Swup navigation — reset stale graph data then build fresh
-  document.addEventListener('astro:page-load', () => {
+  // astro:after-swap: fires right after DOM swap, before animation.
+  // Scripts loaded by SwupHeadPlugin before swap, so listeners registered in time.
+  document.addEventListener('astro:after-swap', () => {
     resetLocalGraph();
     initializeLocalGraph();
     setupLocalGraphButtons();
   });
+  // astro:page-load: keep as fallback for direct load (fired by @swup/astro on page:view)
+  document.addEventListener('astro:page-load', () => {
+    if (!_initialized) {
+      initializeLocalGraph();
+      setupLocalGraphButtons();
+    }
+  });
   // Self-init: script loaded into already-ready page (command palette from non-post page —
   // script is new so it missed both DOMContentLoaded and astro:page-load)
   if (document.readyState !== 'loading') {
-    initializeLocalGraph();
-    setupLocalGraphButtons();
+    requestAnimationFrame(() => {
+      initializeLocalGraph();
+      setupLocalGraphButtons();
+    });
   }
   // pageshow: bfcache restore (browser back/forward)
   window.addEventListener('pageshow', e => {

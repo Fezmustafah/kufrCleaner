@@ -296,7 +296,10 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
   </div>
   </div>
 
-  <Fragment slot="scripts">
+  <!-- Scripts: hoisted by Astro to <head> as compiled modules.
+       Previously wrapped in <Fragment slot="scripts"> which caused them to be rendered
+       as inline uncompiled TypeScript in BaseLayout's body <slot name="scripts">.
+       Without the Fragment wrapper, Astro's script hoisting compiles and deduplicates them. -->
     <!-- Marginalia: hover highlighting + popover (<1100px) + scroll+hash (≥1100px) -->
     <script>
       // (sidebar collapsed state is persisted via kufrCleaner:sidebarCollapsed in localStorage)
@@ -556,10 +559,19 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         document.fonts.ready.then(scheduleLayout);
       });
 
-      // Swup navigation — astro:page-load is the canonical event for @swup/astro
-      document.addEventListener('astro:page-load', () => {
+      // astro:after-swap fires immediately after DOM swap (before animation).
+      // Scripts are guaranteed loaded by this point (SwupHeadPlugin awaitAssets:true).
+      // This is earlier and more reliable than astro:page-load for DOM-dependent init.
+      document.addEventListener('astro:after-swap', () => {
         initMarginalia();
         scheduleLayout();
+      });
+
+      // astro:page-load fires after animation completes — use as re-layout fallback
+      // (handles fonts/images that may still be settling post-animation)
+      document.addEventListener('astro:page-load', () => {
+        scheduleLayout();
+        setTimeout(() => layoutMarginaliaFloats(), 100);
       });
 
       // Self-init: script evaluated into an already-live page (missed DOMContentLoaded)
@@ -780,7 +792,6 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         if (isDark !== _annLastDark) { _annLastDark = isDark; initAnnotations({ animate: false }); }
       }).observe(document.documentElement, { attributeFilter: ['class'] });
     </script>
-  </Fragment>
 
   <!-- Lightbox is handled globally by BaseLayout -->
 

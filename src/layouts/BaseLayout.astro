@@ -1160,6 +1160,30 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     } else {
       processExternalLinks();
     }
+
+    // ── Swup navigation reinit ───────────────────────────────────────────────
+    // Fires on every astro:page-load (dispatched by @swup/astro after page:view).
+    // Polls until module functions are available, then calls them.
+    // This is in is:inline so it runs on every page without hoisting/TS issues.
+    document.addEventListener('astro:page-load', function() {
+      var t = 0;
+      function reinit() {
+        var hasMarg = typeof window.initializeMarginalia === 'function';
+        var hasGraph = typeof window.initializeLocalGraph === 'function';
+        if (!hasMarg && !hasGraph && t++ < 25) { setTimeout(reinit, 100); return; }
+        if (typeof window.initializeMarginalia === 'function') {
+          window.initializeMarginalia();
+          if (typeof window.layoutMarginaliaFloats === 'function') window.layoutMarginaliaFloats();
+        }
+        if (typeof window.resetLocalGraph === 'function') window.resetLocalGraph();
+        if (typeof window.initializeLocalGraph === 'function') window.initializeLocalGraph();
+        if (typeof window.setupLocalGraphButtons === 'function') window.setupLocalGraphButtons();
+        setTimeout(function() {
+          if (typeof window.initializeAnnotations === 'function') window.initializeAnnotations();
+        }, 0);
+      }
+      reinit();
+    });
   </script>
 
   <!-- View Transitions - temporarily disabled to fix compiler issues -->
@@ -1441,19 +1465,35 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
         if (isDev) {
         }
 
-        // content:replace: runs BEFORE new content is visible.
-        // Only handle things that must happen at swap time.
+        // content:replace: runs immediately after DOM swap.
+        // With SwupHeadPlugin awaitAssets:true, new scripts are already loaded here.
         window.swup.hooks.on('content:replace', () => {
-          (document.getElementById('img-lightbox') as HTMLDialogElement | null)?.close();
+          const _lb = document.getElementById('img-lightbox'); if (_lb && typeof _lb.close === 'function') _lb.close();
           const theme = getThemeWithoutClearing();
           document.documentElement.setAttribute('data-theme', theme);
           updateThemeCSSVariables(theme).catch(console.error);
           setFavicon();
         });
 
-        // Favicon is handled by CSS media queries - no JavaScript needed
-        // Note: component-specific init (lightbox, marginalia, annotations, graph) is handled
-        // by each component's own astro:page-load listener. BaseLayout only wires globals here.
+        // page:view: fires after animations complete (same trigger as astro:page-load).
+        // Re-initialize all dynamic components directly via window.* refs.
+        // This is a direct Swup hook — more reliable than relying on event dispatch + listeners.
+        window.swup.hooks.on('page:view', () => {
+          const safe = function(fn) { try { fn(); } catch (e) {} };
+          // Marginalia: reset positions and re-init interaction
+          safe(() => window.initializeMarginalia?.());
+          safe(() => window.layoutMarginaliaFloats?.());
+          // Local graph: reset stale data and rebuild for new post
+          safe(() => window.resetLocalGraph?.());
+          safe(() => window.initializeLocalGraph?.());
+          safe(() => window.setupLocalGraphButtons?.());
+          // Annotations (rough notation)
+          safe(() => window.initializeAnnotations?.());
+          // Sidebar toggle, wikilinks, TOC
+          safe(() => window.initSidebarToggle?.());
+          safe(() => window.initializeWikilinks?.());
+          safe(() => window.initializeTableOfContents?.());
+        });
 
       } else if (swupRetryCount < maxSwupRetries) {
         swupRetryCount++;
@@ -1476,7 +1516,7 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     // Component-specific init (lightbox, graph, annotations, marginalia) lives in each component.
     document.addEventListener('astro:page-load', () => {
       // Each call isolated — one failure must not block the rest
-      const safe = (fn: () => void) => { try { fn(); } catch (e) { if (isDev) console.warn('[page-load]', e); } };
+      const safe = function(fn) { try { fn(); } catch (e) { if (isDev) console.warn('[page-load]', e); } };
 
       safe(() => {
         const theme = getThemeWithoutClearing();
@@ -1494,9 +1534,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       safe(() => window.initializeProjectCategoryFiltering?.());
       safe(() => window.initializeGraphModal?.());
       safe(() => window.initSidebarToggle?.());
-      safe(() => window.resetGraph?.());
-      safe(() => window.initializeGraph?.());
-      safe(() => window.setupGraphButtons?.());
       safe(() => window.processExternalLinks?.());
       safe(() => window.initializeTwitterWidgets?.());
       safe(() => window.initializeCategoryScroll?.());
@@ -1513,7 +1550,13 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
         safe(() => window.initializeMermaid?.());
         safe(() => window.updateTOCHeight?.());
         safe(() => window.initializeCollapsibleCategories?.());
-      }, 50);
+        // Marginalia and graph re-layout: retry after DOM/fonts settle.
+        // Primary init is handled by PostLayout/LocalGraph own listeners;
+        // this is a safety net for the homepage→post navigation case where
+        // those scripts may not yet be loaded when astro:page-load first fires.
+        safe(() => window.initializeMarginalia?.());
+        safe(() => window.layoutMarginaliaFloats?.());
+      }, 100);
     });
 
     // bfcache restore (browser back/forward — Swup skips these via skipPopStateHandling:true).
