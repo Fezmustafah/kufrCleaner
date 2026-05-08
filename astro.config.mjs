@@ -18,6 +18,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeMark from './src/utils/rehype-mark.ts';
 import rehypeImageAttributes from './src/utils/rehype-image-attributes.ts';
 import { rehypeNormalizeAnchors } from './src/utils/rehype-normalize-anchors.ts';
+import rehypeRebaseLinks from './src/utils/rehype-rebase-links.ts';
 import rehypeFigureCaptions from './src/utils/rehype-figure-captions.ts';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
@@ -398,6 +399,7 @@ image: {
         },
       }],
       rehypeNormalizeAnchors, // Run LAST to ensure className and href fixes aren't overridden
+      ...(isGitHubPages ? [[rehypeRebaseLinks, { base: '/kufrCleaner/' }] as any] : []),
     ],
     shikiConfig: {
       theme: 'github-dark',

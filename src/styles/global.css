@@ -1045,6 +1045,7 @@ textarea {
 
 .prose a {
   @apply text-highlight-600 dark:text-highlight-400 font-medium no-underline transition-colors duration-200;
+  overflow-wrap: anywhere;
 }
 
 .prose a:hover {
@@ -1124,34 +1125,48 @@ textarea {
 }
 
 /* Tables */
+/* Clip horizontal overflow from post content without breaking absolute-positioned marginalia */
+#post-content {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 .prose table {
   @apply border-collapse w-full;
+}
+
+/* Bare tables (not wrapped by remark) get their own scroll container */
+.prose table:not(.table-wrapper table) {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }
 
 /* Table wrapper styling - high specificity */
 .prose .table-wrapper,
 .table-wrapper {
   overflow-x: auto !important;
-  overflow-y: hidden !important; /* Maintains rounded corners while allowing horizontal scroll */
+  overflow-y: visible !important;
   -webkit-overflow-scrolling: touch;
   margin: 1.5rem 0 !important;
   border-radius: var(--radius-lg) !important;
   @apply border border-primary-300 dark:border-primary-600 bg-white dark:bg-primary-800;
-  position: relative; /* Enable edge hint pseudo-elements */
+  position: relative;
 }
 
 .table-wrapper table {
   margin: 0 !important;
   width: 100%;
-  min-width: 500px;
+  min-width: 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
 .prose th, .prose td {
   @apply border-0 border-r border-b border-primary-200 dark:border-primary-600 px-4 py-3;
-  white-space: nowrap;
-  min-width: 100px;
+  white-space: normal;
+  min-width: 80px;
   transition: background-color 0.2s ease;
 }
 
@@ -1196,13 +1211,6 @@ textarea {
   @apply bg-primary-700 !important;
 }
 
-@media (min-width: 768px) {
-  .prose th, .prose td {
-    white-space: normal;
-    min-width: auto;
-  }
-}
-
 @media (max-width: 767px) {
   .prose table {
     font-size: 0.875rem;
@@ -1210,7 +1218,6 @@ textarea {
   }
   .prose th, .prose td {
     @apply px-3 py-2;
-    min-width: 80px;
   }
 }
 
