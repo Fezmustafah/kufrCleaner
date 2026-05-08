@@ -36,8 +36,8 @@ const DEPLOYMENT_PLATFORM = process.env.DEPLOYMENT_PLATFORM || 'netlify';
 const isGitHubPages = DEPLOYMENT_PLATFORM === 'github-pages';
 
 export default defineConfig({
-  site: isGitHubPages ? 'https://fezmustafah.github.io' : siteConfig.site,
-  base: isGitHubPages ? '/kufrCleaner/' : undefined,
+  site: siteConfig.site,
+  base: undefined,
   deployment: {
     platform: DEPLOYMENT_PLATFORM
   },
@@ -341,7 +341,7 @@ image: {
       remarkPlugins: [
       remarkCitations,          // Process [@citation-key] inline citations
       remarkObsidianImageSize, // Parse Obsidian image size syntax first
-      [remarkInternalLinks, { base: isGitHubPages ? '/kufrCleaner/' : '/' }],
+      [remarkInternalLinks, { base: '/' }],
       remarkInlineTags,
       remarkObsidianComments, // Remove Obsidian comments (%%...%%) early in processing
       remarkMarginalia,       // Parse {{marginalia}} side notes (⟪...⟫ in .mdx normalized internally)
@@ -413,7 +413,6 @@ image: {
         },
       }],
       rehypeNormalizeAnchors, // Run LAST to ensure className and href fixes aren't overridden
-      ...(isGitHubPages ? [[rehypeRebaseLinks, { base: '/kufrCleaner/' }]] : []),
     ],
     shikiConfig: {
       theme: 'github-dark',

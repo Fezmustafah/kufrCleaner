@@ -188,9 +188,9 @@ export interface SiteConfig {
 export const siteConfig: SiteConfig = {
   // Site Information
   // [CONFIG:SITE_URL]
-  site: "https://kufrcleaner.netlify.app",
+  site: "https://www.openislam.wiki",
   // [CONFIG:SITE_TITLE]
-  title: "KufrCleaner",
+  title: "OpenIslam Wiki",
   // [CONFIG:HOMEPAGE_TITLE]
   homepageTitle: "",
   // [CONFIG:HERO]
