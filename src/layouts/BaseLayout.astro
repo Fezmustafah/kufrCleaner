@@ -1161,29 +1161,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       processExternalLinks();
     }
 
-    // ── Swup navigation reinit ───────────────────────────────────────────────
-    // Fires on every astro:page-load (dispatched by @swup/astro after page:view).
-    // Polls until module functions are available, then calls them.
-    // This is in is:inline so it runs on every page without hoisting/TS issues.
-    document.addEventListener('astro:page-load', function() {
-      var t = 0;
-      function reinit() {
-        var hasMarg = typeof window.initializeMarginalia === 'function';
-        var hasGraph = typeof window.initializeLocalGraph === 'function';
-        if (!hasMarg && !hasGraph && t++ < 25) { setTimeout(reinit, 100); return; }
-        if (typeof window.initializeMarginalia === 'function') {
-          window.initializeMarginalia();
-          if (typeof window.layoutMarginaliaFloats === 'function') window.layoutMarginaliaFloats();
-        }
-        if (typeof window.resetLocalGraph === 'function') window.resetLocalGraph();
-        if (typeof window.initializeLocalGraph === 'function') window.initializeLocalGraph();
-        if (typeof window.setupLocalGraphButtons === 'function') window.setupLocalGraphButtons();
-        setTimeout(function() {
-          if (typeof window.initializeAnnotations === 'function') window.initializeAnnotations();
-        }, 0);
-      }
-      reinit();
-    });
   </script>
 
   <!-- View Transitions - temporarily disabled to fix compiler issues -->
@@ -1475,25 +1452,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
           setFavicon();
         });
 
-        // page:view: fires after animations complete (same trigger as astro:page-load).
-        // Re-initialize all dynamic components directly via window.* refs.
-        // This is a direct Swup hook — more reliable than relying on event dispatch + listeners.
-        window.swup.hooks.on('page:view', () => {
-          const safe = function(fn) { try { fn(); } catch (e) {} };
-          // Marginalia: reset positions and re-init interaction
-          safe(() => window.initializeMarginalia?.());
-          safe(() => window.layoutMarginaliaFloats?.());
-          // Local graph: reset stale data and rebuild for new post
-          safe(() => window.resetLocalGraph?.());
-          safe(() => window.initializeLocalGraph?.());
-          safe(() => window.setupLocalGraphButtons?.());
-          // Annotations (rough notation)
-          safe(() => window.initializeAnnotations?.());
-          // Sidebar toggle, wikilinks, TOC
-          safe(() => window.initSidebarToggle?.());
-          safe(() => window.initializeWikilinks?.());
-          safe(() => window.initializeTableOfContents?.());
-        });
 
       } else if (swupRetryCount < maxSwupRetries) {
         swupRetryCount++;
@@ -1550,12 +1508,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
         safe(() => window.initializeMermaid?.());
         safe(() => window.updateTOCHeight?.());
         safe(() => window.initializeCollapsibleCategories?.());
-        // Marginalia and graph re-layout: retry after DOM/fonts settle.
-        // Primary init is handled by PostLayout/LocalGraph own listeners;
-        // this is a safety net for the homepage→post navigation case where
-        // those scripts may not yet be loaded when astro:page-load first fires.
-        safe(() => window.initializeMarginalia?.());
-        safe(() => window.layoutMarginaliaFloats?.());
       }, 100);
     });
 

@@ -542,48 +542,27 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         }, { signal: sig, passive: true });
       }
 
-      // Expose globally so BaseLayout's Swup hooks can call these
       window['initializeMarginalia']   = initMarginalia;
       window['layoutMarginaliaFloats'] = layoutMarginaliaFloats;
 
-      // Double rAF: first frame exits font-swap reflow, second ensures paint is done
       function scheduleLayout() {
         requestAnimationFrame(() => requestAnimationFrame(() => layoutMarginaliaFloats()));
       }
 
-      // Fresh browser load
-      document.addEventListener('DOMContentLoaded', () => {
+      let _margLastPath = '';
+      function runMarginalia() {
+        const path = window.location.pathname;
+        if (path === _margLastPath) return;
+        _margLastPath = path;
         initMarginalia();
         scheduleLayout();
-        // Belt-and-suspenders: re-run after fonts settle (CDN swap may land late)
         document.fonts.ready.then(scheduleLayout);
-      });
-
-      // astro:after-swap fires immediately after DOM swap (before animation).
-      // Scripts are guaranteed loaded by this point (SwupHeadPlugin awaitAssets:true).
-      // This is earlier and more reliable than astro:page-load for DOM-dependent init.
-      document.addEventListener('astro:after-swap', () => {
-        initMarginalia();
-        scheduleLayout();
-      });
-
-      // astro:page-load fires after animation completes — use as re-layout fallback
-      // (handles fonts/images that may still be settling post-animation)
-      document.addEventListener('astro:page-load', () => {
-        scheduleLayout();
-        setTimeout(() => layoutMarginaliaFloats(), 100);
-      });
-
-      // Self-init: script evaluated into an already-live page (missed DOMContentLoaded)
-      // Wrap in rAF so we don't read getBoundingClientRect before paint
-      if (document.readyState !== 'loading') {
-        requestAnimationFrame(() => {
-          initMarginalia();
-          scheduleLayout();
-        });
       }
 
-      window.addEventListener('pageshow', (e) => { if (e.persisted) { initMarginalia(); scheduleLayout(); } });
+      document.addEventListener('DOMContentLoaded', runMarginalia);
+      document.addEventListener('astro:page-load', runMarginalia);
+      if (document.readyState !== 'loading') requestAnimationFrame(runMarginalia);
+      window.addEventListener('pageshow', e => { if (e.persisted) { _margLastPath = ''; runMarginalia(); } });
     </script>
 
     <!-- Contents sidebar collapse toggle -->
@@ -770,22 +749,28 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         (window as any)._roughAnnotations = annotations;
       }
 
-      // Expose globally for Swup hooks in BaseLayout
       window['initializeAnnotations'] = initAnnotations;
-      // Fresh load: animate (no Swup transition running)
-      document.addEventListener('DOMContentLoaded', () => initAnnotations({ animate: true }));
-      // Swup navigation: wait for fade-in (200ms) to finish, then draw instantly
-      // (animate:true conflicts with Swup's opacity transition — SVG renders invisible)
+
+      let _annLastPath = '';
+      document.addEventListener('DOMContentLoaded', () => {
+        if (_annLastPath) return;
+        _annLastPath = window.location.pathname;
+        initAnnotations({ animate: true });
+      });
       document.addEventListener('astro:page-load', () => {
+        const path = window.location.pathname;
+        if (path === _annLastPath) return;
+        _annLastPath = path;
         setTimeout(() => initAnnotations({ animate: false }), 250);
       });
-      // Self-init: script loaded into already-ready page (command palette from non-post page)
-      if (document.readyState !== 'loading') setTimeout(() => initAnnotations({ animate: false }), 250);
-      window.addEventListener('pageshow', (e) => {
-        if (e.persisted) initAnnotations({ animate: true });
+      if (document.readyState !== 'loading' && !_annLastPath) {
+        _annLastPath = window.location.pathname;
+        setTimeout(() => initAnnotations({ animate: false }), 250);
+      }
+      window.addEventListener('pageshow', e => {
+        if (e.persisted) { _annLastPath = ''; initAnnotations({ animate: true }); }
       });
 
-      // Re-draw instantly (no animation) when dark/light mode toggles
       let _annLastDark = document.documentElement.classList.contains('dark');
       new MutationObserver(() => {
         const isDark = document.documentElement.classList.contains('dark');

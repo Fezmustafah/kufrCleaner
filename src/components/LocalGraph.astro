@@ -46,7 +46,7 @@ const { currentSlug } = Astro.props;
   interface GLink { source: string|GNode; target: string|GNode; type?: string; }
 
   let _sidebarCleanup: (()=>void)|null = null;
-  let _initialized = false;
+  let _lastPath = '';
 
   function colors() {
     const cs = getComputedStyle(document.documentElement);
@@ -379,11 +379,14 @@ const { currentSlug } = Astro.props;
   }
 
   // ── Public API ────────────────────────────────────────────────────────
-  function initializeLocalGraph() {
-    if (_initialized) return;
+  function initLocalGraph() {
+    if (_sidebarCleanup) { _sidebarCleanup(); _sidebarCleanup = null; }
+    _fsOpen = false;
+    (window as any)._localGraphFiltered = null;
+
     const canvas = document.getElementById('local-graph-canvas');
     if (!canvas) return;
-    _initialized = true;
+    canvas.innerHTML = '';
 
     const m    = window.location.pathname.match(/\/posts\/([^/]+)/);
     const slug = m ? decodeURIComponent(m[1]) : '';
@@ -391,16 +394,15 @@ const { currentSlug } = Astro.props;
     fetch(`${import.meta.env.BASE_URL}graph/graph-data.json`)
       .then(r => r.json())
       .then(raw => {
+        if (!document.getElementById('local-graph-canvas')) return;
         const filtered = filterData(raw, slug);
         (window as any)._localGraphFiltered = { data: filtered, slug };
         if (filtered.nodes.length <= 1) {
-          // Hide just the graph widget (TOC in the same left sidebar should remain)
           document.querySelector<HTMLElement>('.left-sidebar-graph')?.remove();
           return;
         }
         _sidebarCleanup = buildGraph(canvas, filtered, slug, canvas.offsetWidth||240, 210, undefined, 1.8);
 
-        // Wire buttons
         const fsBtn = document.getElementById('local-graph-fullscreen-btn');
         fsBtn?.addEventListener('click', e => { e.stopPropagation(); openFullscreen(filtered, slug); });
 
@@ -415,16 +417,9 @@ const { currentSlug } = Astro.props;
         });
       })
       .catch(() => {
-        canvas.innerHTML = '<p class="graph-error">Graph unavailable</p>';
+        const c = document.getElementById('local-graph-canvas');
+        if (c) c.innerHTML = '<p class="graph-error">Graph unavailable</p>';
       });
-  }
-
-  function resetLocalGraph() {
-    if (_sidebarCleanup) { _sidebarCleanup(); _sidebarCleanup = null; }
-    _initialized = false; _fsOpen = false;
-    const canvas = document.getElementById('local-graph-canvas');
-    if (canvas) canvas.innerHTML = '';
-    (window as any)._localGraphFiltered = null;
   }
 
   function setupLocalGraphButtons() {
@@ -450,7 +445,6 @@ const { currentSlug } = Astro.props;
     expandBtn.addEventListener('click', () => toggle(false));
   }
 
-  // Theme re-render
   window.addEventListener('themechange', () => {
     const cached = (window as any)._localGraphFiltered;
     const canvas = document.getElementById('local-graph-canvas');
@@ -460,41 +454,18 @@ const { currentSlug } = Astro.props;
     }
   });
 
-  (window as any).initializeLocalGraph   = initializeLocalGraph;
-  (window as any).resetLocalGraph        = resetLocalGraph;
-  (window as any).setupLocalGraphButtons = setupLocalGraphButtons;
-
-  // DOMContentLoaded: fresh browser URL load — canvas is empty, just init
-  document.addEventListener('DOMContentLoaded', () => {
-    initializeLocalGraph();
+  function run() {
+    const path = window.location.pathname;
+    if (path === _lastPath) return;
+    _lastPath = path;
+    initLocalGraph();
     setupLocalGraphButtons();
-  });
-  // astro:after-swap: fires right after DOM swap, before animation.
-  // Scripts loaded by SwupHeadPlugin before swap, so listeners registered in time.
-  document.addEventListener('astro:after-swap', () => {
-    resetLocalGraph();
-    initializeLocalGraph();
-    setupLocalGraphButtons();
-  });
-  // astro:page-load: keep as fallback for direct load (fired by @swup/astro on page:view)
-  document.addEventListener('astro:page-load', () => {
-    if (!_initialized) {
-      initializeLocalGraph();
-      setupLocalGraphButtons();
-    }
-  });
-  // Self-init: script loaded into already-ready page (command palette from non-post page —
-  // script is new so it missed both DOMContentLoaded and astro:page-load)
-  if (document.readyState !== 'loading') {
-    requestAnimationFrame(() => {
-      initializeLocalGraph();
-      setupLocalGraphButtons();
-    });
   }
-  // pageshow: bfcache restore (browser back/forward)
-  window.addEventListener('pageshow', e => {
-    if (e.persisted) { resetLocalGraph(); initializeLocalGraph(); setupLocalGraphButtons(); }
-  });
+
+  document.addEventListener('DOMContentLoaded', run);
+  document.addEventListener('astro:page-load', run);
+  if (document.readyState !== 'loading') requestAnimationFrame(run);
+  window.addEventListener('pageshow', e => { if (e.persisted) { _lastPath = ''; run(); } });
 </script>
 
 <style>
