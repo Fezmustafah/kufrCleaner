@@ -15,7 +15,8 @@
       "Bash(where npm *)",
       "Bash(where node *)",
       "Bash(npm list *)",
-      "Bash(npm show *)"
+      "Bash(npm show *)",
+      "PowerShell(context-mode upgrade)"
     ]
   }
 }
