@@ -399,7 +399,7 @@ image: {
         },
       }],
       rehypeNormalizeAnchors, // Run LAST to ensure className and href fixes aren't overridden
-      ...(isGitHubPages ? [[rehypeRebaseLinks, { base: '/kufrCleaner/' }] as any] : []),
+      ...(isGitHubPages ? [[rehypeRebaseLinks, { base: '/kufrCleaner/' }]] : []),
     ],
     shikiConfig: {
       theme: 'github-dark',
