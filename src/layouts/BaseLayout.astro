@@ -1229,6 +1229,9 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     <script>
       try { await import('../scripts/annotations-client.ts'); } catch (_) {}
     </script>
+    <script>
+      try { await import('../scripts/toc-client.ts'); } catch (_) {}
+    </script>
 
   <!-- Global scripts - Defer non-critical JavaScript -->
   <script define:vars={{ commentsEnabled: siteConfig.postOptions.comments.enabled }} defer>
