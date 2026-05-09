@@ -1216,6 +1216,19 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     <script>
       try { await import('../scripts/mermaid-client.ts'); } catch (_) {}
     </script>
+    <!-- Always-loaded init modules. With Swup reloadScripts:false, per-component
+         scripts that aren't on the initial page never run after Swup nav. These
+         imports guarantee the init code is present on every page; each module
+         no-ops when its target DOM elements aren't present. -->
+    <script>
+      try { await import('../scripts/local-graph-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/marginalia-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/annotations-client.ts'); } catch (_) {}
+    </script>
 
   <!-- Global scripts - Defer non-critical JavaScript -->
   <script define:vars={{ commentsEnabled: siteConfig.postOptions.comments.enabled }} defer>
@@ -1439,32 +1452,26 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
 
     function setupSwupHooks() {
       if (window.swup) {
-        if (isDev) {
-        }
-
-        // content:replace: runs immediately after DOM swap.
-        // With SwupHeadPlugin awaitAssets:true, new scripts are already loaded here.
-        window.swup.hooks.on('content:replace', () => {
-          const _lb = document.getElementById('img-lightbox'); if (_lb && typeof _lb.close === 'function') _lb.close();
-          const theme = getThemeWithoutClearing();
+        // Theme/favicon refresh on every Swup swap.
+        window.swup.hooks.on('content:replace', function () {
+          var _lb = document.getElementById('img-lightbox'); if (_lb && typeof _lb.close === 'function') _lb.close();
+          var theme = getThemeWithoutClearing();
           document.documentElement.setAttribute('data-theme', theme);
           updateThemeCSSVariables(theme).catch(console.error);
           setFavicon();
         });
-
-
+        // No <ViewTransitions/>, so astro:page-load never fires natively.
+        // Dispatch synthetically on every Swup view so per-feature client modules
+        // (local-graph-client, marginalia-client, annotations-client, etc.) re-run init.
+        window.swup.hooks.on('page:view', function () {
+          document.dispatchEvent(new Event('astro:page-load'));
+        });
       } else if (swupRetryCount < maxSwupRetries) {
         swupRetryCount++;
-        if (isDev) {
-        }
         setTimeout(setupSwupHooks, 100);
-      } else {
-        if (isDev) {
-        }
       }
     }
 
-    // Start setting up Swup hooks
     setupSwupHooks();
 
     // astro:page-load fires on initial page load AND after every Swup navigation.
@@ -1472,9 +1479,8 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     // astro:page-load listeners. This listener handles BaseLayout-level globals only.
     // Single place for all global re-initialization. Fires on initial load + every Swup navigation.
     // Component-specific init (lightbox, graph, annotations, marginalia) lives in each component.
-    document.addEventListener('astro:page-load', () => {
-      // Each call isolated — one failure must not block the rest
-      const safe = function(fn) { try { fn(); } catch (e) { if (isDev) console.warn('[page-load]', e); } };
+    document.addEventListener('astro:page-load', function () {
+      var safe = function(fn) { try { fn(); } catch (e) { console.warn('[page-load]', e); } };
 
       safe(() => {
         const theme = getThemeWithoutClearing();
@@ -1500,6 +1506,10 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       safe(() => initializeCollapsibleCallouts());
       safe(() => setupSmoothScrolling());
       safe(() => updateNavigationHighlighting());
+      // Component safety-net: deduped by _lastPath in each run fn — no-op if already ran
+      safe(function () { if (window._lgRun) window._lgRun(); });
+      safe(function () { if (window._margRun) window._margRun(); });
+      safe(function () { if (window._annRun) window._annRun(); });
 
       // Slight delay for embeds/tables/Mermaid that depend on other scripts settling
       setTimeout(() => {

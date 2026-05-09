@@ -457,7 +457,8 @@ image: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
     },
     optimizeDeps: {
-      exclude: ['astro:content']
+      exclude: ['astro:content'],
+      include: ['d3-force', 'rough-notation']
     },
     exclude: ['**/_redirects']
   },

@@ -300,270 +300,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
        Previously wrapped in <Fragment slot="scripts"> which caused them to be rendered
        as inline uncompiled TypeScript in BaseLayout's body <slot name="scripts">.
        Without the Fragment wrapper, Astro's script hoisting compiles and deduplicates them. -->
-    <!-- Marginalia: hover highlighting + popover (<1100px) + scroll+hash (≥1100px) -->
-    <script>
-      // (sidebar collapsed state is persisted via kufrCleaner:sidebarCollapsed in localStorage)
-
-      function wireImgLightbox(img: HTMLImageElement, beforeOpen?: (e: MouseEvent) => void) {
-        if ((img as any)._lightboxWired) return;
-        (img as any)._lightboxWired = true;
-        img.style.cursor = 'pointer';
-        img.addEventListener('click', (e) => {
-          beforeOpen?.(e);
-          if (typeof window.openLightbox === 'function') {
-            window.openLightbox(img.src, img.alt || '');
-          }
-        });
-      }
-
-      // ── JS-based note positioning (replaces CSS float/clear) ─────────────
-      // Positions each .footnote absolutely to the right of the article,
-      // aligned with its label and pushed down only when needed to avoid overlap.
-      function layoutMarginaliaFloats() {
-        const article = document.querySelector<HTMLElement>('.post-layout-article');
-        if (!article) return;
-
-        // Make article a containing block for absolute notes
-        if (getComputedStyle(article).position === 'static') {
-          article.style.position = 'relative';
-        }
-
-        const notes = Array.from(document.querySelectorAll<HTMLElement>('.footnote'));
-        if (!notes.length) return;
-
-        const isWide = window.innerWidth >= 1100;
-
-        if (!isWide) {
-          notes.forEach(n => { n.style.top = ''; n.style.left = ''; });
-          article.style.minHeight = '';
-          return;
-        }
-
-        const NOTE_WIDTH = 260;
-        const NOTE_GAP  = 8;   // px between stacked notes
-        const SIDE_GAP  = 12;  // px from article right edge to note left edge
-
-        // Clear any stale minHeight so offsetHeight reflects natural content height below
-        article.style.minHeight = '';
-
-        const articleRect = article.getBoundingClientRect();
-        let lastBottom = 0;
-
-        notes.forEach(note => {
-          const container = note.closest<HTMLElement>('.footnote-container');
-          const label     = container?.querySelector<HTMLElement>('.footnote-number');
-          if (!container || !label) return;
-
-          const opParent = note.offsetParent as HTMLElement | null;
-          const opRect   = opParent ? opParent.getBoundingClientRect() : articleRect;
-
-          // Horizontal: note left edge sits SIDE_GAP right of the article card
-          note.style.left = `${articleRect.right - opRect.left + SIDE_GAP}px`;
-
-          // Vertical: align with label, push down past previous note if needed
-          const labelRect    = label.getBoundingClientRect();
-          const desiredTop   = labelRect.top - opRect.top;
-          const topVal       = Math.max(desiredTop, lastBottom);
-          note.style.top     = `${topVal}px`;
-
-          lastBottom = topVal + note.offsetHeight + NOTE_GAP;
-        });
-
-        // Expand article to contain all notes so they don't overflow below the card.
-        // minHeight was cleared above, so offsetHeight is the natural content height.
-        const notesBottom = lastBottom - NOTE_GAP;
-        if (notesBottom > article.offsetHeight) {
-          // Include bottom padding + border so the last note doesn't clip at the card edge.
-          const cs = getComputedStyle(article);
-          const extraBottom = parseFloat(cs.paddingBottom) + parseFloat(cs.borderBottomWidth);
-          article.style.minHeight = `${notesBottom + extraBottom}px`;
-        }
-      }
-
-      function initMarginalia() {
-        const containers = document.querySelectorAll<HTMLElement>('.footnote-container');
-        if (!containers.length) return;
-
-        // Whether the floated sidebar notes are visible
-        const floatsVisible = () => window.innerWidth >= 1100;
-
-        // Position notes immediately on init
-        layoutMarginaliaFloats();
-
-        // ── Abort stale listeners from previous page navigation ────────────
-        // Each initMarginalia() call would stack more mouseenter/mouseleave on
-        // the persistent pop element, causing multiple independent hideTimers
-        // that cancelHide() from the current run cannot cancel. AbortController
-        // wipes all of them cleanly on the next call.
-        const prevAC = (window as any)._marginaliaAC as AbortController | undefined;
-        if (prevAC) prevAC.abort();
-        const ac = new AbortController();
-        (window as any)._marginaliaAC = ac;
-        const sig = ac.signal;
-
-        // ── Recreate popover fresh (removes stale cloned listeners) ────────
-        const oldPop = document.getElementById('marginalia-popover');
-        if (oldPop) oldPop.remove();
-        const pop = document.createElement('div');
-        pop.id = 'marginalia-popover';
-        pop.className = 'marginalia-popover';
-        pop.setAttribute('role', 'tooltip');
-        document.body.appendChild(pop);
-
-        let hideTimer: ReturnType<typeof setTimeout> | null = null;
-        const scheduleHide = () => { hideTimer = setTimeout(() => pop.classList.remove('is-visible'), 200); };
-        const cancelHide   = () => { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } };
-
-        const reposition = (anchor: HTMLElement) => {
-          const rect = anchor.getBoundingClientRect();
-          const pw = 260;
-          // measure after content set, fall back to 0 if not yet rendered
-          const ph = pop.offsetHeight || 0;
-          const gap = 8;
-          const top = (rect.top - ph - gap > 16) ? rect.top - ph - gap : rect.bottom + gap;
-          const left = Math.max(8, Math.min(rect.left, window.innerWidth - pw - 8));
-          pop.style.top  = `${top}px`;
-          pop.style.left = `${left}px`;
-        };
-
-        const showPopoverFor = (anchor: HTMLElement, container: HTMLElement) => {
-          cancelHide();
-          const noteEl  = container.querySelector<HTMLElement>('.footnote');
-          const labelEl = container.querySelector<HTMLElement>('.footnote-number');
-          if (!noteEl || !labelEl) return;
-
-          const allLabels = Array.from(document.querySelectorAll<HTMLElement>('.footnote-number'));
-          const idx = allLabels.indexOf(labelEl) + 1;
-
-          pop.innerHTML = `<span class="marginalia-popover-num">${idx}.</span><span class="marginalia-popover-text">${noteEl.innerHTML}</span>`;
-          // Wire lightbox on images cloned into popover
-          pop.querySelectorAll<HTMLImageElement>('img').forEach(img => {
-            wireImgLightbox(img, (e) => { e.stopPropagation(); });
-          });
-          // Reserve space for images so reposition() gets correct height before load
-          const imgs = pop.querySelectorAll<HTMLImageElement>('img');
-          if (imgs.length) pop.style.minHeight = '160px';
-
-          requestAnimationFrame(() => {
-            reposition(anchor);
-            pop.classList.add('is-visible');
-            imgs.forEach(img => {
-              if (img.complete) {
-                pop.style.minHeight = '';
-              } else {
-                img.addEventListener('load',  () => { pop.style.minHeight = ''; reposition(anchor); }, { once: true });
-                img.addEventListener('error', () => { pop.style.minHeight = ''; }, { once: true });
-              }
-            });
-          });
-        };
-
-        pop.addEventListener('mouseenter', cancelHide, { signal: sig });
-        pop.addEventListener('mouseleave', scheduleHide, { signal: sig });
-
-        // ── Per-container wiring ───────────────────────────────────────────
-        containers.forEach(container => {
-          const noteEl  = container.querySelector<HTMLElement>('.footnote');
-          const labelEl = container.querySelector<HTMLElement>('.footnote-number');
-          if (!labelEl) return;
-
-          // ── Hover highlighting (bidirectional, relatedTarget-safe) ───────
-          // The float takes .footnote visually outside .footnote-container's
-          // layout box, so mouseleave fires when crossing into the float.
-          // We check relatedTarget to suppress false negatives.
-          const highlight   = () => container.classList.add('is-highlighted');
-          const unhighlight = (e: MouseEvent) => {
-            const rt = e.relatedTarget as Node | null;
-            if (rt && container.contains(rt)) return; // still inside
-            container.classList.remove('is-highlighted');
-          };
-
-          container.addEventListener('mouseenter', highlight, { signal: sig });
-          container.addEventListener('mouseleave', unhighlight as EventListener, { signal: sig });
-          if (noteEl) {
-            noteEl.addEventListener('mouseenter', highlight, { signal: sig });
-            noteEl.addEventListener('mouseleave', unhighlight as EventListener, { signal: sig });
-          }
-
-          // ── Click behaviour ──────────────────────────────────────────────
-          labelEl.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation(); // prevent document dismiss handler from closing the popover we just opened
-
-            if (floatsVisible()) {
-              // Desktop: scroll floated note into view + flash highlight
-              if (!noteEl) return;
-              noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              container.classList.add('is-highlighted');
-              setTimeout(() => container.classList.remove('is-highlighted'), 1500);
-            } else {
-              // <1100px: show popover
-              showPopoverFor(labelEl, container);
-            }
-          }, { signal: sig });
-
-          // ── Popover on hover (<1100px) ────────────────────────────────────
-          container.addEventListener('mouseenter', () => {
-            if (!floatsVisible()) showPopoverFor(labelEl, container);
-          }, { signal: sig });
-          container.addEventListener('mouseleave', () => {
-            if (!floatsVisible()) scheduleHide();
-          }, { signal: sig });
-        });
-
-        // ── Lightbox for images inside .footnote ──────────────────────────
-        // Dispatch explicit image data so Lightbox doesn't fall back to
-        // querySelectorAll('img') which would also pick up #lightbox-image itself.
-        document.querySelectorAll<HTMLImageElement>('.footnote img').forEach(img => {
-          wireImgLightbox(img, (e) => { e.stopPropagation(); });
-        });
-
-        // ── Global dismiss ─────────────────────────────────────────────────
-        document.addEventListener('click', e => {
-          if (!pop.contains(e.target as Node) && !(e.target as Element).closest?.('.footnote-container')) {
-            pop.classList.remove('is-visible');
-          }
-        }, { signal: sig });
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') pop.classList.remove('is-visible'); }, { signal: sig });
-
-        // ── Dismiss popover / reflow notes on resize ───────────────────────
-        let lastWasFloats = floatsVisible();
-        let resizeTimer: ReturnType<typeof setTimeout> | null = null;
-        window.addEventListener('resize', () => {
-          const nowFloats = floatsVisible();
-          if (nowFloats !== lastWasFloats) {
-            pop.classList.remove('is-visible');
-            document.querySelectorAll('.footnote-container.is-highlighted').forEach(c => c.classList.remove('is-highlighted'));
-            lastWasFloats = nowFloats;
-          }
-          // Debounced re-layout so notes stay aligned after resize
-          if (resizeTimer) clearTimeout(resizeTimer);
-          resizeTimer = setTimeout(() => layoutMarginaliaFloats(), 100);
-        }, { signal: sig, passive: true });
-      }
-
-      window['initializeMarginalia']   = initMarginalia;
-      window['layoutMarginaliaFloats'] = layoutMarginaliaFloats;
-
-      function scheduleLayout() {
-        requestAnimationFrame(() => requestAnimationFrame(() => layoutMarginaliaFloats()));
-      }
-
-      let _margLastPath = '';
-      function runMarginalia() {
-        const path = window.location.pathname;
-        if (path === _margLastPath) return;
-        _margLastPath = path;
-        initMarginalia();
-        scheduleLayout();
-        document.fonts.ready.then(scheduleLayout);
-      }
-
-      document.addEventListener('DOMContentLoaded', runMarginalia);
-      document.addEventListener('astro:page-load', runMarginalia);
-      if (document.readyState !== 'loading') requestAnimationFrame(runMarginalia);
-      window.addEventListener('pageshow', e => { if (e.persisted) { _margLastPath = ''; runMarginalia(); } });
-    </script>
+    <!-- Marginalia: extracted to /src/scripts/marginalia-client.ts and imported globally from BaseLayout. -->
 
     <!-- Contents sidebar collapse toggle -->
     <script>
@@ -593,7 +330,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       window.addEventListener('pageshow', (e) => { if (e.persisted) initSidebarToggle(); });
     </script>
 
-    <script define:vars={{ posts: visiblePosts.map(p => ({ id: p.id, data: { title: p.data.title } })), commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id }}>
+    <script define:vars={{ posts: visiblePosts.map(p => ({ id: p.id, data: { title: p.data.title } })), commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id, BASE_URL: import.meta.env.BASE_URL }}>
 
       // Process wikilinks - unified logic for all wikilink types
       function initializeWikilinks() {
@@ -641,9 +378,9 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             const anchor = anchorMatch ? anchorMatch[1] : null;
 
             if (anchor) {
-              link.href = `${import.meta.env.BASE_URL}posts/${post.id}#${anchor}`;
+              link.href = `${BASE_URL}posts/${post.id}#${anchor}`;
             } else {
-              link.href = `${import.meta.env.BASE_URL}posts/${post.id}`;
+              link.href = `${BASE_URL}posts/${post.id}`;
             }
 
             if (displayOverride && displayOverride !== 'null' && displayOverride !== 'undefined') {
@@ -702,81 +439,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       document.addEventListener('astro:page-load', initHeadingPermalinks);
     </script>
 
-    <!-- Rough annotations -->
-    <script>
-      import { annotate } from 'rough-notation';
-
-      function initAnnotations({ animate = true } = {}) {
-        const spans = document.querySelectorAll<HTMLElement>('.rough-ann');
-        if (!spans.length) return;
-
-        // Remove all lingering rough-notation SVGs from body (Swup doesn't touch them —
-        // rough-notation appends SVGs to <body> outside #swup-container)
-        document.querySelectorAll('svg.rough-annotation').forEach(el => el.remove());
-        const prev = (window as any)._roughAnnotations as any[] | undefined;
-        if (prev?.length) prev.forEach(a => { try { a.hide(); } catch {} });
-
-        // Read all annotation colors from CSS vars — defined in marginalia.css,
-        // with light + dark variants. Override per-theme via [data-theme="*"].
-        const cs = getComputedStyle(document.documentElement);
-        const annColor = (type: string): string =>
-          cs.getPropertyValue(`--ann-${type}`).trim() ||
-          cs.getPropertyValue('--ann-highlight').trim();
-
-        const annotations: any[] = [];
-
-        spans.forEach(span => {
-          const type = span.dataset.annType ?? 'highlight';
-          const color = annColor(type);
-          const opts: Record<string, any> = {
-            type,
-            color,
-            iterations: 2,
-            animate,
-            animationDuration: 500,
-          };
-
-          // Block elements can wrap across lines — always enable multiline
-          // except for circle (rough-notation wraps the whole element as one shape)
-          if (type !== 'circle') opts.multiline = true;
-          if (type === 'bracket') opts.brackets = ['left', 'right'];
-
-          const ann = annotate(span, opts);
-          ann.show();
-          annotations.push(ann);
-        });
-
-        (window as any)._roughAnnotations = annotations;
-      }
-
-      window['initializeAnnotations'] = initAnnotations;
-
-      let _annLastPath = '';
-      document.addEventListener('DOMContentLoaded', () => {
-        if (_annLastPath) return;
-        _annLastPath = window.location.pathname;
-        initAnnotations({ animate: true });
-      });
-      document.addEventListener('astro:page-load', () => {
-        const path = window.location.pathname;
-        if (path === _annLastPath) return;
-        _annLastPath = path;
-        setTimeout(() => initAnnotations({ animate: false }), 250);
-      });
-      if (document.readyState !== 'loading' && !_annLastPath) {
-        _annLastPath = window.location.pathname;
-        setTimeout(() => initAnnotations({ animate: false }), 250);
-      }
-      window.addEventListener('pageshow', e => {
-        if (e.persisted) { _annLastPath = ''; initAnnotations({ animate: true }); }
-      });
-
-      let _annLastDark = document.documentElement.classList.contains('dark');
-      new MutationObserver(() => {
-        const isDark = document.documentElement.classList.contains('dark');
-        if (isDark !== _annLastDark) { _annLastDark = isDark; initAnnotations({ animate: false }); }
-      }).observe(document.documentElement, { attributeFilter: ['class'] });
-    </script>
+    <!-- Rough annotations: extracted to /src/scripts/annotations-client.ts and imported globally from BaseLayout. -->
 
   <!-- Lightbox is handled globally by BaseLayout -->
 
@@ -820,8 +483,8 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
      */
     @media (min-width: 1100px) {
       .post-layout-grid.has-left-col {
-        grid-template-columns: 300px 1fr 280px;
-        column-gap: 0.75rem;
+        grid-template-columns: 240px 1fr 200px;
+        column-gap: 0.5rem;
         max-width: var(--page-width);
         margin-left: auto;
         margin-right: auto;
@@ -847,7 +510,6 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         grid-column: 2;
         grid-row: 1;
       }
-      /* col 3 (220px) intentionally empty — provides gutter for marginalia notes */
 
       /* ── Ornamental divider toggle ─────────────────────────────────────── */
       .sidebar-toc-header {
@@ -913,10 +575,6 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         transition: opacity 0.18s ease, visibility 0.18s ease;
       }
 
-      /*
-       * Collapsed: content becomes invisible but column keeps its 260px width.
-       * No layout shift — article and marginalia stay exactly where they are.
-       */
       .post-layout-left-col.is-collapsed .sidebar-toc-content {
         opacity: 0;
         visibility: hidden;
@@ -946,6 +604,27 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
       }
       :global(.dark) .left-sidebar-graph {
         border-top-color: rgb(var(--color-primary-700) / 0.5);
+      }
+    }
+
+    /* ── Full layout at ≥1300px: restore wider columns ──────────────────── */
+    @media (min-width: 1300px) {
+      .post-layout-grid.has-left-col {
+        grid-template-columns: 300px 1fr 280px;
+        column-gap: 0.75rem;
+      }
+    }
+
+    /* ── Compact prose at 1100-1299px ───────────────────────────────────── */
+    @media (min-width: 1100px) and (max-width: 1299px) {
+      :global(.post-layout-article .prose) {
+        font-size: 1rem;
+      }
+      :global(.post-layout-article .prose h2) {
+        font-size: 1.25em;
+      }
+      :global(.post-layout-article .prose h3) {
+        font-size: 1.15em;
       }
     }
   </style>
