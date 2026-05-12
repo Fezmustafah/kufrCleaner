@@ -29,19 +29,21 @@ const { post } = Astro.props;
 const isDev = import.meta.env.DEV;
 
 // Generate SEO data
-const seoData = generatePostSEO(post, import.meta.env.SITE || '');
+const seoData = generatePostSEO(post, Astro.url.href);
 
 
 
 // Generate structured data for the post
 const structuredData = {
-  "@context": "https://schema.schema.org",
+  "@context": "https://schema.org",
   "@type": "BlogPosting",
   "headline": post.data.title,
   "description": post.data.description,
+  "url": Astro.url.href,
+  ...(seoData.ogImage ? { "image": seoData.ogImage.url } : {}),
   "author": {
     "@type": "Person",
-    "name": siteConfig.author
+    "name": post.data.author || siteConfig.author
   },
   "publisher": {
     "@type": "Organization",
@@ -52,7 +54,7 @@ const structuredData = {
     }
   },
   "datePublished": post.data.date.toISOString(),
-  "dateModified": post.data.date.toISOString(),
+  "dateModified": (post.data.modified || post.data.date).toISOString(),
   "mainEntityOfPage": {
     "@type": "WebPage",
     "@id": Astro.url.href

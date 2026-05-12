@@ -80,6 +80,7 @@ export interface SEOData {
   publishedTime?: string;
   modifiedTime?: string;
   tags?: string[];
+  author?: string;
   noIndex?: boolean;
   robots?: string;
   articleSection?: string;

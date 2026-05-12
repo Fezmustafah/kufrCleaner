@@ -29,6 +29,8 @@ const postsCollection = defineCollection({
     showTOC: z.boolean().optional(),
     targetKeyword: z.string().nullable().optional(),
     author: z.string().nullable().optional(),
+    banner: z.string().nullable().optional(),
+    modified: z.coerce.date().optional(),
     noIndex: z.boolean().optional(),
     category: z.string().nullable().optional(),
   }),

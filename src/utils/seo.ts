@@ -8,8 +8,6 @@ import type {
 } from "@/types";
 import siteConfig from "@/config";
 import {
-  getFallbackOGImage,
-  optimizePostImagePath,
   optimizeContentImagePath,
 } from "./images";
 
@@ -43,54 +41,25 @@ function extractImagePath(image: string): string {
 
 // Generate SEO data for posts
 export function generatePostSEO(post: Post, url: string): SEOData {
-  const { title, description, image, imageOG, tags, date } = post.data;
-
-  let ogImage: OpenGraphImage | undefined;
-
-  if (image && imageOG) {
-    // Extract image path from Obsidian bracket syntax if needed
-    const imagePath = extractImagePath(image);
-
-    // Handle both local and external image paths
-    let imageUrl: string;
-    if (imagePath.startsWith("http")) {
-      // External URL
-      imageUrl = imagePath;
-    } else {
-      // Use optimizePostImagePath for proper path resolution
-      // Pass post.id as both postSlug and postId for folder-based posts
-      const optimizedPath = optimizePostImagePath(
-        imagePath,
-        post.id,
-        post.id
-      );
-      imageUrl = `${siteConfig.site}${optimizedPath}`;
-    }
-    ogImage = {
-      url: imageUrl,
-      alt: post.data.imageAlt || `Featured image for post: ${title}`,
-      width: 1200,
-      height: 630,
-    };
-  } else {
-    // Use default OG image
-    ogImage = getDefaultOGImage();
-    ogImage = {
-      ...ogImage,
-      url: `${siteConfig.site}${ogImage.url}`,
-    };
-  }
+  const { title, description, tags, date, modified } = post.data;
 
   return {
     title: `${title} | ${siteConfig.title}`,
     description: description || `Post: ${title}`,
     canonical: url,
-    ogImage,
+    ogImage: {
+      // Dynamic OG image generated at /og/[id].png — handles banner/text card logic
+      url: `${siteConfig.site}/og/${post.id}.png`,
+      alt: post.data.imageAlt || `${title} — ${siteConfig.title}`,
+      width: 1200,
+      height: 630,
+    },
     ogType: "article",
+    author: post.data.author || siteConfig.author,
     publishedTime: date.toISOString(),
-    modifiedTime: date.toISOString(),
+    modifiedTime: (modified || date).toISOString(),
     tags: tags?.filter((tag) => tag !== null) || undefined,
-    noIndex: post.data.noIndex || false, // Add this line
+    noIndex: post.data.noIndex || false,
   };
 }
 

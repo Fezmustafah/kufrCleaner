@@ -64,6 +64,7 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
   <meta property="og:url" content={seoData.canonical}>
   <meta property="og:type" content={seoData.ogType}>
   <meta property="og:site_name" content={siteConfig.title}>
+  <meta property="og:locale" content={siteConfig.language === 'en' ? 'en_US' : siteConfig.language}>
 
   {seoData.ogImage ? (
     <>
@@ -86,6 +87,12 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content={seoData.title}>
   <meta name="twitter:description" content={seoData.description}>
+  {siteConfig.twitterHandle && (
+    <>
+      <meta name="twitter:site" content={`@${siteConfig.twitterHandle}`}>
+      <meta name="twitter:creator" content={`@${siteConfig.twitterHandle}`}>
+    </>
+  )}
   {seoData.ogImage ? (
     <>
       <meta name="twitter:image" content={seoData.ogImage.url}>
@@ -107,6 +114,7 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     <>
       {seoData.publishedTime && <meta property="article:published_time" content={seoData.publishedTime}>}
       {seoData.modifiedTime && <meta property="article:modified_time" content={seoData.modifiedTime}>}
+      {seoData.author && <meta property="article:author" content={seoData.author}>}
       {seoData.tags && seoData.tags.map(tag => (
         <meta property="article:tag" content={tag}>
       ))}

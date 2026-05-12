@@ -30,7 +30,8 @@ export interface SiteConfig {
   language: string;
   faviconThemeAdaptive: boolean;
   defaultOgImageAlt: string;
-  
+  twitterHandle?: string;
+
   // Global Settings
   theme: "minimal" | "custom" | "al-andalus";
   customThemeFile?: string; // Filename in src/themes/custom/ (e.g., "my-cool-theme" for my-cool-theme.ts)
@@ -208,7 +209,9 @@ export const siteConfig: SiteConfig = {
   // [CONFIG:FAVICON_THEME_ADAPTIVE]
   faviconThemeAdaptive: true, // If true, favicon switches between favicon-dark.png and favicon-light.png based on browser's system theme preference. If false, always uses favicon.png
   // [CONFIG:DEFAULT_OG_IMAGE_ALT]
-  defaultOgImageAlt: "Astro Modular logo.", // Alt text for the default Open Graph image, public/open-graph.png
+  defaultOgImageAlt: "OpenIslam Wiki — Islamic knowledge resource.", // Alt text for the default Open Graph image, public/open-graph.png
+  // [CONFIG:TWITTER_HANDLE]
+  twitterHandle: "", // Your Twitter/X handle without @. E.g. "openislamwiki". Used for twitter:site and twitter:creator meta tags.
 
   // Global Settings
   // [CONFIG:THEME]
