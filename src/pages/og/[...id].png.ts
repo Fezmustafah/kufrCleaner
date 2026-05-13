@@ -279,12 +279,13 @@ export const getStaticPaths: GetStaticPaths = async () => {
 // ── Route handler ─────────────────────────────────────────────────────────
 export const GET: APIRoute = async ({ props }) => {
   const { post } = props as { post: Awaited<ReturnType<typeof getCollection<'posts'>>>[number] };
-  const { title, description, banner, tags } = post.data;
+  const { title, description, banner, image, tags } = post.data;
 
-  // Load banner (if present). Falls back to text card if image missing.
+  // Priority: banner (dedicated OG) → image (post cover) → text card
+  const ogSource = banner || image;
   let bannerDataUrl: string | null = null;
-  if (banner) {
-    bannerDataUrl = await loadBannerDataUrl(banner, post.id);
+  if (ogSource) {
+    bannerDataUrl = await loadBannerDataUrl(ogSource, post.id);
   }
 
   const { regular, bold } = await getFonts();
