@@ -192,6 +192,9 @@ const seoData = {
   let filterBarOpen = false;
 
   function initSearch() {
+    // Always release scroll lock left over from a mobile sheet that was open during navigation
+    document.body.style.overflow = '';
+
     const queryInput     = document.getElementById('search-query') as HTMLInputElement | null;
     const resultsEl      = document.getElementById('search-results');
     const statusEl       = document.getElementById('search-status');
