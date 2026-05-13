@@ -63,7 +63,7 @@ async function loadBannerDataUrl(banner: string, postId: string): Promise<string
   }
 }
 
-// ── OG image template ─────────────────────────────────────────────────────
+// ── OG image template (unified layout — background is the only variable) ──
 function buildElement(opts: {
   title: string;
   description?: string | null;
@@ -74,73 +74,8 @@ function buildElement(opts: {
   const { title, description, bannerDataUrl, siteTitle, tags } = opts;
   const cleanTags = (tags ?? []).filter((t): t is string => !!t);
   const titleSize = title.length > 80 ? 36 : title.length > 55 ? 44 : 54;
+  const hasBanner = !!bannerDataUrl;
 
-  // ── Banner mode: full-bleed image + gradient overlay + title ─────────────
-  if (bannerDataUrl) {
-    return {
-      type: 'div',
-      props: {
-        style: {
-          width: 1200,
-          height: 630,
-          display: 'flex',
-          position: 'relative',
-          backgroundImage: `url(${bannerDataUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        },
-        children: [
-          // Bottom-heavy gradient overlay
-          {
-            type: 'div',
-            props: {
-              style: {
-                position: 'absolute',
-                top: 0, left: 0, right: 0, bottom: 0,
-                backgroundImage:
-                  'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.08) 100%)',
-              },
-            },
-          },
-          // Site name — top-left
-          {
-            type: 'div',
-            props: {
-              style: {
-                position: 'absolute',
-                top: 36,
-                left: 48,
-                color: '#D4AC52',
-                fontSize: 18,
-                fontWeight: 400,
-                letterSpacing: 3,
-              },
-              children: siteTitle.toUpperCase(),
-            },
-          },
-          // Post title — bottom
-          {
-            type: 'div',
-            props: {
-              style: {
-                position: 'absolute',
-                bottom: 52,
-                left: 48,
-                right: 48,
-                color: '#F2EAD8',
-                fontSize: titleSize,
-                fontWeight: 700,
-                lineHeight: 1.25,
-              },
-              children: title,
-            },
-          },
-        ],
-      },
-    };
-  }
-
-  // ── Text-only mode: al-andalus themed card ───────────────────────────────
   const desc = description
     ? description.length > 130
       ? description.slice(0, 127) + '…'
@@ -148,35 +83,45 @@ function buildElement(opts: {
     : null;
 
   const children: object[] = [
-    // Decorative concentric rings (top-right corner)
-    {
+    // Dark overlay — only needed over a photo background
+    ...(hasBanner ? [{
       type: 'div',
       props: {
         style: {
           position: 'absolute',
-          top: -200,
-          right: -200,
-          width: 580,
-          height: 580,
-          borderRadius: 290,
-          border: '1px solid rgba(212,172,82,0.12)',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundImage:
+            'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.1) 100%)',
         },
       },
-    },
-    {
-      type: 'div',
-      props: {
-        style: {
-          position: 'absolute',
-          top: -100,
-          right: -100,
-          width: 360,
-          height: 360,
-          borderRadius: 180,
-          border: '1px solid rgba(212,172,82,0.08)',
+    }] : []),
+    // Decorative rings — only on gradient background (look odd on photos)
+    ...(!hasBanner ? [
+      {
+        type: 'div',
+        props: {
+          style: {
+            position: 'absolute',
+            top: -200, right: -200,
+            width: 580, height: 580,
+            borderRadius: 290,
+            border: '1px solid rgba(212,172,82,0.12)',
+          },
         },
       },
-    },
+      {
+        type: 'div',
+        props: {
+          style: {
+            position: 'absolute',
+            top: -100, right: -100,
+            width: 360, height: 360,
+            borderRadius: 180,
+            border: '1px solid rgba(212,172,82,0.08)',
+          },
+        },
+      },
+    ] : []),
     // Site name
     {
       type: 'div',
@@ -259,7 +204,11 @@ function buildElement(opts: {
         height: 630,
         display: 'flex',
         flexDirection: 'column',
-        backgroundImage: 'linear-gradient(135deg, #1C1008 0%, #3A2501 55%, #1C1008 100%)',
+        backgroundImage: hasBanner
+          ? `url(${bannerDataUrl})`
+          : 'linear-gradient(135deg, #1C1008 0%, #3A2501 55%, #1C1008 100%)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         padding: '60px 72px',
         position: 'relative',
       },

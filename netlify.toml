@@ -7,8 +7,8 @@
   force = true
 
 [[redirects]]
-  from = "/posts/abbasid-islam-and-the-composition-of-the-sunnah-in-the-abbasid-era"
-  to = "/posts/abbasid-islam-refuted-early-syriac-evidence-for-islam-before-the-abbasids"
+  from = "/posts/abdullah-bin-saad-bin-abi-sarh"
+  to = "/posts/abdullah-bin-saad-bin-abi-sarh-apostasy-claim-refuted-through-hadith-chains-and-textual-criticism"
   status = 301
   force = true
 
@@ -19,8 +19,20 @@
   force = true
 
 [[redirects]]
+  from = "/posts/what-is-abrogation"
+  to = "/posts/abrogation-in-islam-explained-refuting-christian-claims-about-naskh-and-quran-preservation"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/a-claim-to-deny-the-hadith-that-abrogates-the-ten-forbidden-breastfeedings-by-five"
   to = "/posts/abrogation-of-quranic-verses-understanding-the-ten-and-five-breastfeedings-hadith"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-5-muhammad-and-abu-hurairah-uncover-the-abdomen-and-kiss-the-navel"
+  to = "/posts/abu-hurairah-kissing-al-hasans-stomach-hadith-explained"
   status = 301
   force = true
 
@@ -61,6 +73,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/al-buraq"
+  to = "/posts/al-buraq-and-the-bible-refuting-christian-claims-about-mythical-creatures-in-islam"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/shocking-facts-about-the-fatimid-caliph-called-al-hakim-bi-amr-allah-who-persecuted-christians"
   to = "/posts/al-hakim-bi-amr-allah-the-fatimid-caliph-who-persecuted-christians-was-not-muslim-his-mother-was-christian-and-he-claimed-to-be-god"
   status = 301
@@ -75,12 +93,6 @@
 [[redirects]]
   from = "/posts/syriac-borrows-the-name-god-from-arabic-according-to-scientific-and-archaeological-evidence"
   to = "/posts/allah-is-not-from-syriac-archaeological-proof-the-word-is-originally-arabic"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/and-purify-your-garments"
-  to = "/posts/and-purify-your-garmentsdoes-the-command-to-avoid-idols-mean-that-the-messenger-worshipped-idols"
   status = 301
   force = true
 
@@ -115,14 +127,14 @@
   force = true
 
 [[redirects]]
-  from = "/posts/untitled-1319673407654330471"
-  to = "/posts/birth-of-prophet"
+  from = "/posts/slave-as-second-wife-in-christianity"
+  to = "/posts/biblical-concubinage-was-not-normal-marriage-jewish-sources-expose-the-claim"
   status = 301
   force = true
 
 [[redirects]]
-  from = "/posts/they-steal-when-hungry"
-  to = "/posts/black-people-steal-when-hungry-is-there-any-racism-in-islam"
+  from = "/posts/untitled-1319673407654330471"
+  to = "/posts/birth-of-prophet"
   status = 301
   force = true
 
@@ -181,6 +193,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/dhul-khulasa-ghazwa"
+  to = "/posts/dhul-khulasa-ghazwa-dhul-khulasa-hadith-explained-did-the-prophet-order-killing"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/the-blind-companion-killed-his-wife-or-female-slave-when-she-insulted-the-prophet"
   to = "/posts/did-a-blind-companion-kill-his-wife-for-insulting-the-prophet-complete-hadith-refutation"
   status = 301
@@ -205,8 +223,38 @@
   force = true
 
 [[redirects]]
+  from = "/posts/deception-no-4-why-is-hassans-character-similar-to-the-character-of-the-messenger-of-god"
+  to = "/posts/did-al-hasan-resemble-prophet-muhammad-in-physical-strength"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-2-0"
+  to = "/posts/did-gabriel-blow-into-maryams-private-part-refuting-the-crude-misreading-of-surah-at-tahrim-66-12"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/abubakr-and-umar-are-among-the-doomed"
+  to = "/posts/did-ibn-abbas-permit-mutah-why-the-report-refers-to-hajj-tamattu-not-temporary-marriage"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/did-abdullah-bin-masoud-deny-the-two-muawwidhat"
+  to = "/posts/did-ibn-masud-deny-surah-al-falaq-and-surah-an-nas"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/responding-to-the-doubt-about-breastfeeding-an-adult-in-detail"
   to = "/posts/did-islam-allow-breastfeeding-an-adult-scholarly-refutation-of-the-salim-hadith-misconception"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-2-a-muslim-man-would-marry-one-of-sahaba-so-that-she-would-spend-on-him"
+  to = "/posts/did-islam-allow-muslim-men-to-marry-prostitutes-for-money"
   status = 301
   force = true
 
@@ -247,6 +295,18 @@
   force = true
 
 [[redirects]]
+  from = "/posts/monkey-adultery"
+  to = "/posts/did-monkeys-stone-for-zina-refuting-the-sahih-al-bukhari-objection"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/contradiction-in-the-quran-as-it-mentions-different-statements-about-the-fire-that-moses-peace-be"
+  to = "/posts/did-moses-say-different-things-about-the-fire-refuting-the-quran-contradiction-claim"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/doubt-about-moses-peace-be-upon-him-throwing-the-tablets"
   to = "/posts/did-moses-throwing-the-tablets-disrespect-gods-word-al-araf-150-explained-with-tafsir-bible"
   status = 301
@@ -283,8 +343,32 @@
   force = true
 
 [[redirects]]
+  from = "/posts/deception-no-20-muhammads-denial-of-the-companions-you-do-not-know-what-they-innovated-after-y"
+  to = "/posts/did-prophet-muhammad-disown-his-companions-hadith-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-12-the-companions-bad-behavior-towards-the-prophet-may-god-bless-him-and-grant-him"
+  to = "/posts/did-prophet-muhammad-distribute-spoils-unfairly-at-hunayn"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-21-some-of-my-friends-do-not-see-me-after-i-leave-them"
+  to = "/posts/did-prophet-muhammad-say-some-companions-would-not-see-him-again"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/response-to-the-allegation-that-the-prophet-defecated-and-ate-without-washing-his-hands-or-touching"
   to = "/posts/did-prophet-muhammad-صلى-الله-عليه-وسلم-eat-with-unclean-hands-full-refutation-of-the-christian-polemic"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/angels-do-not-enter-the-house-of-the-messenger-of-islam"
+  to = "/posts/did-prophet-muhammad-صلى-الله-عليه-وسلم-keep-urine-under-his-bed-refuting-the-angel-objection"
   status = 301
   force = true
 
@@ -297,6 +381,18 @@
 [[redirects]]
   from = "/posts/myth-of-the-creation-of-adam-and-how-satan-entered-through-his-mouth-and-exited-through-his-anus"
   to = "/posts/did-satan-enter-adams-body-refuting-a-weak-israiliyyat-narration-misused-against-islam"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-16-i-do-not-know-anything-today-of-what-we-were-like-during-the-time-of-the-messeng"
+  to = "/posts/did-the-companions-change-the-sunnah-after-prophet-muhammad"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-3-the-companions-come-to-arafat-and-their-penises-drip-with-semen"
+  to = "/posts/did-the-companions-go-to-arafat-while-dripping-with-semen-hadith-explained"
   status = 301
   force = true
 
@@ -339,6 +435,12 @@
 [[redirects]]
   from = "/posts/historical-evidence-of-the-messenger-of-god-may-god-bless-him-and-grant-him-peace"
   to = "/posts/did-the-prophet-muhammad-really-exist-historical-proof-from-coins-inscriptions-and-non-muslim-chronicles"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/black-people-steal-when-hungry-is-there-any-racism-in-islam"
+  to = "/posts/did-the-prophet-say-black-people-steal-when-hungry-a-hadith-refutation"
   status = 301
   force = true
 
@@ -397,6 +499,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/contradiction-in-the-quran-in-its-mention-of-the-words-of-god-almighty-to-moses-peace-be-upon-him"
+  to = "/posts/did-the-quran-contradict-itself-about-allah-speaking-to-moses"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/story-of-abraham-and-his-father-in-the-quran-was-quoted-from-the-haggadah"
   to = "/posts/did-the-quran-copy-abrahams-story-from-the-haggadah-a-complete-refutation-with-historical-evidence"
   status = 301
@@ -435,6 +543,12 @@
 [[redirects]]
   from = "/posts/update-1369578720981155840"
   to = "/posts/do-muslims-worship-the-kaaba-the-qibla-accusation-refuted-with-christian-biblical-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/allah-swt-misguides"
+  to = "/posts/does-allah-misguide-people-quran-16-93-explained-with-tafsir-and-human-free-will"
   status = 301
   force = true
 
@@ -499,6 +613,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/deception-no-31-omar-the-companions-and-the-muslims-curse-the-infidels"
+  to = "/posts/does-islam-allow-cursing-disbelievers"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/the-lie-that-islam-attributes-the-child-of-adultery-to-the-husband"
   to = "/posts/does-islam-attribute-adultery-children-to-the-husband-refuting-the-child-belongs-to-the-bed"
   status = 301
@@ -507,6 +627,18 @@
 [[redirects]]
   from = "/posts/a-response-to-the-accursed-enemies-of-religion-who-said-that-islam-permits-bestiality"
   to = "/posts/does-islam-permit-bestiality-classical-fiqh-refutation-of-a-false-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/surah-baqarah-282-women-slow"
+  to = "/posts/does-islam-say-women-are-deficient-in-intelligence-and-religion"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/bukhari-304-dumb-women"
+  to = "/posts/does-islam-say-women-are-stupid-refuting-the-deficient-in-intelligence-hadith"
   status = 301
   force = true
 
@@ -529,14 +661,26 @@
   force = true
 
 [[redirects]]
+  from = "/posts/contradiction-in-the-quran-regarding-swearing-by-places-and-times"
+  to = "/posts/does-la-uqsimu-contradict-quranic-oaths"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/does-the-title-lord-mean-the-divinity-of-christ-kyrios-and-the-specifications-of-the-messiah-a"
   to = "/posts/does-lord-prove-jesus-is-god-kyrios-explained-from-christian-sources"
   status = 301
   force = true
 
 [[redirects]]
-  from = "/posts/sahih-al-bukhari-3399-muslim-1470d-wives-betraying-the-husband"
-  to = "/posts/does-sahih-al-bukhari-3399-blame-eve-for-womens-betrayal-refuting-the-misuse-of-the-hadith"
+  from = "/posts/nikkah-means-sex"
+  to = "/posts/does-nikāḥ-mean-sex-in-the-quran-refuting-the-claim-with-arabic-and-quranic-usage"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/surah-ahzab-53"
+  to = "/posts/does-quran-33-53-prove-the-prophet-made-up-revelation"
   status = 301
   force = true
 
@@ -571,6 +715,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/contradiction-in-the-quran-regarding-the-belief-and-disbelief-of-some-infidels"
+  to = "/posts/does-you-do-not-worship-what-i-worship-contradict-later-conversion"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/1st-doubt"
   to = "/posts/doubts-regarding-prophet-marriage-with-safiyyah-bint-huyayy"
   status = 301
@@ -601,6 +751,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/deception-no-24-after-me-there-will-be-imams-who-will-not-be-guided-by-my-guidance-or-my-sunnah"
+  to = "/posts/future-corrupt-rulers-in-sahih-muslim-hadith-explained"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/embroyoloy"
   to = "/posts/hadith-of-42-nights-embryology-sex-differentiation-and-organ-formation-explained"
   status = 301
@@ -619,6 +775,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/abu-bakrs-method-in-collecting-the-quran"
+  to = "/posts/how-abu-bakr-collected-the-quran-the-strict-method-that-preserved-the-mushaf"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/the-response-to-the-doubt-about-how-god-created-every-animal-and-every-living-thing-from-water-whil"
   to = "/posts/how-can-allah-create-everything-from-water-if-jinn-were-created-from-fire-a-complete-response"
   status = 301
@@ -633,6 +795,12 @@
 [[redirects]]
   from = "/posts/conditions-of-the-peoples-of-the-sasanian-empire-before-and-after-the-islamic-conquest"
   to = "/posts/how-islam-liberated-persia-from-sasanian-oppression-and-built-a-civilization"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/angels-in-surah-al-imran-mary"
+  to = "/posts/how-many-angels-gave-mary-glad-tidings-refuting-the-quran-contradiction-claim-2"
   status = 301
   force = true
 
@@ -697,6 +865,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/a-womans-voice-is-shameful"
+  to = "/posts/is-a-womans-voice-awrah-what-islam-actually-says-vs-what-the-bible-says"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/moon-god"
   to = "/posts/is-allah-a-moon-god-the-claim-debunked-and-why-yahweh-has-a-bigger-problem"
   status = 301
@@ -705,6 +879,12 @@
 [[redirects]]
   from = "/posts/david-is-also-the-christ-the-son-of-god-the-forgotten-fourth-divine-person"
   to = "/posts/is-david-also-the-christ-and-son-of-god-a-biblical-challenge-to-christian-title-based-divinity-claims"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/s-jizyah-usury-refuting-the-quranic-contradiction-claim"
+  to = "/posts/is-jizyah-usury-refuting-the-quranic-contradiction-claim"
   status = 301
   force = true
 
@@ -823,6 +1003,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/deception-no-7-you-want-to-be-castrated-or-practice-temporary-marriage"
+  to = "/posts/mutah-in-islam-was-temporary-marriage-later-forbidden"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/as-for-my-cousin-he-violated-my-honor"
   to = "/posts/my-honor-was-violated-does-the-hadith-mean-the-prophet-صلى-الله-عليه-وسلم-was-assaulted"
   status = 301
@@ -837,6 +1023,12 @@
 [[redirects]]
   from = "/posts/a-clear-contradiction-in-hadith-with-quran"
   to = "/posts/no-contradiction-entering-paradise-by-deeds-and-allahs-mercy-in-quran-and-hadith"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/a-muslim-shall-not-be-killed-for-killing-an-infidel"
+  to = "/posts/no-muslim-killed-for-an-infidel-what-the-hadith-actually-means-and-what-critics-deliberately-ignore"
   status = 301
   force = true
 
@@ -889,6 +1081,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/as-if-it-is-ascending-to-the-sky"
+  to = "/posts/quran-6-125-refutes-the-doubt-does-ascending-into-the-sky-really-mean-rising-upward"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/31-common-contradiction-in-quran-refuted"
   to = "/posts/quran-contradictions-debunked-days-of-creation-intercession-alcohol-and-more"
   status = 301
@@ -907,8 +1105,32 @@
   force = true
 
 [[redirects]]
+  from = "/posts/deception-no-25-you-will-follow-the-ways-of-those-before-you-inch-by-inch"
+  to = "/posts/sahih-bukhari-3197-following-previous-nations-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-29-he-rudely-replies-to-muhammad-that-he-is-not-crazy"
+  to = "/posts/sahih-bukhari-6115-anger-and-seeking-refuge-from-satan"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/finally-saint-cyril-the-great-solved-the-problem-of-the-christians-orders-to-slaughter-infants-and"
   to = "/posts/saint-cyril-on-killing-children-the-biblical-problem-christians-cannot-escape"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/inquiry-about-selling-the-mother-of-a-child-and-marrying-a-chaste-right-hand-slave-hadiths"
+  to = "/posts/selling-umm-al-walad-sex-with-captives-and-khalid-ibn-al-walid-answering-three-major-misconceptions-about-islam"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/slavery-and-concubinage-endorsed-by-the-bible-1354004700260733043"
+  to = "/posts/slavery-concubines-and-war-captives-in-the-bible-the-christian-double-standard"
   status = 301
   force = true
 
@@ -927,6 +1149,12 @@
 [[redirects]]
   from = "/posts/slavery"
   to = "/posts/slavery-resources-only"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-v2-0"
+  to = "/posts/slavery-resources"
   status = 301
   force = true
 
@@ -961,8 +1189,8 @@
   force = true
 
 [[redirects]]
-  from = "/posts/update-1340956212472320102"
-  to = "/posts/the-camel-urine-hadith-explained-context-science-and-refutation"
+  from = "/posts/age-argument-omar"
+  to = "/posts/the-covenant-of-umar-explained-refuting-christian-polemics-against-islam"
   status = 301
   force = true
 
@@ -1005,6 +1233,18 @@
 [[redirects]]
   from = "/posts/the-weak-one-who-has-no-support"
   to = "/posts/the-hadith-of-the-people-of-paradise-and-hell-meaning-of-zabr"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-15-men-who-extinguish-the-sunnah-and-create-innovation"
+  to = "/posts/the-hadith-of-unjust-rulers-delaying-prayer-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/deception-no-10-the-companions-who-tried-to-kill-him-pbuh"
+  to = "/posts/the-hypocrites-who-plotted-against-prophet-muhammad-after-tabuk"
   status = 301
   force = true
 
@@ -1105,6 +1345,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/and-we-decreed-to-the-children-of-israel-in-the-scripture-you-will-surely-cause-corruption-on-the"
+  to = "/posts/the-testament-of-moses-prophecy-did-it-predict-prophet-muhammad-صلى-الله-عليه-وسلمs-birth"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/mutah-pleasure-marriage"
   to = "/posts/the-truth-about-mutah-temporary-marriage-permanently-forbidden-in-quran-sunnah-full-evidence"
   status = 301
@@ -1141,6 +1387,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/deception-no-11-there-are-12-hypocrites-among-my-companions"
+  to = "/posts/twelve-hypocrites-vs-the-sahabah-a-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/story-of-dhul-qarnayn-was-borrowed-from-syriac-sources"
   to = "/posts/was-dhul-qarnayn-borrowed-from-the-alexander-legend-a-refutation-of-the-syriac-source-theory"
   status = 301
@@ -1167,6 +1419,12 @@
 [[redirects]]
   from = "/posts/cave-story-borrowed"
   to = "/posts/was-the-cave-of-thawr-story-borrowed-from-saint-felix"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/you-follow-none-but-a-man-bewitched-al-isra-47-negate-or-confirm-the-prophets-bewitchment"
+  to = "/posts/was-the-prophet-صلى-الله-عليه-وسلم-really-bewitched-refuting-the-quran-hadith-contradiction-claim"
   status = 301
   force = true
 
@@ -1213,6 +1471,18 @@
   force = true
 
 [[redirects]]
+  from = "/posts/burning-of-the-library-of-alexandria"
+  to = "/posts/who-really-destroyed-the-library-of-alexandria-the-myth-against-muslims-exposed"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/who-was-the-first-muslim-abraham-moses-or-the-magicians-quranic-contradiction-refuted"
+  to = "/posts/who-was-the-first-muslim-refuting-the-quranic-contradiction-claim"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/revelation-of-john-who-wrote-it-and-when-did-it-become-canonical-and-part-of-the-new-testament"
   to = "/posts/who-wrote-the-book-of-revelation-the-unknown-author-the-church-has-debated-for-centuries"
   status = 301
@@ -1227,6 +1497,12 @@
 [[redirects]]
   from = "/posts/and-then-sends-a-prophet"
   to = "/posts/why-did-god-leave-people-for-600-years-before-sending-prophet-muhammad"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/anektaha"
+  to = "/posts/why-did-prophet-muhammad-صلى-الله-عليه-وسلم-say-أنكتها-anektha-in-sahih-bukhari-a-linguistic-and-legal-refutation"
   status = 301
   force = true
 
