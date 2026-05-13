@@ -45,13 +45,14 @@ export function highlight(text: string, query: string): string {
   const q = query.startsWith('#') ? query.slice(1) : query;
   if (!q.trim()) return escaped;
   const tokens = q.trim().split(/\s+/).filter(Boolean);
-  return tokens.reduce((html, token) => {
-    const safeToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return html.replace(
-      new RegExp(`(${safeToken})`, 'gi'),
-      '<mark class="bg-highlight-300/40 dark:bg-highlight-500/30 rounded px-0.5 not-italic font-semibold">$1</mark>'
-    );
-  }, escaped);
+  if (tokens.length === 0) return escaped;
+  const pattern = tokens
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
+  return escaped.replace(
+    new RegExp(`(${pattern})`, 'gi'),
+    '<mark class="bg-highlight-300/40 dark:bg-highlight-500/30 rounded px-0.5 not-italic font-semibold">$1</mark>'
+  );
 }
 
 /**

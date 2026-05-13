@@ -102,6 +102,10 @@ test('excerptAround - picks highest-density window for multi-token query', () =>
   const filler = 'irrelevant '.repeat(60);
   const dense = 'alpha beta gamma ';
   const content = filler + dense + filler;
-  const { text } = excerptAround(content, 'alpha beta gamma', 80);
-  assert.ok(text.includes('alpha') || text.includes('beta') || text.includes('gamma'));
+  // radius=160 → windowSize=320, dense cluster is ~17 chars, well within window
+  const { text } = excerptAround(content, 'alpha beta gamma', 160);
+  assert.ok(
+    text.includes('alpha') && text.includes('beta') && text.includes('gamma'),
+    'Excerpt should contain all three tokens from the dense cluster'
+  );
 });
