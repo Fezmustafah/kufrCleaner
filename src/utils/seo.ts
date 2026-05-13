@@ -45,7 +45,7 @@ export function generatePostSEO(post: Post, url: string): SEOData {
 
   return {
     title: `${title} | ${siteConfig.title}`,
-    description: description || `Post: ${title}`,
+    description: description || '',
     canonical: url,
     ogImage: {
       // Dynamic OG image generated at /og/[id].png — handles banner/text card logic
@@ -155,7 +155,7 @@ export function generateProjectSEO(project: Project, url: string): SEOData {
 
   return {
     title: `${title} | ${siteConfig.title}`,
-    description: description || `Project: ${title}`,
+    description: description || '',
     canonical: url,
     ogImage,
     ogType: "article",
@@ -212,7 +212,7 @@ export function generateDocumentationSEO(
 
   return {
     title: `${title} | ${siteConfig.title}`,
-    description: description || `Documentation: ${title}`,
+    description: description || '',
     canonical: url,
     ogImage,
     ogType: "article",
@@ -262,12 +262,9 @@ export function generateTagSEO(
     canonical,
     robots: "index, follow",
     ogType: "website",
-    ogImage: getDefaultOGImage(),
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      image: getDefaultOGImage().url,
+    ogImage: {
+      ...getDefaultOGImage(),
+      url: `${siteConfig.site}/open-graph.png`,
     },
   };
 }
@@ -293,12 +290,9 @@ export function generatePostsListSEO(
     canonical,
     robots: "index, follow",
     ogType: "website",
-    ogImage: getDefaultOGImage(),
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      image: getDefaultOGImage().url,
+    ogImage: {
+      ...getDefaultOGImage(),
+      url: `${siteConfig.site}/open-graph.png`,
     },
   };
 }
@@ -330,73 +324,6 @@ export function generateStructuredData(
   };
 
   return JSON.stringify(baseData);
-}
-
-// Generate meta tags HTML
-export function generateMetaTags(seoData: SEOData): string {
-  const tags = [
-    `<title>${seoData.title}</title>`,
-    `<meta name="description" content="${seoData.description}">`,
-    seoData.robots && `<meta name="robots" content="${seoData.robots}">`,
-    `<link rel="canonical" href="${seoData.canonical}">`,
-
-    // Open Graph
-    `<meta property="og:title" content="${seoData.title}">`,
-    `<meta property="og:description" content="${seoData.description}">`,
-    `<meta property="og:url" content="${seoData.canonical}">`,
-    `<meta property="og:type" content="${seoData.ogType}">`,
-    `<meta property="og:site_name" content="${siteConfig.title}">`,
-
-    // Twitter Card
-    `<meta name="twitter:card" content="summary_large_image">`,
-    `<meta name="twitter:title" content="${seoData.title}">`,
-    `<meta name="twitter:description" content="${seoData.description}">`,
-  ];
-
-  // Add Open Graph image
-  if (seoData.ogImage) {
-    tags.push(
-      `<meta property="og:image" content="${seoData.ogImage.url}">`,
-      `<meta property="og:image:alt" content="${seoData.ogImage.alt}">`,
-      `<meta property="og:image:width" content="${seoData.ogImage.width}">`,
-      `<meta property="og:image:height" content="${seoData.ogImage.height}">`,
-      `<meta name="twitter:image" content="${seoData.ogImage.url}">`,
-      `<meta name="twitter:image:alt" content="${seoData.ogImage.alt}">`
-    );
-  }
-
-  // Add article-specific tags
-  if (seoData.ogType === "article") {
-    if (seoData.publishedTime) {
-      tags.push(
-        `<meta property="article:published_time" content="${seoData.publishedTime}">`
-      );
-    }
-    if (seoData.modifiedTime) {
-      tags.push(
-        `<meta property="article:modified_time" content="${seoData.modifiedTime}">`
-      );
-    }
-    if (seoData.tags) {
-      seoData.tags.forEach((tag) => {
-        tags.push(`<meta property="article:tag" content="${tag}">`);
-      });
-    }
-    if (seoData.articleSection) {
-      tags.push(
-        `<meta property="article:section" content="${seoData.articleSection}">`
-      );
-    }
-  }
-
-  // Add keywords
-  if (seoData.keywords) {
-    tags.push(`<meta name="keywords" content="${seoData.keywords}">`);
-  }
-
-  // Twitter meta tags
-
-  return tags.filter(Boolean).join("\n");
 }
 
 // Check if page should be excluded from sitemap

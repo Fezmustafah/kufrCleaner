@@ -84,12 +84,6 @@ export interface SEOData {
   noIndex?: boolean;
   robots?: string;
   articleSection?: string;
-  twitter?: {
-    card?: string;
-    title?: string;
-    description?: string;
-    image?: string;
-  };
   keywords?: string[];
 }
 
