@@ -538,6 +538,7 @@ const seoData = {
         el.addEventListener('click', (e) => {
           if (window.matchMedia('(max-width: 767px)').matches) {
             e.preventDefault();
+            e.stopPropagation();
             openMobileSheet(currentItems[i], currentQuery);
           }
         });
