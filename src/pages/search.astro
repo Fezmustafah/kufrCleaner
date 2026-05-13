@@ -500,10 +500,23 @@ const seoData = {
           filterFromYear !== null || filterToYear !== null;
         paneEl!.classList.add('hidden');
         emptyEl!.classList.remove('hidden');
-        statusEl!.textContent = isFiltered
-          ? 'No results match the active filters.'
-          : `No results for "${rawQuery}". Try fewer words or a #tag search.`;
-        statusEl!.classList.remove('hidden');
+
+        if (isFiltered) {
+          statusEl!.innerHTML = 'No results match the active filters. <button id="status-clear-filters" class="underline hover:text-primary-700 dark:hover:text-primary-300 transition-colors">Clear filters</button>';
+          statusEl!.classList.remove('hidden');
+          document.getElementById('status-clear-filters')?.addEventListener('click', () => {
+            activeTagFilters.clear();
+            activeCategoryFilter = null;
+            sortMode = 'relevance';
+            filterFromYear = null;
+            filterToYear = null;
+            buildFilterBar(allResults);
+            applyFilters();
+          });
+        } else {
+          statusEl!.textContent = `No results for "${rawQuery}". Try fewer words or a #tag search.`;
+          statusEl!.classList.remove('hidden');
+        }
         return;
       }
 
