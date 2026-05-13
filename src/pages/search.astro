@@ -125,6 +125,10 @@ const seoData = {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 
+  function safeUrl(url: string) {
+    return /^https?:\/\/|^\//.test(url) ? url : '#';
+  }
+
   // Per-page-view state
   let fuse: any = null;
   let fuseItems: any[] = [];
@@ -400,12 +404,12 @@ const seoData = {
 
       const timePart = item.readingTime
         ? `<span class="flex items-center gap-0.5 text-xs text-primary-400 dark:text-primary-500">
-            ${svg(svgPaths.clock, 10, 'opacity-70')}${item.readingTime} min read
+            ${svg(svgPaths.clock, 10, 'opacity-70')}${escapeHtml(String(item.readingTime))} min read
           </span>`
         : '';
 
       return `
-        <a href="${escapeHtml(item.url)}"
+        <a href="${escapeHtml(safeUrl(item.url))}"
            data-index="${i}"
            class="result-item block px-4 py-3 border-b border-primary-100 dark:border-primary-800 last:border-b-0 transition-colors border-l-2
                   ${isSelected
@@ -448,7 +452,7 @@ const seoData = {
       const metaHtml = item.date || item.readingTime
         ? `<div class="flex items-center gap-3 mb-4 text-xs text-primary-500 dark:text-primary-400">
             ${item.date        ? `<span class="flex items-center gap-1">${svg(svgPaths.calendar, 11)}${formatDate(item.date)}</span>` : ''}
-            ${item.readingTime ? `<span class="flex items-center gap-1">${svg(svgPaths.clock, 11)}${item.readingTime} min read</span>` : ''}
+            ${item.readingTime ? `<span class="flex items-center gap-1">${svg(svgPaths.clock, 11)}${escapeHtml(String(item.readingTime))} min read</span>` : ''}
           </div>`
         : '';
 
@@ -462,7 +466,7 @@ const seoData = {
       return `
         <div class="flex items-start justify-between gap-3 mb-2">
           <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</h2>
-          <a href="${escapeHtml(item.url)}" title="Open post"
+          <a href="${escapeHtml(safeUrl(item.url))}" title="Open post"
              class="shrink-0 p-1.5 rounded-lg text-primary-400 hover:text-highlight-600 dark:hover:text-highlight-400 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
              aria-label="Open post">${svg(svgPaths.externalLink, 15)}</a>
         </div>
@@ -477,7 +481,7 @@ const seoData = {
           ? `<p class="text-sm leading-relaxed text-primary-700 dark:text-primary-300">${highlight(excerpt, rawQuery)}</p>`
           : ''}
         ${truncationWarning}
-        <a href="${escapeHtml(item.url)}"
+        <a href="${escapeHtml(safeUrl(item.url))}"
            class="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-highlight-500 hover:bg-highlight-600 text-white text-sm font-medium transition-colors">
           Read post ${svg(svgPaths.arrowRight, 14, 'text-white')}
         </a>`;
