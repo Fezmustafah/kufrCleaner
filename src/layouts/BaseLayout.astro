@@ -14,7 +14,7 @@ import '@/styles/global.css';
 
 // Import local fonts if configured
 if (shouldLoadLocalFonts()) {
-  // Import Inter font
+  // Inter
   if (siteConfig.fonts.families.body === 'Inter' || siteConfig.fonts.families.heading === 'Inter') {
     import('@fontsource/inter/300.css');
     import('@fontsource/inter/400.css');
@@ -22,8 +22,26 @@ if (shouldLoadLocalFonts()) {
     import('@fontsource/inter/600.css');
     import('@fontsource/inter/700.css');
   }
-
-  // Import JetBrains Mono font
+  // Lora
+  if (siteConfig.fonts.families.body === 'Lora' || siteConfig.fonts.families.heading === 'Lora') {
+    import('@fontsource/lora/400.css');
+    import('@fontsource/lora/400-italic.css');
+    import('@fontsource/lora/500.css');
+    import('@fontsource/lora/600.css');
+    import('@fontsource/lora/700.css');
+    import('@fontsource/lora/700-italic.css');
+  }
+  // Cormorant Garamond
+  if (siteConfig.fonts.families.body === 'Cormorant Garamond' || siteConfig.fonts.families.heading === 'Cormorant Garamond') {
+    import('@fontsource/cormorant-garamond/300.css');
+    import('@fontsource/cormorant-garamond/400.css');
+    import('@fontsource/cormorant-garamond/400-italic.css');
+    import('@fontsource/cormorant-garamond/500.css');
+    import('@fontsource/cormorant-garamond/600.css');
+    import('@fontsource/cormorant-garamond/700.css');
+    import('@fontsource/cormorant-garamond/700-italic.css');
+  }
+  // JetBrains Mono
   if (siteConfig.fonts.families.mono === 'JetBrains Mono') {
     import('@fontsource/jetbrains-mono/300.css');
     import('@fontsource/jetbrains-mono/400.css');
@@ -159,8 +177,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     </>
   )}
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-
   <!-- Fonts with optimized loading -->
   {shouldLoadCdnFonts() && (
     <>
@@ -292,11 +308,7 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       });
     }
 
-    // Giscus theme change handling
-    function handleGiscusThemeChange(isDark) {
-      // Giscus theme changes are handled by the Giscus client script
-      // This is just a placeholder to prevent the error
-    }
+    function handleGiscusThemeChange(_isDark) {}
 
 
     // Reset theme to default and clear user preferences
@@ -304,8 +316,8 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       const configTheme = window.siteConfig?.theme || 'oxygen';
 
       // Clear all theme preferences
-      localStorage.removeItem('themePreference');
-      localStorage.removeItem('selectedTheme');
+      localStorage.removeItem('theme-preference');
+      localStorage.removeItem('selected-theme');
 
       // Set theme to config default
       document.documentElement.setAttribute('data-theme', configTheme);
@@ -326,13 +338,13 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       // If theme switching is NOT available, ALWAYS use default theme and clear preferences
       if (!themeSwitchingAvailable) {
         // Clear any stored theme preferences since theme switching is not available
-        localStorage.removeItem('themePreference');
-        localStorage.removeItem('selectedTheme');
+        localStorage.removeItem('theme-preference');
+        localStorage.removeItem('selected-theme');
         return configTheme;
       }
 
       // Theme switching IS available, so respect user preferences
-      const themePreference = localStorage.getItem('themePreference');
+      const themePreference = localStorage.getItem('theme-preference');
       const hasUserPreference = themePreference !== null;
 
       if (hasUserPreference) {
@@ -355,18 +367,18 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       } else {
         // User has never made a theme choice
         // Check for legacy selectedTheme key
-        const storedTheme = localStorage.getItem('selectedTheme');
+        const storedTheme = localStorage.getItem('selected-theme');
         if (storedTheme) {
           // Migrate legacy preference
           if (storedTheme === configTheme) {
             // Legacy theme was the default, clear preference to follow default
-            localStorage.removeItem('selectedTheme');
+            localStorage.removeItem('selected-theme');
             return configTheme;
           } else {
             // Legacy theme was custom, migrate to new system
             if (isThemeAvailable(storedTheme)) {
-              localStorage.setItem('themePreference', `specific:${storedTheme}`);
-              localStorage.removeItem('selectedTheme');
+              localStorage.setItem('theme-preference', `specific:${storedTheme}`);
+              localStorage.removeItem('selected-theme');
               return storedTheme;
             } else {
               // Theme is no longer available, fall back to default
@@ -459,13 +471,13 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
 
       if (theme === configTheme) {
         // User selected the default theme - clear preference to follow default
-        localStorage.removeItem('themePreference');
-        localStorage.removeItem('selectedTheme');
+        localStorage.removeItem('theme-preference');
+        localStorage.removeItem('selected-theme');
       } else {
         // User selected a specific theme - store as 'specific:theme-name'
-        localStorage.setItem('themePreference', `specific:${theme}`);
+        localStorage.setItem('theme-preference', `specific:${theme}`);
         // Also maintain backward compatibility with selectedTheme for now
-        localStorage.setItem('selectedTheme', theme);
+        localStorage.setItem('selected-theme', theme);
       }
 
       document.documentElement.setAttribute('data-theme', theme);
@@ -883,15 +895,14 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
         }
       });
 
-      // Update secondary colors if the theme defines them
-      if (theme.secondary) {
-        Object.entries(theme.secondary).forEach(([shade, color]) => {
-          const rgb = hexToRgb(color);
-          if (rgb) {
-            root.style.setProperty(`--color-secondary-${shade}`, `${rgb.r} ${rgb.g} ${rgb.b}`);
-          }
-        });
-      }
+      // Update secondary colors — fall back to primary for themes without their own secondary palette
+      const secondaryColors = theme.secondary || theme.primary;
+      Object.entries(secondaryColors).forEach(([shade, color]) => {
+        const rgb = hexToRgb(color);
+        if (rgb) {
+          root.style.setProperty(`--color-secondary-${shade}`, `${rgb.r} ${rgb.g} ${rgb.b}`);
+        }
+      });
 
       // Update annotation colors (light + dark variants — CSS picks via :root / .dark)
       if (theme.annotations) {
@@ -1424,6 +1435,53 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
 
     setupSwupHooks();
 
+    function initSidebarToggle() {
+      const btn     = document.getElementById('sidebar-toc-header');
+      const leftCol = document.getElementById('post-left-sidebar');
+      if (!btn || !leftCol || btn.dataset.sidebarWired) return;
+      btn.dataset.sidebarWired = '1';
+      const KEY = 'sidebar-collapsed';
+      if (localStorage.getItem(KEY) === 'true') {
+        leftCol.classList.add('is-collapsed');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+      btn.addEventListener('click', function() {
+        const collapsed = leftCol.classList.toggle('is-collapsed');
+        btn.setAttribute('aria-expanded', String(!collapsed));
+        localStorage.setItem(KEY, String(collapsed));
+      });
+    }
+    window['initSidebarToggle'] = initSidebarToggle;
+
+    function initImageLoaders() {
+      // Captioned images inside <figure data-img-w-caption>
+      document.querySelectorAll('.prose figure[data-img-w-caption]').forEach(function(fig) {
+        var img = fig.querySelector('img');
+        if (!img) return;
+        if (img.complete && img.naturalWidth > 0) return; // already cached
+        fig.classList.add('img-loading');
+        function done() {
+          fig.classList.remove('img-loading');
+          img.removeEventListener('load', done);
+          img.removeEventListener('error', done);
+        }
+        img.addEventListener('load', done);
+        img.addEventListener('error', done); // clear shimmer on broken image too
+      });
+      // Standalone images (obsidian-sized, uncaptioned — no figure wrapper)
+      document.querySelectorAll('.prose img:not(figure img)').forEach(function(img) {
+        if (img.complete && img.naturalWidth > 0) return;
+        img.classList.add('img-loading');
+        function done() {
+          img.classList.remove('img-loading');
+          img.removeEventListener('load', done);
+          img.removeEventListener('error', done);
+        }
+        img.addEventListener('load', done);
+        img.addEventListener('error', done);
+      });
+    }
+
     // astro:page-load fires on initial page load AND after every Swup navigation.
     // Components (Lightbox, LocalGraph, PostLayout) handle their own init via their own
     // astro:page-load listeners. This listener handles BaseLayout-level globals only.
@@ -1455,6 +1513,7 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       safe(() => initializeCollapsibleCallouts());
       safe(() => setupSmoothScrolling());
       safe(() => updateNavigationHighlighting());
+      safe(() => initImageLoaders());
       // Component safety-net: deduped by _lastPath in each run fn — no-op if already ran
       safe(function () { if (window._lgRun) window._lgRun(); });
       safe(function () { if (window._margRun) window._margRun(); });

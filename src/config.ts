@@ -203,7 +203,7 @@ export const siteConfig: SiteConfig = {
   // [CONFIG:SITE_DESCRIPTION]
   description: "Cleaning kufr.",
   // [CONFIG:SITE_AUTHOR]
-  author: "Faiz Musatafa",
+  author: "Faiz Mustafa",
   // [CONFIG:SITE_LANGUAGE]
   language: "en",
   // [CONFIG:FAVICON_THEME_ADAPTIVE]
@@ -222,7 +222,7 @@ export const siteConfig: SiteConfig = {
   availableThemes: "default", // "default" to show all built-in themes, or array of theme names like ["oxygen", "minimal", "obsidianite"] to limit choices (can include custom theme filenames)
   fonts: {
     // [CONFIG:FONT_SOURCE]
-    source: "cdn", // "local" for self-hosted @fontsource fonts, "cdn" for Google Fonts CDN
+    source: "local", // "local" for self-hosted @fontsource fonts, "cdn" for Google Fonts CDN
     families: {
       // [CONFIG:FONT_BODY]
       body: "Lora",                // Humanist serif — warm, readable at length
@@ -260,7 +260,7 @@ export const siteConfig: SiteConfig = {
   featureButton: "mode", // "mode" | "graph" | "theme" | "none"
   deployment: {
     // [CONFIG:DEPLOYMENT_PLATFORM]
-    platform: "netlify", // "netlify" | "vercel" | "github-pages" | "cloudflare-workers" - sets redirect configuration for the chosen platform (Cloudflare Workers uses Workers-compatible config)
+    platform: "github-pages", // "netlify" | "vercel" | "github-pages" | "cloudflare-workers" - sets redirect configuration for the chosen platform (Cloudflare Workers uses Workers-compatible config)
   },
 
   // Banner

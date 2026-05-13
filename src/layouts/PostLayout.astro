@@ -2,7 +2,6 @@
 import type { Post, Heading } from '@/types';
 import { siteConfig } from '@/config';
 import { generatePostSEO } from '@/utils/seo';
-// import { getOptimizedFormat } from '@/utils/images'; // unused while PostBanner is disabled
 import { processWikilinksInHTML } from '@/utils/internallinks';
 import { getCollection } from 'astro:content';
 import { shouldShowPost, processPost, calculateReadingTime, generateTOC, getAdjacentPosts, formatDate, formatDateMobile, getReadingTimeMobile } from '@/utils/markdown';
@@ -13,7 +12,6 @@ import LocalGraph from '@/components/LocalGraph.astro';
 import GiscusComments from '@/components/GiscusComments.astro';
 import Lightbox from '@/components/Lightbox.astro';
 import Icon from '@/components/Icon.astro';
-// import PostBanner from '@/components/PostBanner.astro';
 import ImageWrapper from '@/components/ImageWrapper.astro';
 import { devConfig } from '@/config/dev';
 import { readFileSync } from 'fs';
@@ -304,32 +302,10 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
        Without the Fragment wrapper, Astro's script hoisting compiles and deduplicates them. -->
     <!-- Marginalia: extracted to /src/scripts/marginalia-client.ts and imported globally from BaseLayout. -->
 
-    <!-- Contents sidebar collapse toggle -->
+    <!-- Contents sidebar collapse toggle — defined in BaseLayout, always available -->
     <script>
-      function initSidebarToggle() {
-        const btn      = document.getElementById('sidebar-toc-header');
-        const leftCol  = document.getElementById('post-left-sidebar');
-        if (!btn || !leftCol || (btn as any)._wired) return;
-        (btn as any)._wired = true;
-
-        const KEY = 'kufrCleaner:sidebarCollapsed';
-        if (localStorage.getItem(KEY) === 'true') {
-          leftCol.classList.add('is-collapsed');
-          btn.setAttribute('aria-expanded', 'false');
-        }
-
-        btn.addEventListener('click', () => {
-          const collapsed = leftCol.classList.toggle('is-collapsed');
-          btn.setAttribute('aria-expanded', String(!collapsed));
-          localStorage.setItem(KEY, String(collapsed));
-        });
-      }
-
-      window['initSidebarToggle'] = initSidebarToggle;
-      document.addEventListener('DOMContentLoaded', initSidebarToggle);
-      document.addEventListener('astro:page-load', initSidebarToggle);
-      if (document.readyState !== 'loading') initSidebarToggle();
-      window.addEventListener('pageshow', (e) => { if (e.persisted) initSidebarToggle(); });
+      // Direct hard-load init (Swup navigations handled via BaseLayout's astro:page-load)
+      window['initSidebarToggle']?.();
     </script>
 
     <script define:vars={{ posts: visiblePosts.map(p => ({ id: p.id, data: { title: p.data.title } })), commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id, BASE_URL: import.meta.env.BASE_URL }}>

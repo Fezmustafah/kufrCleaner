@@ -2,11 +2,7 @@ import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
 import { siteConfig } from "../config";
 import { shouldShowPost, shouldShowContent } from "../utils/markdown";
-
-function shouldExcludeFromSitemap(slug: string): boolean {
-  const excludedSlugs = ["404", "sitemap", "rss"];
-  return excludedSlugs.includes(slug);
-}
+import { shouldExcludeFromSitemap } from "../utils/seo";
 
 // Helper function to normalize siteUrl - ensure it ends with a single slash
 function normalizeSiteUrl(url: string): string {

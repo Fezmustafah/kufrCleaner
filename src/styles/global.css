@@ -1014,6 +1014,74 @@ textarea {
   color: rgb(156 163 175);
 }
 
+/* ── Image loading skeleton ──────────────────────────────────────────────── */
+@keyframes img-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Smooth fade-in once loaded */
+.prose figure[data-img-w-caption] img {
+  transition: opacity 0.35s ease;
+}
+
+/* Figure shimmer while image is in flight */
+.prose figure[data-img-w-caption].img-loading {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-primary-100)) 0%,
+    rgb(var(--color-primary-200) / 0.45) 50%,
+    rgb(var(--color-primary-100)) 100%
+  );
+  background-size: 200% 100%;
+  animation: img-shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius-md);
+  min-height: 12rem;
+}
+.dark .prose figure[data-img-w-caption].img-loading {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-primary-800)) 0%,
+    rgb(var(--color-primary-700) / 0.45) 50%,
+    rgb(var(--color-primary-800)) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* No transition when hiding — prevents fade-out flash on first paint */
+.prose figure[data-img-w-caption].img-loading img {
+  opacity: 0;
+  transition: none;
+}
+
+/* Standalone images (no figure wrapper — obsidian-sized, uncaptioned) */
+.prose img:not(figure img) {
+  transition: opacity 0.35s ease;
+}
+.prose img.img-loading {
+  opacity: 0;
+  min-height: 12rem;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-primary-100)) 0%,
+    rgb(var(--color-primary-200) / 0.45) 50%,
+    rgb(var(--color-primary-100)) 100%
+  );
+  background-size: 200% 100%;
+  animation: img-shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--radius-md);
+  transition: none;
+}
+.dark .prose img.img-loading {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-primary-800)) 0%,
+    rgb(var(--color-primary-700) / 0.45) 50%,
+    rgb(var(--color-primary-800)) 100%
+  );
+  background-size: 200% 100%;
+}
+
 /* Prose Styles */
 .prose {
   @apply text-primary-700 dark:text-primary-300;

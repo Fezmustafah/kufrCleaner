@@ -1226,7 +1226,7 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
       // Get current theme using the new preference system
       let currentTheme = (window as any).siteConfig?.theme || 'oxygen'; // Default to config theme
       
-      const themePreference = localStorage.getItem('themePreference');
+      const themePreference = localStorage.getItem('theme-preference');
       
       if (themePreference === 'default') {
         // User explicitly chose to follow the site's default theme
@@ -1235,8 +1235,7 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
         // User chose a specific theme
         currentTheme = themePreference.replace('specific:', '');
       } else {
-        // Legacy support: check old selectedTheme key
-        const storedTheme = localStorage.getItem('selectedTheme');
+        const storedTheme = localStorage.getItem('selected-theme');
         if (storedTheme) {
           currentTheme = storedTheme;
         } else {
@@ -1350,14 +1349,14 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
         // Store theme preference based on selection
         if (themeName === configTheme) {
           // User selected the default theme - store as 'default' preference
-          localStorage.setItem('themePreference', 'default');
+          localStorage.setItem('theme-preference', 'default');
         } else {
           // User selected a specific theme - store as 'specific:theme-name'
-          localStorage.setItem('themePreference', `specific:${themeName}`);
+          localStorage.setItem('theme-preference', `specific:${themeName}`);
         }
         
         // Also maintain backward compatibility with selectedTheme for now
-        localStorage.setItem('selectedTheme', themeName);
+        localStorage.setItem('selected-theme', themeName);
         document.documentElement.setAttribute('data-theme', themeName);
         
         // Trigger theme change event for other components
@@ -1376,7 +1375,7 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
         return;
       }
       
-      const savedTheme = localStorage.getItem('selectedTheme');
+      const savedTheme = localStorage.getItem('selected-theme');
       
       if (savedTheme) {
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -1384,7 +1383,7 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
         // Use default theme from config or fallback to oxygen
         const defaultTheme = (window as any).siteConfig?.theme || 'oxygen';
         document.documentElement.setAttribute('data-theme', defaultTheme);
-        localStorage.setItem('selectedTheme', defaultTheme);
+        localStorage.setItem('selected-theme', defaultTheme);
       }
     }
   }

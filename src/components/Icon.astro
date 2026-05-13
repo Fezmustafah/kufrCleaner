@@ -1,7 +1,4 @@
 ---
-import { library, icon } from '@fortawesome/fontawesome-svg-core';
-import { fab } from '@fortawesome/free-brands-svg-icons';
-
 export interface Props {
   name: string;
   class?: string;
@@ -14,9 +11,6 @@ const { name, class: className = '', size = 24, title } = Astro.props;
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-
-// Add ALL Font Awesome brand icons to library at once
-library.add(fab);
 
 const icons = {
   // Navigation icons
@@ -90,45 +84,21 @@ const icons = {
   'quote': '<path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>',
 };
 
-const iconPath = icons[name as keyof typeof icons];
-
-// Custom icons take priority — only try FA brands if no custom icon matches
-const faIcon = !iconPath ? icon({ prefix: 'fab', iconName: name as any }) : null;
-
-// Use a graceful fallback icon (link-2) if neither FA nor custom icon exists
-const fallbackIcon = 'link-2';
-const fallbackPath = icons[fallbackIcon];
+const iconPath = icons[name as keyof typeof icons] ?? icons['link-2'];
 ---
 
-{faIcon ? (
-  <div class={className} style={`width: ${size}px; height: ${size}px; display: inline-flex; align-items: center; justify-content: center; transform: scale(0.7);`} set:html={faIcon.html[0]} />
-) : iconPath ? (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    stroke-width="2" 
-    stroke-linecap="round" 
-    stroke-linejoin="round" 
+{iconPath && (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
     class={className}
     aria-hidden={title ? undefined : true}
     set:html={title ? `<title>${escapeHtml(title)}</title>${iconPath}` : iconPath}
   />
-) : fallbackPath ? (
-  <div class={className} style={`width: ${size}px; height: ${size}px; display: inline-flex; align-items: center; justify-content: center; transform: scale(0.7);`}>
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      stroke-width="2" 
-      stroke-linecap="round" 
-      stroke-linejoin="round"
-      aria-hidden={title ? undefined : true}
-      set:html={title ? `<title>${escapeHtml(title)}</title>${fallbackPath}` : fallbackPath}
-    />
-  </div>
-) : null}
+)}

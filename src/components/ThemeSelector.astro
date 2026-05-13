@@ -191,7 +191,7 @@ import Icon from './Icon.astro';
         const themes = this.themeList.querySelectorAll('button[data-theme]');
         
         // Find current theme and scroll to it
-        const currentTheme = localStorage.getItem('selectedTheme') || document.documentElement.getAttribute('data-theme');
+        const currentTheme = localStorage.getItem('selected-theme') || document.documentElement.getAttribute('data-theme');
         if (currentTheme) {
           const currentThemeButton = Array.from(themes).find(btn => btn.getAttribute('data-theme') === currentTheme);
           if (currentThemeButton) {
@@ -220,7 +220,7 @@ import Icon from './Icon.astro';
       ];
 
       // Get current theme from localStorage, data-theme attribute, or config
-      let currentTheme = localStorage.getItem('selectedTheme');
+      let currentTheme = localStorage.getItem('selected-theme');
       
       // If no stored theme, check the current data-theme attribute
       if (!currentTheme) {
@@ -306,7 +306,7 @@ import Icon from './Icon.astro';
         await (window as any).changeTheme(theme);
       } else {
         // Fallback if global function is not available
-        localStorage.setItem('selectedTheme', theme);
+        localStorage.setItem('selected-theme', theme);
         document.documentElement.setAttribute('data-theme', theme);
         
         // Trigger theme change event for other components

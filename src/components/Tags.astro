@@ -99,12 +99,9 @@ const sortedTags = [...tags].sort();
   document.addEventListener('DOMContentLoaded', () => {
     const tagItems = document.querySelectorAll('.tag-item');
 
-    // Add click analytics or other interactive features
     tagItems.forEach(item => {
       item.addEventListener('click', (e) => {
         const tag = item.getAttribute('data-tag');
-
-        // Dispatch custom event for analytics
         if (tag) {
           window.dispatchEvent(new CustomEvent('tagClicked', {
             detail: { tag }

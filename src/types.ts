@@ -7,9 +7,6 @@ export type PostData = CollectionEntry<"posts">["data"];
 
 export type Page = CollectionEntry<"pages">;
 
-export type PageData = CollectionEntry<"pages">["data"];
-
-
 export interface Heading {
   depth: number;
   slug: string;

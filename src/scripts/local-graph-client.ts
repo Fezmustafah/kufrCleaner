@@ -379,7 +379,7 @@ function setupLocalGraphButtons() {
   if (!toggleBtn || !expandBtn || !body || !widget || (widget as any)._wired) return;
   (widget as any)._wired = true;
 
-  const KEY  = 'kufrCleaner:graphCollapsed';
+  const KEY  = 'graph-collapsed';
   const open = localStorage.getItem(KEY) !== 'true';
   if (!open) widget.classList.add('is-collapsed');
   toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');

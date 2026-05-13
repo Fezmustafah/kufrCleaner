@@ -1680,12 +1680,6 @@ export function processContentAwareWikilinks(
   allPosts: any[],
   allPages: any[]
 ): string {
-  // This function can be used to process wikilinks with full content collection awareness
-  // For now, we'll use the existing remarkWikilinks plugin but with content collections
-  // In the future, this could be enhanced to do more sophisticated processing
-
-  // The actual processing happens in the remarkWikilinks plugin during markdown rendering
-  // This function is a placeholder for future enhancements
   return content;
 }
 
