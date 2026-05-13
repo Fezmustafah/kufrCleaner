@@ -696,12 +696,24 @@ const seoData = {
 
     function closeMobileSheet() {
       if (!mobileSheet || !mobileBackdrop) return;
+      // Release scroll lock immediately — not in a timeout — so any subsequent
+      // navigation (e.g. "Read post" link) finds the body scrollable right away.
+      document.body.style.overflow = '';
       mobileSheet.classList.add('translate-y-full');
       setTimeout(() => {
         mobileBackdrop.classList.add('hidden');
-        document.body.style.overflow = '';
       }, 300);
     }
+
+    // When any link inside the sheet content is clicked (e.g. "Read post"),
+    // clean up the sheet immediately before Swup takes over navigation.
+    mobileContent?.addEventListener('click', (e) => {
+      if ((e.target as Element).closest('a[href]')) {
+        document.body.style.overflow = '';
+        mobileSheet?.classList.add('translate-y-full');
+        mobileBackdrop?.classList.add('hidden');
+      }
+    });
 
     mobileClose?.addEventListener('click', closeMobileSheet);
     mobileBackdrop?.addEventListener('click', closeMobileSheet);
