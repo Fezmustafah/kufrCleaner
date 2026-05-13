@@ -1,6 +1,7 @@
 ---
 import { siteConfig, getFontFamily, getGoogleFontsUrl, shouldLoadLocalFonts, shouldLoadCdnFonts, getFontDisplay, getThemeDisplayName } from '@/config';
 import type { SEOData } from '@/types';
+import { generateStructuredData } from '@/utils/seo';
 import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
 import CommandPalette from '@/components/CommandPalette.astro';
@@ -43,7 +44,7 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
 ---
 
 <!DOCTYPE html>
-<html lang={siteConfig.language} class={`${scrollbarClass}`} data-theme-config={siteConfig.theme} data-custom-theme-file={siteConfig.customThemeFile} data-available-themes={JSON.stringify(siteConfig.availableThemes)} data-command-palette-enabled={siteConfig.commandPalette.enabled} data-command-palette-change-theme={siteConfig.commandPalette.quickActions.changeTheme} data-feature-button={siteConfig.featureButton} data-favicon-theme-adaptive={siteConfig.faviconThemeAdaptive}>
+<html lang={siteConfig.language} class={`${scrollbarClass}`} data-theme-config={siteConfig.theme} data-custom-theme-file={siteConfig.customThemeFile} data-available-themes={JSON.stringify(siteConfig.availableThemes)} data-command-palette-enabled={siteConfig.commandPalette.enabled} data-command-palette-change-theme={siteConfig.commandPalette.quickActions.changeTheme} data-command-palette-shortcut={siteConfig.commandPalette.shortcut || ''} data-feature-button={siteConfig.featureButton} data-favicon-theme-adaptive={siteConfig.faviconThemeAdaptive}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,9 +76,8 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     </>
   ) : (
     <>
-      <meta property="og:image" content="/open-graph.png">
+      <meta property="og:image" content={`${siteConfig.site}/open-graph.png`}>
       <meta property="og:image:alt" content={siteConfig.defaultOgImageAlt}>
-      {/* Assuming default image dimensions, adjust if known */}
       <meta property="og:image:width" content="1200">
       <meta property="og:image:height" content="630">
     </>
@@ -100,14 +100,13 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     </>
   ) : (
     <>
-      <meta name="twitter:image" content="/open-graph.png">
+      <meta name="twitter:image" content={`${siteConfig.site}/open-graph.png`}>
       <meta name="twitter:image:alt" content={siteConfig.defaultOgImageAlt}>
     </>
   )}
 
   <!-- Twitter Widget Theme Configuration -->
   <meta name="twitter:widgets:theme" content="preferred_color_scheme">
-  <meta name="twitter:widgets:border-color" content="rgb(var(--color-primary-200))">
 
   <!-- Article specific meta tags -->
   {seoData.ogType === 'article' && (
@@ -121,11 +120,37 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     </>
   )}
 
-  <!-- Default favicon (will be updated by JavaScript) -->
-  <link rel="icon" href="/favicon.png" />
+  <!-- Favicon: native media-query approach, no JavaScript needed -->
+  {siteConfig.faviconThemeAdaptive ? (
+    <>
+      <link rel="icon" href="/favicon-dark.png"  media="(prefers-color-scheme: dark)" type="image/png" />
+      <link rel="icon" href="/favicon-light.png" media="(prefers-color-scheme: light)" type="image/png" />
+      <link rel="icon" href="/favicon.png" type="image/png" />
+    </>
+  ) : (
+    <link rel="icon" href="/favicon.png" type="image/png" />
+  )}
 
-  <!-- Command Palette Config for Client Script -->
-  <meta name="command-palette-shortcut" content={siteConfig.commandPalette.shortcut || ''}>
+  <!-- JSON-LD structured data -->
+  {seoData.ogType === 'article' && seoData.publishedTime && (
+    <script type="application/ld+json" set:html={generateStructuredData('article', {
+      headline: seoData.title.replace(` | ${siteConfig.title}`, ''),
+      description: seoData.description || undefined,
+      url: seoData.canonical,
+      image: seoData.ogImage?.url,
+      datePublished: seoData.publishedTime,
+      dateModified: seoData.modifiedTime || seoData.publishedTime,
+      author: { '@type': 'Person', name: seoData.author || siteConfig.author },
+      publisher: { '@type': 'Organization', name: siteConfig.title, url: siteConfig.site },
+    })} />
+  )}
+  {seoData.ogType === 'website' && (
+    <script type="application/ld+json" set:html={generateStructuredData('website', {
+      name: siteConfig.title,
+      description: seoData.description || siteConfig.description,
+      url: siteConfig.site,
+    })} />
+  )}
 
   <!-- Preconnect to external domains for faster resource loading -->
   {shouldLoadCdnFonts() && (
@@ -383,47 +408,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     // Initialize immediately after config is set
     initTheme().catch(console.error);
 
-    // Set favicon based on system theme
-    function setFavicon() {
-      const faviconThemeAdaptive = window.siteConfig?.faviconThemeAdaptive ?? true;
-      
-      let faviconUrl;
-      
-      if (faviconThemeAdaptive) {
-        // Use theme-based favicons based on browser preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-
-        if (prefersDark) {
-          faviconUrl = '/favicon-dark.png';
-        } else if (prefersLight) {
-          faviconUrl = '/favicon-light.png';
-        } else {
-          faviconUrl = '/favicon.png';
-        }
-      } else {
-        // Always use static favicon
-        faviconUrl = '/favicon.png';
-      }
-
-      // Remove ALL existing favicon links
-      const existingFavicons = document.querySelectorAll('link[rel="icon"]');
-      existingFavicons.forEach(link => link.remove());
-
-      // Create new favicon link
-      const faviconLink = document.createElement('link');
-      faviconLink.rel = 'icon';
-      faviconLink.type = 'image/png';
-      faviconLink.href = `${faviconUrl}?v=${Date.now()}`;
-      document.head.appendChild(faviconLink);
-
-      // Force favicon refresh by updating page title
-      const originalTitle = document.title;
-      document.title = originalTitle;
-    }
-
-    // Set favicon on page load
-    setFavicon();
 
     // View Transitions disabled - no need for astro:page-load
 
@@ -438,11 +422,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       } else {
         if (window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')) {
         }
-      }
-      // Only update favicon if theme adaptive is enabled
-      const faviconThemeAdaptive = window.siteConfig?.faviconThemeAdaptive ?? true;
-      if (faviconThemeAdaptive) {
-        setFavicon();
       }
     });
 
@@ -1252,42 +1231,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
     // Set window.commentsEnabled for client-side access
     window.commentsEnabled = commentsEnabled;
 
-    // Simple favicon function - follows system theme only
-    function setFavicon() {
-      const faviconThemeAdaptive = window.siteConfig?.faviconThemeAdaptive ?? true;
-      
-      let faviconUrl;
-      
-      if (faviconThemeAdaptive) {
-        // Use theme-based favicons based on browser preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        faviconUrl = prefersDark ? '/favicon-dark.png' : '/favicon-light.png';
-      } else {
-        // Always use static favicon
-        faviconUrl = '/favicon.png';
-      }
-
-      // Remove existing favicon
-      const existingFavicon = document.querySelector('link[rel="icon"]');
-      if (existingFavicon) existingFavicon.remove();
-
-      // Add new favicon
-      const faviconLink = document.createElement('link');
-      faviconLink.rel = 'icon';
-      faviconLink.href = faviconUrl;
-      document.head.appendChild(faviconLink);
-    }
-
-    // Set favicon on load
-    setFavicon();
-
-    // Update favicon when system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      const faviconThemeAdaptive = window.siteConfig?.faviconThemeAdaptive ?? true;
-      if (faviconThemeAdaptive) {
-        setFavicon();
-      }
-    });
 
     // Update navigation highlighting based on current page
     function updateNavigationHighlighting(targetPath) {
@@ -1397,11 +1340,8 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
 
     // Command Palette Keyboard Shortcut Handler
     function setupCommandPaletteShortcut() {
-      // Get the shortcut from the meta tag
-      const shortcutMeta = document.querySelector('meta[name="command-palette-shortcut"]');
-      if (!shortcutMeta) return;
-
-      const shortcut = shortcutMeta.getAttribute('content');
+      // Get the shortcut from the html data attribute
+      const shortcut = document.documentElement.getAttribute('data-command-palette-shortcut');
       if (!shortcut || shortcut.trim() === '') return;
 
       // Parse the shortcut (e.g., "ctrl+e" -> {ctrl/meta primary, key: "e"})
@@ -1469,7 +1409,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
           var theme = getThemeWithoutClearing();
           document.documentElement.setAttribute('data-theme', theme);
           updateThemeCSSVariables(theme).catch(console.error);
-          setFavicon();
         });
         // No <ViewTransitions/>, so astro:page-load never fires natively.
         // Dispatch synthetically on every Swup view so per-feature client modules
@@ -1497,7 +1436,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
         const theme = getThemeWithoutClearing();
         document.documentElement.setAttribute('data-theme', theme);
         updateThemeCSSVariables(theme).catch(console.error);
-        setFavicon();
       });
 
       if (document.querySelector('#giscus-comments')) safe(() => window.initializeGiscusComments?.());
