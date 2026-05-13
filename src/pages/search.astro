@@ -12,14 +12,13 @@ const seoData = {
   canonical: Astro.url.href,
   ogType: 'website' as const,
 };
-
 ---
 
 <BaseLayout seoData={seoData}>
   <div class="max-w-5xl mx-auto">
 
-    <!-- Header -->
-    <div class="mb-6">
+    <!-- Search input -->
+    <div class="mb-4">
       <form id="search-form" action={`${import.meta.env.BASE_URL}search`} method="get">
         <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-primary-300 dark:border-primary-600 bg-white dark:bg-primary-800 focus-within:border-highlight-400 dark:focus-within:border-highlight-500 focus-within:ring-2 focus-within:ring-highlight-500/20 transition-all duration-200 shadow-sm">
           <Icon name="search" class="w-4 h-4 shrink-0 text-primary-400 dark:text-primary-500" />
@@ -46,12 +45,15 @@ const seoData = {
       <p id="search-status" class="text-sm text-primary-500 dark:text-primary-400 mt-2 hidden"></p>
     </div>
 
+    <!-- Filter bar (populated by JS after first search) -->
+    <div id="filter-bar" class="hidden mb-4"></div>
+
     <!-- Split pane -->
     <div id="search-pane" class="hidden rounded-xl border border-primary-200 dark:border-primary-700 overflow-hidden" style="height: 68vh; min-height: 400px;">
       <div class="flex h-full">
         <!-- Results list -->
         <div id="search-results" class="w-full md:w-72 md:min-w-[18rem] overflow-y-auto border-r border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-900 flex-shrink-0"></div>
-        <!-- Preview pane -->
+        <!-- Preview pane (desktop) -->
         <div class="hidden md:flex flex-1 flex-col overflow-hidden bg-white dark:bg-primary-900">
           <div id="preview-content" class="flex-1 overflow-y-auto p-6">
             <p class="text-primary-400 dark:text-primary-500 text-center mt-20 text-sm">Select a result to preview</p>
@@ -60,7 +62,7 @@ const seoData = {
       </div>
     </div>
 
-    <!-- Empty state (before search) -->
+    <!-- Empty / pre-search state -->
     <div id="search-empty" class="text-center py-20 text-primary-400 dark:text-primary-500">
       <Icon name="search" class="w-10 h-10 mx-auto mb-3 opacity-25" />
       <p class="text-sm font-medium mb-1">Search across all posts</p>
@@ -74,8 +76,32 @@ const seoData = {
   </div>
 </BaseLayout>
 
+<!-- Mobile bottom sheet (full-width, outside max-w container) -->
+<div id="mobile-sheet-backdrop"
+     class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm hidden md:hidden"
+     aria-hidden="true"></div>
+<div id="mobile-sheet"
+     class="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-white dark:bg-primary-900 shadow-2xl border-t border-primary-200 dark:border-primary-700 transition-transform duration-300 ease-out translate-y-full md:hidden"
+     style="max-height: 80vh;"
+     role="dialog"
+     aria-modal="true"
+     aria-label="Post preview">
+  <div class="relative flex items-center justify-between px-5 pt-5 pb-3 border-b border-primary-200 dark:border-primary-700">
+    <div class="absolute left-1/2 -translate-x-1/2 top-2 w-10 h-1 rounded-full bg-primary-300 dark:bg-primary-600"></div>
+    <span class="text-sm font-medium text-primary-900 dark:text-primary-50">Preview</span>
+    <button id="mobile-sheet-close"
+            class="p-1 rounded text-primary-400 hover:text-primary-600 dark:hover:text-primary-200 transition-colors"
+            aria-label="Close preview">
+      <Icon name="x" class="w-4 h-4" />
+    </button>
+  </div>
+  <div id="mobile-sheet-content" class="overflow-y-auto p-5" style="max-height: calc(80vh - 57px);"></div>
+</div>
+
 <script>
-  // SVG paths mirroring Icon.astro — hardcoded so this stays a module script (define:vars breaks dynamic import)
+  import { highlight, excerptAround, escapeHtml } from '@/utils/search';
+
+  // SVG path strings (hardcoded — define:vars breaks dynamic import)
   const svgPaths = {
     arrowRight:    `<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>`,
     externalLink:  `<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>`,
@@ -83,104 +109,57 @@ const seoData = {
     tag:           `<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>`,
     fileText:      `<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>`,
     triangleAlert: `<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17 .01 0"/>`,
+    calendar:      `<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>`,
+    clock:         `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,
   };
-  // NFKD normalization for Unicode variants
-  const norm = (s) =>
-    s ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : '';
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
+  const norm = (s: string) =>
+    s ? s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase() : '';
 
-  // Inline SVG helper for JS-rendered HTML
-  function svg(path, size = 14, extraClass = '') {
+  function svg(path: string, size = 14, extraClass = '') {
     return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block shrink-0 ${extraClass}" aria-hidden="true">${path}</svg>`;
   }
 
-  // Strip Obsidian/markdown syntax from content for plain-text preview
-  function cleanContent(raw) {
-    return raw
-      // Remove Obsidian image embeds: ![[file.png]] or ![[file.png|caption|500]]
-      .replace(/!\[\[[^\]]*\]\]/g, '')
-      // Unwrap Obsidian wikilinks: [[Page|display]] → display, [[Page]] → Page
-      .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
-      .replace(/\[\[([^\]]+)\]\]/g, '$1')
-      // Remove standard markdown images: ![alt](url)
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '')
-      // Remove markdown links but keep text: [text](url) → text
-      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-      // Remove frontmatter-style dashes
-      .replace(/^---[\s\S]*?---\n?/, '')
-      // Remove heading markers
-      .replace(/^#{1,6}\s+/gm, '')
-      // Remove bold/italic markers
-      .replace(/(\*\*|__)(.*?)\1/g, '$2')
-      .replace(/(\*|_)(.*?)\1/g, '$2')
-      // Remove blockquote markers
-      .replace(/^>\s?/gm, '')
-      // Remove list markers
-      .replace(/^[-*+]\s+/gm, '')
-      .replace(/^\d+\.\s+/gm, '')
-      // Remove code fences
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`([^`]+)`/g, '$1')
-      // Collapse whitespace
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
+  function formatDate(dateStr: string) {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 
-  function highlight(text, query) {
-    if (!query || !text) return escapeHtml(text || '');
-    // Strip # prefix for tag searches before highlighting
-    const q = query.startsWith('#') ? query.slice(1) : query;
-    if (!q) return escapeHtml(text);
-    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return escapeHtml(text).replace(
-      new RegExp(`(${escaped})`, 'gi'),
-      '<mark class="bg-highlight-300/40 dark:bg-highlight-500/30 rounded px-0.5 not-italic font-semibold">$1</mark>'
-    );
-  }
+  // Per-page-view state
+  let fuse: any = null;
+  let fuseItems: any[] = [];
 
-  function excerptAround(content, query, radius = 160) {
-    const clean = cleanContent(content);
-    if (!query || !clean) return { text: clean.slice(0, radius * 2), truncated: clean.length > radius * 2 };
-    const q = query.startsWith('#') ? query.slice(1) : query;
-    const idx = q ? clean.toLowerCase().indexOf(q.toLowerCase()) : -1;
-    if (idx === -1) {
-      return { text: clean.slice(0, radius * 2), truncated: clean.length > radius * 2 };
-    }
-    const start = Math.max(0, idx - radius);
-    const end = Math.min(clean.length, idx + q.length + radius);
-    return {
-      text: (start > 0 ? '…' : '') + clean.slice(start, end) + (end < clean.length ? '…' : ''),
-      truncated: clean.length > radius * 2,
-      totalLength: clean.length,
-    };
-  }
+  // Filter state (reset on new search query)
+  let allResults: any[] = [];
+  let activeTagFilters = new Set<string>();
+  let activeCategoryFilter: string | null = null;
+  let sortMode: 'relevance' | 'newest' = 'relevance';
+  let filterFromYear: number | null = null;
+  let filterToYear: number | null = null;
 
   function initSearch() {
-    const queryInput = document.getElementById('search-query');
-    const resultsEl  = document.getElementById('search-results');
-    const statusEl   = document.getElementById('search-status');
-    const paneEl     = document.getElementById('search-pane');
-    const emptyEl    = document.getElementById('search-empty');
-    const previewEl  = document.getElementById('preview-content');
-    const clearBtn   = document.getElementById('search-clear');
-    const form       = document.getElementById('search-form');
+    const queryInput     = document.getElementById('search-query') as HTMLInputElement | null;
+    const resultsEl      = document.getElementById('search-results');
+    const statusEl       = document.getElementById('search-status');
+    const paneEl         = document.getElementById('search-pane');
+    const emptyEl        = document.getElementById('search-empty');
+    const previewEl      = document.getElementById('preview-content');
+    const clearBtn       = document.getElementById('search-clear');
+    const form           = document.getElementById('search-form');
+    const filterBar      = document.getElementById('filter-bar');
+    const mobileSheet    = document.getElementById('mobile-sheet');
+    const mobileBackdrop = document.getElementById('mobile-sheet-backdrop');
+    const mobileClose    = document.getElementById('mobile-sheet-close');
+    const mobileContent  = document.getElementById('mobile-sheet-content');
 
     if (!queryInput || !resultsEl || !statusEl || !paneEl || !emptyEl) return;
 
-    let fuse = null;
-    let fuseItems = [];
-    let debounceTimer;
+    let debounceTimer: number;
     let selectedIndex = 0;
-    let currentItems = [];
+    let currentItems: any[] = [];
     let currentQuery = '';
 
+    // ── Fuse init ─────────────────────────────────────────────────────────
     async function ensureFuse() {
       if (fuse) return true;
       try {
@@ -190,11 +169,11 @@ const seoData = {
         ]);
         const Fuse = fuseModule.default || fuseModule;
         fuseItems = postsRes;
-        const normalized = fuseItems.map((item, idx) => ({
+        const normalized = fuseItems.map((item: any, idx: number) => ({
           _idx: idx,
           _title:       norm(item.title),
           _description: norm(item.description || ''),
-          _content:     norm(cleanContent(item.content || '')),
+          _excerpt:     norm(item.excerpt || ''),
           _tags:        (item.tags || []).map(norm),
           _category:    norm(item.category || ''),
         }));
@@ -203,12 +182,12 @@ const seoData = {
             { name: '_title',       weight: 0.45 },
             { name: '_tags',        weight: 0.30 },
             { name: '_description', weight: 0.15 },
-            { name: '_content',     weight: 0.07 },
+            { name: '_excerpt',     weight: 0.07 },
             { name: '_category',    weight: 0.03 },
           ],
           threshold: 0.35,
           includeScore: true,
-          minMatchCharLength: 1,
+          minMatchCharLength: 2,
           shouldSort: true,
           findAllMatches: true,
           ignoreLocation: true,
@@ -219,79 +198,211 @@ const seoData = {
       }
     }
 
-    function renderPreview(item, rawQuery) {
-      if (!previewEl) return;
+    // ── Filter & sort ──────────────────────────────────────────────────────
+    function applyFilters() {
+      let filtered = [...allResults];
 
-      const { text: excerpt, truncated, totalLength } = excerptAround(item.content || item.description || '', rawQuery);
-      const wordCount = totalLength ? Math.ceil(totalLength.toString().length > 3 ? totalLength / 5 : totalLength) : null;
+      if (activeTagFilters.size > 0) {
+        filtered = filtered.filter(item =>
+          [...activeTagFilters].every(tag =>
+            (item.tags || []).some((t: string) => norm(t) === norm(tag))
+          )
+        );
+      }
+      if (activeCategoryFilter) {
+        filtered = filtered.filter(item =>
+          norm(item.category || '') === norm(activeCategoryFilter!)
+        );
+      }
+      if (filterFromYear !== null) {
+        filtered = filtered.filter(item =>
+          item.date && new Date(item.date).getFullYear() >= filterFromYear!
+        );
+      }
+      if (filterToYear !== null) {
+        filtered = filtered.filter(item =>
+          item.date && new Date(item.date).getFullYear() <= filterToYear!
+        );
+      }
+      if (sortMode === 'newest') {
+        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      }
 
-      const tagsHtml = (item.tags || []).map(t =>
-        `<a href="${import.meta.env.BASE_URL}tags/${escapeHtml(t)}" class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-highlight-50 dark:bg-highlight-900/30 text-highlight-700 dark:text-highlight-400 border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-800/40 transition-colors">
-          ${svg(svgPaths.tag, 11, 'opacity-70')}
-          ${escapeHtml(t)}
-        </a>`
-      ).join('');
-
-      const categoryHtml = item.category
-        ? `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-primary-100 dark:bg-primary-800 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-700">
-            ${svg(svgPaths.folder, 11, 'opacity-70')}
-            ${escapeHtml(item.category)}
-          </span>`
-        : '';
-
-      const truncationWarning = truncated
-        ? `<div class="flex items-start gap-2 mt-4 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700 text-xs text-primary-500 dark:text-primary-400">
-            ${svg(svgPaths.triangleAlert, 13, 'mt-0.5 text-primary-400 shrink-0')}
-            <span>Preview truncated — open the post to read the full content.</span>
-          </div>`
-        : '';
-
-      previewEl.innerHTML = `
-        <div class="flex items-start justify-between gap-3 mb-3">
-          <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</h2>
-          <a href="${escapeHtml(item.url)}"
-             title="Open post"
-             class="shrink-0 p-1.5 rounded-lg text-primary-400 hover:text-highlight-600 dark:hover:text-highlight-400 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
-             aria-label="Open post">
-            ${svg(svgPaths.externalLink, 15)}
-          </a>
-        </div>
-
-        ${categoryHtml || tagsHtml ? `
-          <div class="flex flex-wrap items-center gap-2 mb-4">
-            ${categoryHtml}
-            ${tagsHtml}
-          </div>` : ''}
-
-        ${item.description
-          ? `<p class="text-sm text-primary-500 dark:text-primary-400 mb-4 leading-relaxed border-l-2 border-primary-200 dark:border-primary-700 pl-3 italic">${highlight(item.description, rawQuery)}</p>`
-          : ''}
-
-        ${excerpt
-          ? `<p class="text-sm leading-relaxed text-primary-700 dark:text-primary-300">${highlight(excerpt, rawQuery)}</p>`
-          : ''}
-
-        ${truncationWarning}
-
-        <a href="${escapeHtml(item.url)}"
-           class="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-highlight-500 hover:bg-highlight-600 text-white text-sm font-medium transition-colors">
-          Read post
-          ${svg(svgPaths.arrowRight, 14, 'text-white')}
-        </a>
-      `;
+      renderResults(filtered, currentQuery);
     }
 
-    function renderResultItem(item, i, rawQuery) {
+    function buildFilterBar(results: any[]) {
+      if (!filterBar) return;
+      const tags       = [...new Set<string>(results.flatMap(r => r.tags || []))].sort();
+      const categories = [...new Set<string>(results.map(r => r.category).filter(Boolean))].sort();
+      const years      = [...new Set<number>(
+        results.map(r => r.date && new Date(r.date).getFullYear()).filter(Boolean)
+      )].sort((a, b) => a - b);
+
+      if (tags.length === 0 && categories.length === 0 && years.length <= 1) {
+        filterBar.classList.add('hidden');
+        filterBar.innerHTML = '';
+        return;
+      }
+
+      const activeCount =
+        activeTagFilters.size +
+        (activeCategoryFilter ? 1 : 0) +
+        (filterFromYear !== null || filterToYear !== null ? 1 : 0) +
+        (sortMode !== 'relevance' ? 1 : 0);
+
+      const chipBase  = 'text-xs px-2 py-0.5 rounded border transition-colors cursor-pointer';
+      const chipOff   = 'border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-300 hover:border-highlight-400 hover:text-highlight-600 dark:hover:text-highlight-400 bg-white dark:bg-primary-900';
+      const chipOnTag = 'bg-highlight-500 border-highlight-500 text-white';
+      const chipOnCat = 'bg-primary-700 dark:bg-primary-200 border-primary-700 dark:border-primary-200 text-white dark:text-primary-900';
+
+      const tagsHtml = tags.length > 0 ? `
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Tags:</span>
+          ${tags.map(tag => {
+            const on = activeTagFilters.has(tag);
+            return `<button data-filter-tag="${escapeHtml(tag)}" class="${chipBase} rounded-full ${on ? chipOnTag : chipOff}">#${escapeHtml(tag)}</button>`;
+          }).join('')}
+        </div>` : '';
+
+      const catsHtml = categories.length > 0 ? `
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Category:</span>
+          ${categories.map(cat => {
+            const on = activeCategoryFilter === cat;
+            return `<button data-filter-category="${escapeHtml(cat)}" class="${chipBase} rounded-md ${on ? chipOnCat : chipOff}">${escapeHtml(cat)}</button>`;
+          }).join('')}
+        </div>` : '';
+
+      const sortHtml = `
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Sort:</span>
+          ${(['relevance', 'newest'] as const).map(mode => {
+            const on = sortMode === mode;
+            const label = mode === 'relevance' ? 'Relevance' : 'Newest';
+            return `<button data-sort="${mode}" class="${chipBase} ${on ? chipOnCat : chipOff}">${label}</button>`;
+          }).join('')}
+        </div>`;
+
+      const selectCls = 'text-xs px-2 py-0.5 rounded border border-primary-300 dark:border-primary-600 bg-white dark:bg-primary-800 text-primary-700 dark:text-primary-300 focus:outline-none focus:border-highlight-400';
+      const dateHtml = years.length > 1 ? `
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Year:</span>
+          <select id="filter-from-year" class="${selectCls}">
+            <option value="">From</option>
+            ${years.map(y => `<option value="${y}" ${filterFromYear === y ? 'selected' : ''}>${y}</option>`).join('')}
+          </select>
+          <span class="text-xs text-primary-400">–</span>
+          <select id="filter-to-year" class="${selectCls}">
+            <option value="">To</option>
+            ${years.map(y => `<option value="${y}" ${filterToYear === y ? 'selected' : ''}>${y}</option>`).join('')}
+          </select>
+        </div>` : '';
+
+      const clearHtml = activeCount > 0
+        ? `<button id="filter-clear-btn" class="text-xs text-primary-500 hover:text-primary-700 dark:hover:text-primary-300 underline transition-colors whitespace-nowrap ml-auto">Clear ${activeCount} filter${activeCount !== 1 ? 's' : ''}</button>`
+        : '';
+
+      filterBar.innerHTML = `
+        <div class="flex flex-wrap items-start gap-3 p-3 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700">
+          ${tagsHtml}${catsHtml}${sortHtml}${dateHtml}${clearHtml}
+        </div>`;
+      filterBar.classList.remove('hidden');
+
+      filterBar.querySelectorAll<HTMLButtonElement>('[data-filter-tag]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tag = btn.getAttribute('data-filter-tag')!;
+          activeTagFilters.has(tag) ? activeTagFilters.delete(tag) : activeTagFilters.add(tag);
+          buildFilterBar(allResults);
+          applyFilters();
+        });
+      });
+
+      filterBar.querySelectorAll<HTMLButtonElement>('[data-filter-category]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cat = btn.getAttribute('data-filter-category')!;
+          activeCategoryFilter = activeCategoryFilter === cat ? null : cat;
+          buildFilterBar(allResults);
+          applyFilters();
+        });
+      });
+
+      filterBar.querySelectorAll<HTMLButtonElement>('[data-sort]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sortMode = btn.getAttribute('data-sort') as 'relevance' | 'newest';
+          buildFilterBar(allResults);
+          applyFilters();
+        });
+      });
+
+      const fromSel = filterBar.querySelector<HTMLSelectElement>('#filter-from-year');
+      const toSel   = filterBar.querySelector<HTMLSelectElement>('#filter-to-year');
+      fromSel?.addEventListener('change', () => {
+        filterFromYear = fromSel.value ? parseInt(fromSel.value) : null;
+        applyFilters();
+      });
+      toSel?.addEventListener('change', () => {
+        filterToYear = toSel.value ? parseInt(toSel.value) : null;
+        applyFilters();
+      });
+
+      filterBar.querySelector<HTMLButtonElement>('#filter-clear-btn')?.addEventListener('click', () => {
+        activeTagFilters.clear();
+        activeCategoryFilter = null;
+        sortMode = 'relevance';
+        filterFromYear = null;
+        filterToYear = null;
+        buildFilterBar(allResults);
+        applyFilters();
+      });
+    }
+
+    // ── Skeleton loading ───────────────────────────────────────────────────
+    function renderSkeletons() {
+      paneEl!.classList.remove('hidden');
+      emptyEl!.classList.add('hidden');
+      resultsEl!.innerHTML = Array.from({ length: 3 }, () => `
+        <div class="px-4 py-3 border-b border-primary-100 dark:border-primary-800 animate-pulse">
+          <div class="flex items-start gap-2">
+            <div class="w-3 h-3 mt-1 rounded bg-primary-200 dark:bg-primary-700 shrink-0"></div>
+            <div class="flex-1 min-w-0 space-y-2">
+              <div class="h-3.5 bg-primary-200 dark:bg-primary-700 rounded w-4/5"></div>
+              <div class="h-3 bg-primary-100 dark:bg-primary-800 rounded w-2/5"></div>
+              <div class="flex gap-1">
+                <div class="h-4 bg-primary-100 dark:bg-primary-800 rounded-full w-12"></div>
+                <div class="h-4 bg-primary-100 dark:bg-primary-800 rounded-full w-16"></div>
+              </div>
+            </div>
+          </div>
+        </div>`
+      ).join('');
+    }
+
+    // ── Result card ────────────────────────────────────────────────────────
+    function renderResultItem(item: any, i: number, rawQuery: string) {
       const isSelected = i === selectedIndex;
+
       const categoryHtml = item.category
-        ? `<span class="inline-flex items-center gap-1 text-xs text-primary-400 dark:text-primary-500 mt-1">
-            ${svg(svgPaths.folder, 11)}
-            ${escapeHtml(item.category)}
+        ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-primary-100 dark:bg-primary-800 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-700">
+            ${svg(svgPaths.folder, 10, 'opacity-70')}${escapeHtml(item.category)}
           </span>`
         : '';
-      const tagsHtml = (item.tags || []).slice(0, 3).map(t =>
+
+      const tagsHtml = (item.tags || []).slice(0, 3).map((t: string) =>
         `<span class="text-xs text-highlight-600 dark:text-highlight-400">#${escapeHtml(t)}</span>`
       ).join('');
+
+      const datePart = item.date
+        ? `<span class="flex items-center gap-0.5 text-xs text-primary-400 dark:text-primary-500">
+            ${svg(svgPaths.calendar, 10, 'opacity-70')}${formatDate(item.date)}
+          </span>`
+        : '';
+
+      const timePart = item.readingTime
+        ? `<span class="flex items-center gap-0.5 text-xs text-primary-400 dark:text-primary-500">
+            ${svg(svgPaths.clock, 10, 'opacity-70')}${item.readingTime} min read
+          </span>`
+        : '';
 
       return `
         <a href="${escapeHtml(item.url)}"
@@ -302,47 +413,126 @@ const seoData = {
                     : 'hover:bg-primary-50 dark:hover:bg-primary-800/30 border-l-transparent'}">
           <div class="flex items-start gap-2">
             <span class="mt-0.5 text-primary-400 dark:text-primary-500 shrink-0">${svg(svgPaths.fileText, 13)}</span>
-            <div class="min-w-0">
+            <div class="min-w-0 w-full">
               <div class="font-medium text-sm text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</div>
-              ${categoryHtml}
-              ${tagsHtml ? `<div class="mt-1 flex flex-wrap gap-1">${tagsHtml}</div>` : ''}
+              ${categoryHtml || tagsHtml
+                ? `<div class="mt-1 flex flex-wrap items-center gap-1">${categoryHtml}${tagsHtml}</div>`
+                : ''}
+              ${datePart || timePart
+                ? `<div class="mt-1 flex items-center gap-2">${datePart}${timePart}</div>`
+                : ''}
             </div>
           </div>
         </a>`;
     }
 
-    function renderResults(items, rawQuery) {
+    // ── Preview pane / sheet content ───────────────────────────────────────
+    function buildPreviewHtml(item: any, rawQuery: string) {
+      const { text: excerpt, truncated } = excerptAround(
+        item.excerpt || item.description || '', rawQuery
+      );
+
+      const tagsHtml = (item.tags || []).map((t: string) =>
+        `<a href="${import.meta.env.BASE_URL}tags/${escapeHtml(t)}"
+            class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-highlight-50 dark:bg-highlight-900/30 text-highlight-700 dark:text-highlight-400 border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-800/40 transition-colors">
+          ${svg(svgPaths.tag, 11, 'opacity-70')}${escapeHtml(t)}
+        </a>`
+      ).join('');
+
+      const categoryHtml = item.category
+        ? `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-primary-100 dark:bg-primary-800 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-700">
+            ${svg(svgPaths.folder, 11, 'opacity-70')}${escapeHtml(item.category)}
+          </span>`
+        : '';
+
+      const metaHtml = item.date || item.readingTime
+        ? `<div class="flex items-center gap-3 mb-4 text-xs text-primary-500 dark:text-primary-400">
+            ${item.date        ? `<span class="flex items-center gap-1">${svg(svgPaths.calendar, 11)}${formatDate(item.date)}</span>` : ''}
+            ${item.readingTime ? `<span class="flex items-center gap-1">${svg(svgPaths.clock, 11)}${item.readingTime} min read</span>` : ''}
+          </div>`
+        : '';
+
+      const truncationWarning = truncated
+        ? `<div class="flex items-start gap-2 mt-4 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700 text-xs text-primary-500 dark:text-primary-400">
+            ${svg(svgPaths.triangleAlert, 13, 'mt-0.5 text-primary-400 shrink-0')}
+            <span>Preview truncated — open the post to read full content.</span>
+          </div>`
+        : '';
+
+      return `
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</h2>
+          <a href="${escapeHtml(item.url)}" title="Open post"
+             class="shrink-0 p-1.5 rounded-lg text-primary-400 hover:text-highlight-600 dark:hover:text-highlight-400 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+             aria-label="Open post">${svg(svgPaths.externalLink, 15)}</a>
+        </div>
+        ${metaHtml}
+        ${categoryHtml || tagsHtml
+          ? `<div class="flex flex-wrap items-center gap-2 mb-4">${categoryHtml}${tagsHtml}</div>`
+          : ''}
+        ${item.description
+          ? `<p class="text-sm text-primary-500 dark:text-primary-400 mb-4 leading-relaxed border-l-2 border-primary-200 dark:border-primary-700 pl-3 italic">${highlight(item.description, rawQuery)}</p>`
+          : ''}
+        ${excerpt
+          ? `<p class="text-sm leading-relaxed text-primary-700 dark:text-primary-300">${highlight(excerpt, rawQuery)}</p>`
+          : ''}
+        ${truncationWarning}
+        <a href="${escapeHtml(item.url)}"
+           class="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-highlight-500 hover:bg-highlight-600 text-white text-sm font-medium transition-colors">
+          Read post ${svg(svgPaths.arrowRight, 14, 'text-white')}
+        </a>`;
+    }
+
+    function renderPreview(item: any, rawQuery: string) {
+      if (!previewEl) return;
+      previewEl.innerHTML = buildPreviewHtml(item, rawQuery);
+    }
+
+    // ── Results list ───────────────────────────────────────────────────────
+    function renderResults(items: any[], rawQuery: string) {
       currentItems = items;
       currentQuery = rawQuery;
       selectedIndex = 0;
 
       if (items.length === 0) {
-        paneEl.classList.add('hidden');
-        emptyEl.classList.remove('hidden');
-        statusEl.textContent = `No results for "${rawQuery}"`;
-        statusEl.classList.remove('hidden');
+        const isFiltered =
+          activeTagFilters.size > 0 || activeCategoryFilter !== null ||
+          filterFromYear !== null || filterToYear !== null;
+        paneEl!.classList.add('hidden');
+        emptyEl!.classList.remove('hidden');
+        statusEl!.textContent = isFiltered
+          ? 'No results match the active filters.'
+          : `No results for "${rawQuery}". Try fewer words or a #tag search.`;
+        statusEl!.classList.remove('hidden');
         return;
       }
 
-      statusEl.textContent = `${items.length} result${items.length === 1 ? '' : 's'}`;
-      statusEl.classList.remove('hidden');
-      paneEl.classList.remove('hidden');
-      emptyEl.classList.add('hidden');
+      statusEl!.textContent = `${items.length} result${items.length === 1 ? '' : 's'}`;
+      statusEl!.classList.remove('hidden');
+      paneEl!.classList.remove('hidden');
+      emptyEl!.classList.add('hidden');
 
-      resultsEl.innerHTML = items.map((item, i) => renderResultItem(item, i, rawQuery)).join('');
+      resultsEl!.innerHTML = items.map((item, i) => renderResultItem(item, i, rawQuery)).join('');
 
-      resultsEl.querySelectorAll('.result-item').forEach((el, i) => {
-        el.addEventListener('mouseenter', () => setSelected(i));
-        el.addEventListener('click', () => {});
+      resultsEl!.querySelectorAll<HTMLAnchorElement>('.result-item').forEach((el, i) => {
+        el.addEventListener('mouseenter', () => {
+          if (!window.matchMedia('(max-width: 767px)').matches) setSelected(i);
+        });
+        el.addEventListener('click', (e) => {
+          if (window.matchMedia('(max-width: 767px)').matches) {
+            e.preventDefault();
+            openMobileSheet(currentItems[i], currentQuery);
+          }
+        });
       });
 
       renderPreview(items[0], rawQuery);
     }
 
-    function setSelected(idx) {
+    function setSelected(idx: number) {
       if (idx < 0 || idx >= currentItems.length) return;
       selectedIndex = idx;
-      resultsEl.querySelectorAll('.result-item').forEach((el, i) => {
+      resultsEl!.querySelectorAll('.result-item').forEach((el, i) => {
         const active = i === idx;
         el.classList.toggle('bg-primary-50', active);
         el.classList.toggle('dark:bg-primary-800/60', active);
@@ -352,83 +542,119 @@ const seoData = {
       renderPreview(currentItems[idx], currentQuery);
     }
 
-    async function doSearch(rawQuery) {
-      if (clearBtn) {
-        clearBtn.classList.toggle('hidden', !rawQuery);
-      }
+    // ── Mobile bottom sheet ────────────────────────────────────────────────
+    function openMobileSheet(item: any, rawQuery: string) {
+      if (!mobileSheet || !mobileBackdrop || !mobileContent) return;
+      mobileContent.innerHTML = buildPreviewHtml(item, rawQuery);
+      mobileBackdrop.classList.remove('hidden');
+      mobileSheet.classList.remove('translate-y-full');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileSheet() {
+      if (!mobileSheet || !mobileBackdrop) return;
+      mobileSheet.classList.add('translate-y-full');
+      setTimeout(() => {
+        mobileBackdrop.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 300);
+    }
+
+    mobileClose?.addEventListener('click', closeMobileSheet);
+    mobileBackdrop?.addEventListener('click', closeMobileSheet);
+
+    if (mobileSheet) {
+      let touchStartY = 0;
+      mobileSheet.addEventListener('touchstart', e => {
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      mobileSheet.addEventListener('touchend', e => {
+        if (e.changedTouches[0].clientY - touchStartY > 80) closeMobileSheet();
+      }, { passive: true });
+    }
+
+    // ── Main search ────────────────────────────────────────────────────────
+    async function doSearch(rawQuery: string) {
+      clearBtn?.classList.toggle('hidden', !rawQuery);
 
       if (!rawQuery.trim()) {
-        paneEl.classList.add('hidden');
-        emptyEl.classList.remove('hidden');
-        statusEl.classList.add('hidden');
+        paneEl!.classList.add('hidden');
+        emptyEl!.classList.remove('hidden');
+        statusEl!.classList.add('hidden');
+        if (filterBar) { filterBar.classList.add('hidden'); filterBar.innerHTML = ''; }
+        activeTagFilters.clear();
+        activeCategoryFilter = null;
+        sortMode = 'relevance';
+        filterFromYear = null;
+        filterToYear = null;
         return;
       }
+
+      renderSkeletons();
 
       const ok = await ensureFuse();
       if (!ok) {
-        statusEl.textContent = 'Search unavailable — please reload.';
-        statusEl.classList.remove('hidden');
+        statusEl!.textContent = 'Search unavailable — please reload.';
+        statusEl!.classList.remove('hidden');
+        paneEl!.classList.add('hidden');
         return;
       }
 
-      const isTagSearch = rawQuery.startsWith('#');
-      let results;
-
-      if (isTagSearch) {
+      if (rawQuery.startsWith('#')) {
         const tagQ = norm(rawQuery.slice(1));
-        if (!tagQ) { renderResults([], rawQuery); return; }
-        results = fuseItems.filter(item =>
-          (item.tags || []).some(t => norm(t).includes(tagQ))
-        );
+        allResults = tagQ
+          ? fuseItems.filter((item: any) =>
+              (item.tags || []).some((t: string) => norm(t).includes(tagQ))
+            )
+          : [];
       } else {
-        const q = norm(rawQuery);
-        results = fuse.search(q).slice(0, 25).map(r => fuseItems[r.item._idx]);
+        allResults = fuse.search(norm(rawQuery)).slice(0, 50).map((r: any) => fuseItems[r.item._idx]);
       }
 
-      renderResults(results.slice(0, 25), rawQuery);
+      buildFilterBar(allResults);
+      applyFilters();
     }
 
-    // Keyboard navigation
+    // ── Keyboard navigation ────────────────────────────────────────────────
     document.addEventListener('keydown', (e) => {
-      if (paneEl.classList.contains('hidden')) return;
+      if (e.key === 'Escape' && mobileSheet && !mobileSheet.classList.contains('translate-y-full')) {
+        closeMobileSheet();
+        return;
+      }
+      if (paneEl!.classList.contains('hidden')) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         const next = Math.min(selectedIndex + 1, currentItems.length - 1);
         setSelected(next);
-        resultsEl.querySelectorAll('.result-item')[next]?.scrollIntoView({ block: 'nearest' });
+        resultsEl!.querySelectorAll('.result-item')[next]?.scrollIntoView({ block: 'nearest' });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         const prev = Math.max(selectedIndex - 1, 0);
         setSelected(prev);
-        resultsEl.querySelectorAll('.result-item')[prev]?.scrollIntoView({ block: 'nearest' });
+        resultsEl!.querySelectorAll('.result-item')[prev]?.scrollIntoView({ block: 'nearest' });
       } else if (e.key === 'Enter' && document.activeElement === queryInput) {
-        const active = resultsEl.querySelectorAll('.result-item')[selectedIndex];
+        const active = resultsEl!.querySelectorAll<HTMLAnchorElement>('.result-item')[selectedIndex];
         if (active?.href) window.location.href = active.href;
       }
     });
 
     queryInput.addEventListener('input', () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => doSearch(queryInput.value), 250);
+      debounceTimer = window.setTimeout(() => doSearch(queryInput.value), 250);
     });
 
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        queryInput.value = '';
-        doSearch('');
-        queryInput.focus();
-      });
-    }
+    clearBtn?.addEventListener('click', () => {
+      queryInput.value = '';
+      doSearch('');
+      queryInput.focus();
+    });
 
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        clearTimeout(debounceTimer);
-        doSearch(queryInput.value);
-      });
-    }
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      clearTimeout(debounceTimer);
+      doSearch(queryInput.value);
+    });
 
-    // Auto-search on load if ?q= present
     const initialQuery = new URLSearchParams(window.location.search).get('q');
     if (initialQuery) {
       queryInput.value = initialQuery;
@@ -441,7 +667,5 @@ const seoData = {
 </script>
 
 <style>
-  mark {
-    background-color: transparent;
-  }
+  mark { background-color: transparent; }
 </style>
