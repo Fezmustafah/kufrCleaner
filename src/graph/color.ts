@@ -98,8 +98,7 @@ export function getGraphColors(node: HTMLElement, included_colors: string[], cus
 
 	const all_colors = [
 		'nodeColorHover', 'nodeColorAdjacent', 'nodeColorMuted',
-		'linkColorHover', 'linkColorMuted',
-		'linkColorHover', 'linkColorMuted',
+		'linkColor', 'linkColorHover', 'linkColorMuted',
 		...included_colors
 	];
 

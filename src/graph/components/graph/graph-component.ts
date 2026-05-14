@@ -144,6 +144,7 @@ export class GraphComponent extends HTMLElement {
 		const sitemapUrl = this.dataset['sitemapUrl'];
 		if (sitemapUrl) {
 			this.sitemap = await fetch(sitemapUrl).then(r => r.json()).catch(() => ({}));
+			if (!this.isConnected) return;
 			if (this.simulator?.mounted) {
 				this.full_refresh();
 			}
