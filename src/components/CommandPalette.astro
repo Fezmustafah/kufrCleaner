@@ -1186,20 +1186,13 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
           }, 10);
           break;
         case 'open-graph':
-          // Open graph modal
-          if ((window as any).openGraphModal) {
-            (window as any).openGraphModal();
-          } else {
-            // Try to initialize GraphModal if it's not available
-            if ((window as any).initializeGraphModal) {
-              (window as any).initializeGraphModal();
-              // Try again after initialization
-              setTimeout(() => {
-                if ((window as any).openGraphModal) {
-                  (window as any).openGraphModal();
-                }
-              }, 100);
-            } else {
+          // Open graph modal via new overlay
+          {
+            const overlay = document.getElementById('graph-modal-overlay') as HTMLElement | null;
+            if (overlay) {
+              overlay.classList.remove('hidden');
+              document.body.style.overflow = 'hidden';
+              overlay.focus();
             }
           }
           // Close palette after action

@@ -6,7 +6,6 @@ import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
 import CommandPalette from '@/components/CommandPalette.astro';
 import ThemeSelector from '@/components/ThemeSelector.astro';
-import GraphModal from '@/components/GraphModal.astro';
 import ScrollToTop from '@/components/ScrollToTop.astro';
 import Lightbox from '@/components/Lightbox.astro';
 import ImageGalleryManager from '@/components/ImageGalleryManager.astro';
@@ -1329,11 +1328,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       // Initialize table wrappers on initial page load
       window.initializeTableWrappers();
 
-      // Initialize GraphModal on initial page load
-      if (window.initializeGraphModal) {
-        window.initializeGraphModal();
-      }
-
       // Initialize linked mentions on initial page load
       if (window.initializeLinkedMentions) {
         window.initializeLinkedMentions();
@@ -1500,7 +1494,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       safe(() => window.initializeCategoryFiltering?.());
       safe(() => window.initializeDocCategoryFiltering?.());
       safe(() => window.initializeProjectCategoryFiltering?.());
-      safe(() => window.initializeGraphModal?.());
       safe(() => window.initSidebarToggle?.());
       safe(() => window.processExternalLinks?.());
       safe(() => window.initializeTwitterWidgets?.());
@@ -1535,7 +1528,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
         window.initializeLinkedMentions?.();
         window.initializeWikilinks?.();
         window.initializeTableOfContents?.();
-        window.initializeGraphModal?.();
         updateNavigationHighlighting();
         initializeCollapsibleCallouts();
         setupSmoothScrolling();
@@ -2141,9 +2133,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
 
   <!-- Lightbox for images (global) -->
   <Lightbox />
-
-  <!-- Graph Modal (global) -->
-  <GraphModal />
 
   <!-- Additional body scripts -->
   <slot name="scripts" />
