@@ -36,11 +36,13 @@ export class GraphRenderer {
 		this.simulator = simulator;
 		this.container = container;
 		// this.container.replaceChildren();
+		// Don't use resizeTo — when the container starts as display:none (modal) it
+		// produces a feedback loop with wrong dimensions. We handle resize via
+		// IntersectionObserver (visibility trigger) and explicit calls instead.
 		await this.app.init({
 			antialias: true,
 			backgroundAlpha: 0,
 			resolution: Object.keys(this.context.sitemap).length > 5000 ? 2 : 4,
-			resizeTo: this.container,
 		} as PIXI.ApplicationOptions);
 		this.container.appendChild(this.app.canvas);
 
@@ -50,6 +52,8 @@ export class GraphRenderer {
 			}
 		});
 		this.visibilityObserver.observe(this.container);
+
+		window.addEventListener('resize', () => this.resize());
 
 		this.app.stage.addChild(this.linkGraphics = new PIXI.Graphics());
 		this.app.stage.addChild(this.linkHoverGraphics = new PIXI.Graphics());
