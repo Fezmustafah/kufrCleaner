@@ -1,0 +1,61 @@
+---
+import type { GraphConfig } from '@/graph/config';
+import Graph from '@/graph/components/graph/Graph.astro';
+import '@/graph/graph.css';
+
+export type GraphMode = 'sidebar' | 'modal' | 'hero';
+
+interface Props {
+    mode: GraphMode;
+    currentSlug?: string;
+    config?: Partial<GraphConfig>;
+    class?: string;
+}
+
+const {
+    mode,
+    currentSlug = '',
+    config: configOverride = {},
+    class: className,
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const sitemapUrl = `${base}graph/sitemap.json`;
+
+const BASE_CONFIG: Partial<GraphConfig> = {
+    depth: mode === 'sidebar' ? 1 : -1,
+    scale: mode === 'sidebar' ? 1.0 : 1.1,
+    enableDrag: true,
+    enableZoom: true,
+    enablePan: true,
+    enableHover: true,
+    enableClick: 'auto',
+    renderLabels: true,
+    renderArrows: false,
+    renderUnresolved: false,
+    renderExternal: false,
+    actions: mode === 'sidebar'
+        ? ['fullscreen', 'depth', 'reset-zoom']
+        : ['fullscreen', 'depth', 'reset-zoom', 'render-arrows', 'settings'],
+    prefetchPages: true,
+};
+
+const graphConfig = { ...BASE_CONFIG, ...configOverride } as GraphConfig;
+---
+
+<div class:list={['slsg-wrapper', `slsg-mode-${mode}`, className]}>
+    <Graph
+        slug={currentSlug}
+        config={graphConfig}
+        sitemapUrl={sitemapUrl}
+        trailingSlashes={false}
+    />
+</div>
+
+<style is:global>
+.slsg-wrapper { display: block; width: 100%; height: 100%; }
+
+.slsg-mode-sidebar { height: 220px; }
+.slsg-mode-modal   { height: 100%; min-height: 60vh; }
+.slsg-mode-hero    { width: 100vw; height: 100vh; }
+</style>
