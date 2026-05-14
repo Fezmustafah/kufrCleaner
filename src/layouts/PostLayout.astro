@@ -279,7 +279,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             {shouldShowTOC && <TableOfContents headings={toc} />}
             {hasLocalGraphConnections && (
               <div class="left-sidebar-graph">
-                <SiteGraph mode="sidebar" currentSlug={post.id} />
+                <SiteGraph mode="sidebar" currentSlug={`posts/${post.id}`} />
               </div>
             )}
           </div>

@@ -78,7 +78,11 @@ export class GraphRenderer {
 	}
 
 	resize() {
-		this.app.renderer.resize(this.container.clientWidth, this.container.clientHeight);
+		const w = this.container.clientWidth;
+		const h = this.container.clientHeight;
+		if (w > 0 && h > 0) {
+			this.app.renderer.resize(w, h);
+		}
 	}
 
 	initialize() {
