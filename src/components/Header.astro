@@ -3,6 +3,7 @@ import { siteConfig } from '../config';
 import ThemeToggle from './ThemeToggle.astro';
 import Icon from './Icon.astro';
 import NavMenuPanel from './widget/NavMenuPanel.astro';
+import SiteGraph from '@/components/SiteGraph.astro';
 
 interface NavLink {
   name: string;
@@ -133,6 +134,25 @@ const paletteIcon = allSectionsDisabled ? 'search' : 'command';
   </div>
 </div>
 
+{siteConfig.postOptions.graphView.enabled && (
+    <div
+        id="graph-modal-overlay"
+        class="graph-modal-overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Knowledge graph"
+    >
+        <button id="graph-modal-close" class="graph-modal-close" aria-label="Close graph">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+        <div class="graph-modal-body">
+            <SiteGraph mode="modal" currentSlug="" />
+        </div>
+    </div>
+)}
+
 <script>
 function loadNavScript() {
   const wrapper = document.getElementById('navbar-wrapper');
@@ -207,9 +227,6 @@ function loadNavScript() {
   });
 
   // ── Feature buttons ────────────────────────────────────────────────────────
-  document.getElementById('header-graph-button')?.addEventListener('click', () => {
-    if ((window as any).openGraphModal) (window as any).openGraphModal();
-  });
   document.getElementById('header-theme-button')?.addEventListener('click', () => {
     if ((window as any).siteConfig?.commandPalette?.enabled)
       window.dispatchEvent(new CustomEvent('openCommandPalette'));
@@ -223,6 +240,22 @@ function loadNavScript() {
 
 loadNavScript();
 document.addEventListener('swup:page:view', loadNavScript);
+
+function initGraphModal() {
+    const btn     = document.getElementById('header-graph-button');
+    const overlay = document.getElementById('graph-modal-overlay');
+    const close   = document.getElementById('graph-modal-close');
+    if (!btn || !overlay) return;
+
+    const open  = () => { overlay.classList.remove('hidden'); document.body.style.overflow = 'hidden'; };
+    const shut  = () => { overlay.classList.add('hidden');    document.body.style.overflow = ''; };
+
+    btn.onclick = open;
+    if (close) close.onclick = shut;
+    overlay.addEventListener('click', e => { if (e.target === overlay) shut(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !overlay.classList.contains('hidden')) shut(); });
+}
+document.addEventListener('astro:page-load', initGraphModal);
 </script>
 
 <style>
@@ -392,4 +425,40 @@ document.addEventListener('swup:page:view', loadNavScript);
   #navbar-wrapper.nav-at-top.has-dark-hero .nav-link:hover {
     color: rgb(255 255 255);
   }
+
+  /* ── Graph modal overlay ── */
+  .graph-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9990;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: stretch;
+  }
+  .graph-modal-overlay.hidden { display: none; }
+
+  .graph-modal-body {
+    flex: 1;
+    position: relative;
+  }
+
+  .graph-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9991;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(0,0,0,0.5);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .graph-modal-close:hover { background: rgba(0,0,0,0.75); }
 </style>
