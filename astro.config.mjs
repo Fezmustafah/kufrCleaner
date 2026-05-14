@@ -37,6 +37,7 @@ const isGitHubPages = DEPLOYMENT_PLATFORM === 'github-pages';
 
 export default defineConfig({
   site: siteConfig.site,
+  prefetch: true,
   base: undefined,
   deployment: {
     platform: DEPLOYMENT_PLATFORM
