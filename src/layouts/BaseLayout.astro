@@ -1219,9 +1219,6 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
          imports guarantee the init code is present on every page; each module
          no-ops when its target DOM elements aren't present. -->
     <script>
-      try { await import('../scripts/local-graph-client.ts'); } catch (_) {}
-    </script>
-    <script>
       try { await import('../scripts/marginalia-client.ts'); } catch (_) {}
     </script>
     <script>
