@@ -226,3 +226,11 @@
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
 }
+
+/* Custom elements are display:inline by default — must override so
+   the internal canvas gets a real pixel height to resize into. */
+graph-component {
+    display: block;
+    width: 100%;
+    height: 100%;
+}

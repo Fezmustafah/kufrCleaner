@@ -20,10 +20,8 @@ const {
 } = Astro.props;
 ---
 
-<div class="slsg-graph-component slsg-graph-skeleton">
-    <div class="slsg-graph-container" />
-</div>
 <graph-component
+    class="slsg-graph-component slsg-graph-skeleton"
     data-config={JSON.stringify(config)}
     data-sitemap={sitemap ? JSON.stringify(sitemap) : undefined}
     data-sitemap-url={sitemapUrl}
