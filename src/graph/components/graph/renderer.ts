@@ -66,7 +66,7 @@ export class GraphRenderer {
 		if (import.meta.env.DEV && this.context.debug) {
 			setTimeout(async () => {
 				try {
-					const { Stats } = await import('pixi-stats');
+					const { Stats } = await import(/* @vite-ignore */ 'pixi-stats');
 					const stats = new Stats(undefined as any, this.app.ticker);
 					stats.domElement!.id = 'slsg-graph-stats';
 				} catch (e) {
