@@ -141,6 +141,7 @@ const paletteIcon = allSectionsDisabled ? 'search' : 'command';
         role="dialog"
         aria-modal="true"
         aria-label="Knowledge graph"
+        tabindex="-1"
     >
         <button id="graph-modal-close" class="graph-modal-close" aria-label="Close graph">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -247,13 +248,25 @@ function initGraphModal() {
     const close   = document.getElementById('graph-modal-close');
     if (!btn || !overlay) return;
 
-    const open  = () => { overlay.classList.remove('hidden'); document.body.style.overflow = 'hidden'; };
-    const shut  = () => { overlay.classList.add('hidden');    document.body.style.overflow = ''; };
+    const open  = () => {
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        (overlay as HTMLElement).focus();
+    };
+    const shut  = () => { overlay.classList.add('hidden'); document.body.style.overflow = ''; };
 
-    btn.onclick = open;
+    btn.onclick     = open;
     if (close) close.onclick = shut;
-    overlay.addEventListener('click', e => { if (e.target === overlay) shut(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !overlay.classList.contains('hidden')) shut(); });
+    overlay.onclick = e => { if (e.target === overlay) shut(); };
+
+    // Keydown: remove previous before re-adding to avoid accumulation across Swup navigations
+    const prev = (window as any).__graphKeydown;
+    if (prev) document.removeEventListener('keydown', prev);
+    const handler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) shut();
+    };
+    document.addEventListener('keydown', handler);
+    (window as any).__graphKeydown = handler;
 }
 document.addEventListener('astro:page-load', initGraphModal);
 </script>
