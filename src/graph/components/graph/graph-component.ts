@@ -57,7 +57,9 @@ export class GraphComponent extends HTMLElement {
 
 	constructor() {
 		super();
-		this.placeholderContainer = this.previousElementSibling as HTMLElement;
+		// Fallback to a detached div when there's no previous sibling (our Graph.astro
+		// puts classes directly on <graph-component> instead of a separate skeleton div).
+		this.placeholderContainer = (this.previousElementSibling as HTMLElement) ?? document.createElement('div');
 		this.style.visibility = 'hidden';
 
 		try {
