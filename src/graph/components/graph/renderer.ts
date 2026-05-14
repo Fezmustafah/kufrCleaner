@@ -63,19 +63,6 @@ export class GraphRenderer {
 			this.tick(ticker);
 		});
 
-		if (import.meta.env.DEV && this.context.debug) {
-			setTimeout(async () => {
-				try {
-					const { Stats } = await import(/* @vite-ignore */ 'pixi-stats');
-					const stats = new Stats(undefined as any, this.app.ticker);
-					stats.domElement!.id = 'slsg-graph-stats';
-				} catch (e) {
-					console.error(
-						'[STARLIGHT-SITE-GRAPH] Failed to load pixi-stats, to enable the FPS counter for the graph view, make sure to install the dependency. Disable this message by setting `debug` to false in the graph component.' + e,
-					);
-				}
-			}, 500);
-		}
 	}
 
 	get canvas() {
