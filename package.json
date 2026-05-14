@@ -53,6 +53,7 @@
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "fuse.js": "^7.1.0",
+    "github-slugger": "^2.0.0",
     "jexl": "^2.3.0",
     "js-yaml": "^4.1.1",
     "katex": "^0.16.38",
