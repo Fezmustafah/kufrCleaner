@@ -148,7 +148,7 @@ const seoData = {
 </BaseLayout>
 
 <script>
-  import { highlight, excerptAround, escapeHtml } from '@/utils/search';
+  import { highlight, escapeHtml } from '@/utils/search';
 
   // SVG path strings (hardcoded — define:vars breaks dynamic import)
   const svgPaths = {
@@ -294,35 +294,37 @@ const seoData = {
     }
 
     // ── Filter & sort ──────────────────────────────────────────────────────
-    function applyFilters() {
-      let filtered = [...allResults];
+    async function applyTagCategoryFiltersAndRender(): Promise<void> {
+      if (!pagefindReady) return;
+      const filters: Record<string, any> = {};
+      if (activeTagFilters.size > 0) filters.tag = [...activeTagFilters];
+      if (activeCategoryFilter) filters.category = activeCategoryFilter;
 
-      if (activeTagFilters.size > 0) {
-        filtered = filtered.filter(item =>
-          [...activeTagFilters].every(tag =>
-            (item.tags || []).some((t: string) => norm(t) === norm(tag))
-          )
-        );
+      if (Object.keys(filters).length > 0) {
+        const s = await pagefind.search(currentQuery, { filters });
+        currentItems = await hydrateResults((s.results as any[]).slice(0, 100));
+      } else {
+        currentItems = allResults;
       }
-      if (activeCategoryFilter) {
-        filtered = filtered.filter(item =>
-          norm(item.category || '') === norm(activeCategoryFilter!)
-        );
-      }
+      buildFilterBar(allResults);
+      applyYearFilter();
+    }
+
+    function applyYearFilter(): void {
+      let filtered = [...currentItems];
       if (filterFromYear !== null) {
-        filtered = filtered.filter(item =>
+        filtered = filtered.filter((item: any) =>
           item.date && new Date(item.date).getFullYear() >= filterFromYear!
         );
       }
       if (filterToYear !== null) {
-        filtered = filtered.filter(item =>
+        filtered = filtered.filter((item: any) =>
           item.date && new Date(item.date).getFullYear() <= filterToYear!
         );
       }
       if (sortMode === 'newest') {
-        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        filtered.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
       }
-
       renderResults(filtered, currentQuery);
     }
 
@@ -423,20 +425,18 @@ const seoData = {
       }
 
       filterBar.querySelectorAll<HTMLButtonElement>('[data-filter-tag]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const tag = btn.getAttribute('data-filter-tag')!;
           activeTagFilters.has(tag) ? activeTagFilters.delete(tag) : activeTagFilters.add(tag);
-          buildFilterBar(allResults);
-          applyFilters();
+          await applyTagCategoryFiltersAndRender();
         });
       });
 
       filterBar.querySelectorAll<HTMLButtonElement>('[data-filter-category]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const cat = btn.getAttribute('data-filter-category')!;
           activeCategoryFilter = activeCategoryFilter === cat ? null : cat;
-          buildFilterBar(allResults);
-          applyFilters();
+          await applyTagCategoryFiltersAndRender();
         });
       });
 
@@ -444,7 +444,7 @@ const seoData = {
         btn.addEventListener('click', () => {
           sortMode = btn.getAttribute('data-sort') as 'relevance' | 'newest';
           buildFilterBar(allResults);
-          applyFilters();
+          applyYearFilter();
         });
       });
 
@@ -452,21 +452,20 @@ const seoData = {
       const toSel   = filterBar.querySelector<HTMLSelectElement>('#filter-to-year');
       fromSel?.addEventListener('change', () => {
         filterFromYear = fromSel.value ? parseInt(fromSel.value) : null;
-        applyFilters();
+        applyYearFilter();
       });
       toSel?.addEventListener('change', () => {
         filterToYear = toSel.value ? parseInt(toSel.value) : null;
-        applyFilters();
+        applyYearFilter();
       });
 
-      filterBar.querySelector<HTMLButtonElement>('#filter-clear-btn')?.addEventListener('click', () => {
+      filterBar.querySelector<HTMLButtonElement>('#filter-clear-btn')?.addEventListener('click', async () => {
         activeTagFilters.clear();
         activeCategoryFilter = null;
         sortMode = 'relevance';
         filterFromYear = null;
         filterToYear = null;
-        buildFilterBar(allResults);
-        applyFilters();
+        await applyTagCategoryFiltersAndRender();
       });
     }
 
@@ -541,9 +540,7 @@ const seoData = {
 
     // ── Preview pane / sheet content ───────────────────────────────────────
     function buildPreviewHtml(item: any, rawQuery: string) {
-      const { text: excerpt, truncated } = excerptAround(
-        item.excerpt || item.description || '', rawQuery
-      );
+      const snippet = item.description;
 
       const tagsHtml = (item.tags || []).map((t: string) =>
         `<a href="${import.meta.env.BASE_URL}tags/${escapeHtml(t)}"
@@ -565,13 +562,6 @@ const seoData = {
           </div>`
         : '';
 
-      const truncationWarning = truncated
-        ? `<div class="flex items-start gap-2 mt-4 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700 text-xs text-primary-500 dark:text-primary-400">
-            ${svg(svgPaths.triangleAlert, 13, 'mt-0.5 text-primary-400 shrink-0')}
-            <span>Preview truncated — open the post to read full content.</span>
-          </div>`
-        : '';
-
       return `
         <div class="flex items-start justify-between gap-3 mb-2">
           <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</h2>
@@ -583,13 +573,9 @@ const seoData = {
         ${categoryHtml || tagsHtml
           ? `<div class="flex flex-wrap items-center gap-2 mb-4">${categoryHtml}${tagsHtml}</div>`
           : ''}
-        ${item.description
-          ? `<p class="text-sm text-primary-500 dark:text-primary-400 mb-4 leading-relaxed border-l-2 border-primary-200 dark:border-primary-700 pl-3 italic">${highlight(item.description, rawQuery)}</p>`
+        ${snippet
+          ? `<p class="text-sm leading-relaxed text-primary-700 dark:text-primary-300">${snippet}</p>`
           : ''}
-        ${excerpt
-          ? `<p class="text-sm leading-relaxed text-primary-700 dark:text-primary-300">${highlight(excerpt, rawQuery)}</p>`
-          : ''}
-        ${truncationWarning}
         <a href="${escapeHtml(safeUrl(item.url))}"
            class="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-highlight-500 hover:bg-highlight-600 text-white text-sm font-medium transition-colors">
           Read post ${svg(svgPaths.arrowRight, 14, 'text-white')}
@@ -619,14 +605,13 @@ const seoData = {
         if (isFiltered) {
           statusEl!.innerHTML = 'No results match the active filters. <button id="status-clear-filters" class="underline hover:text-primary-700 dark:hover:text-primary-300 transition-colors">Clear filters</button>';
           statusEl!.classList.remove('hidden');
-          document.getElementById('status-clear-filters')?.addEventListener('click', () => {
+          document.getElementById('status-clear-filters')?.addEventListener('click', async () => {
             activeTagFilters.clear();
             activeCategoryFilter = null;
             sortMode = 'relevance';
             filterFromYear = null;
             filterToYear = null;
-            buildFilterBar(allResults);
-            applyFilters();
+            await applyTagCategoryFiltersAndRender();
           });
         } else {
           statusEl!.textContent = `No results for "${rawQuery}". Try fewer words or a #tag search.`;
@@ -739,27 +724,39 @@ const seoData = {
 
       renderSkeletons();
 
-      const ok = await ensureFuse();
+      const ok = await initPagefind();
       if (!ok) {
-        statusEl!.textContent = 'Search unavailable — please reload.';
+        statusEl!.textContent = 'Search unavailable — run pnpm build first.';
         statusEl!.classList.remove('hidden');
         paneEl!.classList.add('hidden');
         return;
       }
 
       if (rawQuery.startsWith('#')) {
-        const tagQ = norm(rawQuery.slice(1));
-        allResults = tagQ
-          ? fuseItems.filter((item: any) =>
-              (item.tags || []).some((t: string) => norm(t).includes(tagQ))
-            )
-          : [];
+        const tagQ = rawQuery.slice(1).trim();
+        const s = tagQ
+          ? await pagefind.search('', { filters: { tag: tagQ } })
+          : { results: [] };
+        allResults = await hydrateResults((s.results as any[]).slice(0, 100));
+        currentItems = allResults;
       } else {
-        allResults = fuse.search(norm(rawQuery)).slice(0, 50).map((r: any) => fuseItems[r.item._idx]);
+        const unfiltered = await pagefind.search(rawQuery);
+        allResults = await hydrateResults((unfiltered.results as any[]).slice(0, 100));
+
+        const filters: Record<string, any> = {};
+        if (activeTagFilters.size > 0) filters.tag = [...activeTagFilters];
+        if (activeCategoryFilter) filters.category = activeCategoryFilter;
+
+        if (Object.keys(filters).length > 0) {
+          const filtered = await pagefind.search(rawQuery, { filters });
+          currentItems = await hydrateResults((filtered.results as any[]).slice(0, 100));
+        } else {
+          currentItems = allResults;
+        }
       }
 
       buildFilterBar(allResults);
-      applyFilters();
+      applyYearFilter();
     }
 
     // ── Keyboard navigation ────────────────────────────────────────────────
