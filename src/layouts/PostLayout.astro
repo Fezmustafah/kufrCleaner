@@ -126,7 +126,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
     >
 
       <!-- Main content -->
-      <article class="post-layout-article">
+      <article class="post-layout-article" data-pagefind-body>
 
         <!-- Post content wrapper -->
         <div class="post-content-wrapper px-0 md:px-9 pt-6 pb-4">
@@ -196,12 +196,14 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         </div>
 
         {siteConfig.postOptions.linkedMentions.enabled && (
-          <LinkedMentions currentSlug={post.id} />
+          <div data-pagefind-ignore>
+            <LinkedMentions currentSlug={post.id} />
+          </div>
         )}
 
         <!-- Post navigation -->
         {siteConfig.postOptions.postNavigation && (prevPost || nextPost) && (
-          <nav class={`mt-8 pt-8 ${siteConfig.postOptions.linkedMentions.enabled ? '' : 'border-t border-primary-200 dark:border-primary-700'}`}>
+          <nav data-pagefind-ignore class={`mt-8 pt-8 ${siteConfig.postOptions.linkedMentions.enabled ? '' : 'border-t border-primary-200 dark:border-primary-700'}`}>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               {prevPost && (
                 <div class="text-left">
@@ -249,6 +251,19 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
           </div>
         )}
         </div>
+
+        {/* Pagefind metadata and filters — hidden, indexed at build time */}
+        <span data-pagefind-meta="title" hidden>{post.data.title}</span>
+        <span data-pagefind-meta="date" hidden>{post.data.date.toISOString()}</span>
+        <span data-pagefind-meta="category" hidden>{(post.data as any).category || ''}</span>
+        <span data-pagefind-meta="image" hidden>{seoData.ogImage?.url || ''}</span>
+        {post.data.tags?.map((tag: string) => (
+          <span data-pagefind-filter={`tag[${tag}]`} hidden></span>
+        ))}
+        {(post.data as any).category && (
+          <span data-pagefind-filter={`category[${(post.data as any).category}]`} hidden></span>
+        )}
+        <span data-pagefind-filter={`year[${post.data.date.getFullYear()}]`} hidden></span>
       </article>
 
       <!-- Left sidebar: Contents header (toggle) + TOC + Local graph -->
