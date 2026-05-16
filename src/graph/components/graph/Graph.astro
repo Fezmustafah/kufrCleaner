@@ -1,0 +1,38 @@
+---
+import type { GraphConfig, Sitemap } from '../../config';
+
+interface Props {
+    slug: string;
+    config: GraphConfig;
+    sitemapUrl?: string;
+    sitemap?: Sitemap;
+    debug?: boolean;
+    trailingSlashes?: boolean;
+}
+
+const {
+    config,
+    sitemap,
+    sitemapUrl,
+    slug,
+    debug = false,
+    trailingSlashes = false,
+} = Astro.props;
+---
+
+<graph-component
+    class="slsg-graph-component slsg-graph-skeleton"
+    data-config={JSON.stringify(config)}
+    data-sitemap={sitemap ? JSON.stringify(sitemap) : undefined}
+    data-sitemap-url={sitemapUrl}
+    data-slug={slug}
+    data-debug={String(debug)}
+    data-trailing-slashes={String(trailingSlashes)}
+></graph-component>
+
+<script>
+    import { GraphComponent } from './graph-component';
+    if (!customElements.get('graph-component')) {
+        customElements.define('graph-component', GraphComponent);
+    }
+</script>

@@ -37,6 +37,7 @@ const isGitHubPages = DEPLOYMENT_PLATFORM === 'github-pages';
 
 export default defineConfig({
   site: siteConfig.site,
+  prefetch: true,
   base: undefined,
   deployment: {
     platform: DEPLOYMENT_PLATFORM
@@ -479,7 +480,8 @@ image: {
         '@/layouts': fileURLToPath(new URL('./src/layouts', import.meta.url)),
         '@/utils': fileURLToPath(new URL('./src/utils', import.meta.url)),
         '@/types': fileURLToPath(new URL('./src/types.ts', import.meta.url)),
-        '@/config': fileURLToPath(new URL('./src/config.ts', import.meta.url))
+        '@/config': fileURLToPath(new URL('./src/config.ts', import.meta.url)),
+        '@/graph':  fileURLToPath(new URL('./src/graph', import.meta.url))
       }
     },
     server: {

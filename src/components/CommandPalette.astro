@@ -1185,26 +1185,29 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
             }
           }, 10);
           break;
-        case 'open-graph':
-          // Open graph modal
-          if ((window as any).openGraphModal) {
-            (window as any).openGraphModal();
+        case 'open-graph': {
+          this.close();
+          // Delegate to Header.astro's initialised handler (sets overflow, focuses, resizes).
+          if ((window as any).__openGraphModal) {
+            (window as any).__openGraphModal();
           } else {
-            // Try to initialize GraphModal if it's not available
-            if ((window as any).initializeGraphModal) {
-              (window as any).initializeGraphModal();
-              // Try again after initialization
-              setTimeout(() => {
-                if ((window as any).openGraphModal) {
-                  (window as any).openGraphModal();
+            // Fallback for pages where header script hasn't run yet.
+            const graphOverlay = document.getElementById('graph-modal-overlay');
+            if (graphOverlay) {
+              graphOverlay.classList.remove('hidden');
+              document.body.style.overflow = 'hidden';
+              (graphOverlay as HTMLElement).focus();
+              requestAnimationFrame(() => {
+                const gc = graphOverlay.querySelector('graph-component') as any;
+                if (gc?.renderer?.resize) {
+                  gc.renderer.resize();
+                  gc.simulator?.resetZoom();
                 }
-              }, 100);
-            } else {
+              });
             }
           }
-          // Close palette after action
-          this.close();
           break;
+        }
         // Add more actions here as needed
       }
     }

@@ -1,0 +1,26 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SiteGraph from '@/components/SiteGraph.astro';
+import { siteConfig } from '@/config';
+
+const seoData = {
+  title: `${siteConfig.title} — Knowledge Graph`,
+  description: 'Interactive knowledge graph of all posts and their connections.',
+  canonical: Astro.url.href,
+  ogType: 'website' as const,
+};
+---
+
+<BaseLayout seoData={seoData}>
+    <div class="graph-hero-wrapper">
+        <SiteGraph mode="hero" currentSlug="" />
+    </div>
+</BaseLayout>
+
+<style>
+.graph-hero-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+}
+</style>

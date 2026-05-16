@@ -3,6 +3,7 @@ import { siteConfig } from '../config';
 import ThemeToggle from './ThemeToggle.astro';
 import Icon from './Icon.astro';
 import NavMenuPanel from './widget/NavMenuPanel.astro';
+import SiteGraph from '@/components/SiteGraph.astro';
 
 interface NavLink {
   name: string;
@@ -133,6 +134,26 @@ const paletteIcon = allSectionsDisabled ? 'search' : 'command';
   </div>
 </div>
 
+{siteConfig.postOptions.graphView.enabled && (
+    <div
+        id="graph-modal-overlay"
+        class="graph-modal-overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Knowledge graph"
+        tabindex="-1"
+    >
+        <button id="graph-modal-close" class="graph-modal-close" aria-label="Close graph">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+        <div class="graph-modal-body">
+            <SiteGraph mode="modal" currentSlug="" />
+        </div>
+    </div>
+)}
+
 <script>
 function loadNavScript() {
   const wrapper = document.getElementById('navbar-wrapper');
@@ -207,9 +228,6 @@ function loadNavScript() {
   });
 
   // ── Feature buttons ────────────────────────────────────────────────────────
-  document.getElementById('header-graph-button')?.addEventListener('click', () => {
-    if ((window as any).openGraphModal) (window as any).openGraphModal();
-  });
   document.getElementById('header-theme-button')?.addEventListener('click', () => {
     if ((window as any).siteConfig?.commandPalette?.enabled)
       window.dispatchEvent(new CustomEvent('openCommandPalette'));
@@ -223,6 +241,62 @@ function loadNavScript() {
 
 loadNavScript();
 document.addEventListener('swup:page:view', loadNavScript);
+
+function initGraphModal() {
+    const overlay = document.getElementById('graph-modal-overlay');
+    if (!overlay) return;
+
+    const close = document.getElementById('graph-modal-close');
+
+    const open  = () => {
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        (overlay as HTMLElement).focus();
+        // Double-rAF: first frame lets the browser apply the class removal and
+        // compute layout; second frame fires after the first paint so the canvas
+        // has real clientWidth/clientHeight. full_refresh() re-runs setup() which
+        // re-simulates the graph and calls resize() with the now-correct dimensions.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const gc = overlay.querySelector('graph-component') as any;
+                if (gc?.full_refresh) {
+                    gc.full_refresh();
+                } else if (gc?.renderer?.resize) {
+                    gc.renderer.resize();
+                    gc.simulator?.resetZoom();
+                }
+            });
+        });
+    };
+    const shut  = () => { overlay.classList.add('hidden'); document.body.style.overflow = ''; };
+
+    // Header graph button only exists when featureButton === 'graph'
+    const btn = document.getElementById('header-graph-button');
+    if (btn) btn.onclick = open;
+
+    // Expose open so command palette can call it directly (avoids overflow race)
+    (window as any).__openGraphModal = open;
+
+    if (close) close.onclick = shut;
+    overlay.onclick = e => { if (e.target === overlay) shut(); };
+
+    // Keydown: remove previous before re-adding to avoid accumulation across Swup navigations
+    const prev = (window as any).__graphKeydown;
+    if (prev) document.removeEventListener('keydown', prev);
+    const handler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) shut();
+    };
+    document.addEventListener('keydown', handler);
+    (window as any).__graphKeydown = handler;
+}
+// Run immediately (Astro module scripts are deferred — DOM is ready)
+// Also guard for edge cases where readyState is still 'loading'
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGraphModal);
+} else {
+    initGraphModal();
+}
+document.addEventListener('swup:page:view', initGraphModal);
 </script>
 
 <style>
@@ -391,5 +465,89 @@ document.addEventListener('swup:page:view', loadNavScript);
   /* Pill nav links on dark hero: already light from the amber pill rule above */
   #navbar-wrapper.nav-at-top.has-dark-hero .nav-link:hover {
     color: rgb(255 255 255);
+  }
+
+  /* ── Graph modal overlay ── */
+  /*
+   * The overlay hides via opacity+visibility, NOT display:none.
+   * display:none collapses the canvas to 0×0 so graph-component initializes
+   * with no dimensions and all nodes cluster at (0,0).
+   *
+   * The HTML starts with Tailwind's .hidden class for SSR accessibility, but
+   * the rule below overrides its display:none (higher specificity wins on !important)
+   * so the overlay stays display:flex and the canvas gets real dimensions on load.
+   */
+  .graph-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9990;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: stretch;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    /* visibility delay keeps element hidden until opacity fade-out completes */
+    transition: opacity 0.2s ease, visibility 0s 0.2s;
+  }
+  /* Two-class selector beats Tailwind's single-class .hidden { display:none !important } */
+  .graph-modal-overlay.hidden {
+    display: flex !important;
+  }
+  .graph-modal-overlay:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    transition: opacity 0.2s ease, visibility 0s 0s;
+  }
+
+  .graph-modal-body {
+    flex: 1;
+    /* Explicit height required so percentage heights (height:100%) propagate
+       correctly through the slsg-wrapper → graph-component → canvas chain */
+    height: 100%;
+    min-height: 0;
+    position: relative;
+    /* Opaque background so transparent canvas doesn't show page behind */
+    background: rgb(var(--color-primary-50));
+  }
+  :global(.dark) .graph-modal-body {
+    background: rgb(var(--color-primary-950));
+  }
+
+  /* Close button: top-LEFT so it doesn't collide with SLSG's action buttons (top-right) */
+  .graph-modal-close {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    /* Above SLSG action container (z-index: 10) */
+    z-index: 20;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-50) / 0.9);
+    color: rgb(var(--color-primary-600));
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    backdrop-filter: blur(4px);
+  }
+  :global(.dark) .graph-modal-close {
+    border-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-950) / 0.9);
+    color: rgb(var(--color-primary-300));
+  }
+  .graph-modal-close:hover {
+    border-color: rgb(var(--color-highlight-500));
+    color: rgb(var(--color-highlight-600));
+    background: rgb(var(--color-primary-50) / 0.98);
+  }
+  :global(.dark) .graph-modal-close:hover {
+    border-color: rgb(var(--color-highlight-400));
+    color: rgb(var(--color-highlight-400));
+    background: rgb(var(--color-primary-950) / 0.98);
   }
 </style>

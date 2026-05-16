@@ -39,6 +39,21 @@ const projectRoot = join(__dirname, "..");
 // Configuration
 const OUTPUT_DIR = join(projectRoot, "public", "graph");
 const OUTPUT_FILE = join(OUTPUT_DIR, "graph-data.json");
+const SITEMAP_FILE = join(OUTPUT_DIR, "sitemap.json");
+
+// Deterministic category → nodeColor1-9 slot assignment
+const CATEGORY_COLORS = [
+  "nodeColor1","nodeColor2","nodeColor3","nodeColor4","nodeColor5",
+  "nodeColor6","nodeColor7","nodeColor8","nodeColor9",
+];
+const _categoryColorMap = new Map();
+function getColorForCategory(category) {
+  if (!category) return undefined;
+  if (!_categoryColorMap.has(category)) {
+    _categoryColorMap.set(category, CATEGORY_COLORS[_categoryColorMap.size % CATEGORY_COLORS.length]);
+  }
+  return _categoryColorMap.get(category);
+}
 
 /**
  * Read maxNodes from config file
@@ -569,6 +584,68 @@ async function generateGraphData() {
         originalNodeCount: nodes.length,
       },
     };
+
+    // ── Build SLSG sitemap format ───────────────────────────────────────────
+    const sitemap = {};
+
+    // Collect all valid post slugs for link validation
+    const validPostSlugs = new Set(visiblePosts.map(p => `posts/${p.id}`));
+
+    // First pass: each post → sitemap entry with outgoing links + tags
+    for (const post of visiblePosts) {
+      const slug = `posts/${post.id}`;
+      const category = post.data?.category ?? null;
+      const tags = (Array.isArray(post.data?.tags) ? post.data.tags : []).filter(Boolean);
+
+      // Collect outgoing wikilinks to other posts
+      const rawWikilinks = extractWikilinks(post.body ?? "");
+      const outgoingLinks = [...new Set(
+        rawWikilinks
+          .map(w => `posts/${w.slug}`)
+          .filter(s => validPostSlugs.has(s) && s !== slug)
+      )];
+
+      sitemap[slug] = {
+        exists: true,
+        external: false,
+        title: post.data?.title ?? post.id,
+        links: outgoingLinks,
+        backlinks: [],        // filled in second pass
+        tags,
+        ...(category ? { nodeStyle: { shapeColor: getColorForCategory(category) } } : {}),
+      };
+    }
+
+    // Add synthetic tag nodes
+    const allTags = new Set();
+    for (const post of visiblePosts) {
+      for (const tag of (Array.isArray(post.data?.tags) ? post.data.tags : [])) {
+        if (tag) allTags.add(tag);
+      }
+    }
+    for (const tag of allTags) {
+      sitemap[`tag:${tag}`] = {
+        exists: true,
+        external: false,
+        title: tag,
+        links: [],
+        backlinks: [],
+        tags: [],
+      };
+    }
+
+    // Second pass: invert links → backlinks
+    for (const [slug, entry] of Object.entries(sitemap)) {
+      for (const target of entry.links ?? []) {
+        if (sitemap[target]) {
+          sitemap[target].backlinks.push(slug);
+        }
+      }
+    }
+
+    writeFileSync(SITEMAP_FILE, JSON.stringify(sitemap, null, 2));
+    log.info(`✅ SLSG sitemap: ${Object.keys(sitemap).length} entries → ${SITEMAP_FILE}`);
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Write graph data to file
     writeFileSync(OUTPUT_FILE, JSON.stringify(graphData, null, 2));
