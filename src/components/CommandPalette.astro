@@ -235,16 +235,29 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
 </div>
 
 <script>
+  let _pagefind: any = null;
+  let _pagefindReady = false;
+
+  async function initPagefind(): Promise<any> {
+    if (_pagefindReady) return _pagefind;
+    _pagefind = await import('/pagefind/pagefind.js');
+    await _pagefind.init();
+    _pagefindReady = true;
+    return _pagefind;
+  }
+
   // Define the structure for items in the command palette
   interface CommandPaletteItem {
-    id: string;
-    title: string;
-    description?: string;
-    url: string;
     type: 'post' | 'page' | 'action';
-    score?: number;
+    title: string;
+    url: string;
+    description?: string;
+    image?: string;
     tags?: string[];
-    category?: string | null;
+    date?: string;
+    category?: string;
+    id?: string;
+    score?: number;
   }
 
   // Command Palette Class Definition
@@ -261,11 +274,9 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
     private themeList: HTMLElement;
     private isOpen: boolean = false;
     private selectedIndex: number = -1;
-    private items: CommandPaletteItem[] = []; // Holds all fetched items
     private filteredItems: CommandPaletteItem[] = []; // Holds items after filtering by search query
     private searchTimeout: number | null = null; // For debouncing
     private cache: Map<string, CommandPaletteItem[]> = new Map(); // Search result cache
-    private fuse: any = null; // Fuse.js instance for fuzzy search
     private searchHistory: string[] = []; // Track search history for suggestions
     private currentContext: string = 'all'; // Current search context
     private readonly MAX_RESULTS = 50; // Increased for better UX
@@ -286,10 +297,9 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
       this.themeSelection = document.getElementById('command-palette-theme-selection')!;
       this.themeList = document.getElementById('theme-list')!;
 
-      // Initialize the palette and preload data
+      // Initialize the palette
       this.init();
       this.loadSearchHistory();
-      this.preloadData();
       // Don't call setInitialTheme() - theme management is handled by BaseLayout.astro
     }
 
@@ -369,205 +379,30 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
       // Command+K shortcut is handled globally in BaseLayout
     }
 
-    private async preloadData() {
-      // Preload posts data in the background for faster search
-      this.loadPosts();
-    }
-
-    private async loadPosts() {
-      // Only load if not already loaded
-      if (this.items.length > 0) {
-        return;
-      }
-
-      try {
-        // Get search configuration from the global config
-        const searchConfig = (window as any).siteConfig?.commandPalette?.search || {
-          posts: true,
-          pages: false,
-        };
-
-        const allItems = [];
-        const promises = [];
-
-        if (searchConfig.posts) {
-          promises.push(
-            fetch(`${import.meta.env.BASE_URL}api/posts.json`).then(response =>
-              response.ok ? response.json() : []
-            )
-          );
-        } else {
-          promises.push(Promise.resolve([]));
-        }
-
-        if (searchConfig.pages) {
-          promises.push(
-            fetch(`${import.meta.env.BASE_URL}api/pages.json`).then(response => {
-              return response.ok ? response.json() : [];
-            }).catch(() => [])
-          );
-        } else {
-          promises.push(Promise.resolve([]));
-        }
-
-        const [posts, pages] = await Promise.all(promises);
-        allItems.push(...posts, ...pages);
-
-        this.items = allItems;
-        // Don't initialize Fuse.js immediately - wait until first search
-      } catch (error) {
-        // Fallback to empty array
-        this.items = [];
-      }
-    }
-
-    private async initializeFuseSearch() {
-      try {
-        // Add a small delay to ensure the module is ready
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Try to load Fuse.js with better error handling
-        const fuseModule = await import('fuse.js');
-        const Fuse = fuseModule.default || fuseModule;
-        
-        if (typeof Fuse === 'function') {
-          // NFKD normalization converts Unicode variants (e.g. Mathematical Bold "𝐌𝐮𝐡" → ASCII "Muh")
-          const norm = (s: string) => s ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : '';
-          // Build a normalized shadow index; _idx maps back to original items for display
-          const normalizedItems = this.items.map((item, idx) => ({
-            _idx: idx,
-            _title: norm(item.title),
-            _description: norm(item.description || ''),
-            _tags: (item.tags || []).map(norm),
-            _category: norm((item as any).category || ''),
-          }));
-          this.fuse = new Fuse(normalizedItems, {
-            keys: [
-              { name: '_title', weight: 0.5 },
-              { name: '_description', weight: 0.2 },
-              { name: '_tags', weight: 0.2 },
-              { name: '_category', weight: 0.1 },
-            ],
-            threshold: 0.4,
-            includeScore: true,
-            minMatchCharLength: 1,
-            shouldSort: true,
-            findAllMatches: true,
-            ignoreLocation: true,
-            useExtendedSearch: true
-          });
-        } else {
-          throw new Error('Fuse.js not properly loaded');
-        }
-      } catch (error) {
-        // Fallback to basic search if Fuse.js fails to load
-        this.fuse = null;
-      }
-    }
-
-    // Advanced search using Fuse.js with fallback to basic search
+    // Search using Pagefind
     private async searchItems(query: string): Promise<CommandPaletteItem[]> {
-      if (!query.trim()) return [];
+      const normalizedQuery = this.normalizeText(query);
+      if (!normalizedQuery) return [];
 
-      // Initialize Fuse.js lazily on first search
-      if (!this.fuse && this.items.length > 0) {
-        await this.initializeFuseSearch();
-      }
-
-      // Use Fuse.js if available, otherwise fallback to basic search
-      if (this.fuse) {
-        return this.fuzzySearch(query);
-      } else {
-        return this.basicSearch(query);
-      }
-    }
-
-    private fuzzySearch(query: string): CommandPaletteItem[] {
-      // Normalize query to match the normalized index
-      const normalizedQuery = query.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
-      const results = this.fuse.search(normalizedQuery);
-      return results
-        .slice(0, this.MAX_RESULTS)
-        .map((result: any) => ({
-          ...this.items[result.item._idx], // Use original item for display (preserves fancy title)
-          score: result.score ? (1 - result.score) * 1000 : 0,
+      try {
+        const pf = await initPagefind();
+        const search = await pf.search(normalizedQuery);
+        const hydrated = await Promise.all(
+          (search.results as any[]).slice(0, 20).map((r: any) => r.data())
+        );
+        return hydrated.map((data: any): CommandPaletteItem => ({
+          type: data.url.includes('/pages/') ? 'page' : 'post',
+          title: data.meta.title || data.url,
+          url: data.url,
+          description: data.excerpt,
+          image: data.meta.image || '',
+          tags: data.filters.tag ?? [],
+          date: data.meta.date || '',
+          category: data.meta.category || '',
         }));
-    }
-
-    private basicSearch(query: string): CommandPaletteItem[] {
-      const norm = (s: string) => s ? s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : '';
-      const queryLower = norm(query);
-      const queryWords = queryLower.split(/\s+/).filter(word => word.length > 0);
-
-      return this.items
-        .map(item => {
-          const title = norm(item.title);
-          const description = norm(item.description || '');
-          const tags = (item.tags || []).map(norm).join(' ');
-          const category = norm((item as any).category || '');
-
-          let score = 0;
-
-          // Exact title match gets highest score
-          if (title === queryLower) {
-            score += 1000;
-          } else if (title.startsWith(queryLower)) {
-            score += 500;
-          } else if (title.includes(queryLower)) {
-            score += 200;
-          }
-
-          // Description match gets medium score
-          if (description.includes(queryLower)) {
-            score += 100;
-          }
-
-          // Tags matching gets high score (similar to title)
-          if (tags.includes(queryLower)) {
-            score += 300;
-          }
-
-          // Category match
-          if (category.includes(queryLower)) {
-            score += 250;
-          }
-
-          // Word-by-word matching for better fuzzy search
-          queryWords.forEach(word => {
-            if (title.includes(word)) {
-              score += 50;
-            }
-            if (description.includes(word)) {
-              score += 25;
-            }
-            if (tags.includes(word)) {
-              score += 40;
-            }
-            if (category.includes(word)) {
-              score += 35;
-            }
-          });
-
-          // Boost score for matches at word boundaries
-          const wordBoundaryRegex = new RegExp(`\\b${queryLower}`, 'i');
-          if (wordBoundaryRegex.test(title)) {
-            score += 100;
-          }
-          if (wordBoundaryRegex.test(description)) {
-            score += 50;
-          }
-          if (wordBoundaryRegex.test(tags)) {
-            score += 80;
-          }
-          if (wordBoundaryRegex.test(category)) {
-            score += 70;
-          }
-
-          return { ...item, score };
-        })
-        .filter(item => item.score > 0)
-        .sort((a, b) => (b.score || 0) - (a.score || 0))
-        .slice(0, this.MAX_RESULTS);
+      } catch {
+        return [];
+      }
     }
 
     private applyPreservedSelection() {
@@ -736,9 +571,6 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
         this.displaySearchResults();
         return;
       }
-
-      // Ensure posts are loaded
-      await this.loadPosts();
 
       // Use improved search algorithm
       this.filteredItems = await this.searchItems(trimmedQuery);
@@ -1007,6 +839,13 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
 
       anchor.appendChild(contentDiv);
       return anchor;
+    }
+
+    // Normalize text for search: NFKD decomposition, strip combining marks, lowercase, trim
+    private normalizeText(text: string): string {
+      return text
+        ? text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+        : '';
     }
 
     // Helper method to highlight search terms in text
