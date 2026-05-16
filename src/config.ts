@@ -171,7 +171,6 @@ export interface SiteConfig {
   
   // Optional Content Types
   optionalContentTypes: {
-    manuscripts: boolean;
   };
 }
 
@@ -367,8 +366,6 @@ export const siteConfig: SiteConfig = {
 
   // Optional Content Types
   optionalContentTypes: {
-    // [CONFIG:OPTIONAL_CONTENT_TYPES_MANUSCRIPTS]
-    manuscripts: true,
   },
 
   // Home Options

@@ -65,57 +65,6 @@ const pagesCollection = defineCollection({
 });
 
 
-// Citation reference schema (reusable)
-const citationReferenceSchema = z.object({
-  id: z.string(),
-  type: z.enum(['article', 'book', 'chapter', 'conference', 'thesis', 'report', 'website', 'other']).optional().default('other'),
-  title: z.string(),
-  author: z.union([z.string(), z.array(z.string())]).optional(),
-  year: z.number().optional(),
-  journal: z.string().optional(),
-  booktitle: z.string().optional(),
-  publisher: z.string().optional(),
-  volume: z.string().optional(),
-  issue: z.string().optional(),
-  pages: z.string().optional(),
-  doi: z.string().optional(),
-  url: z.string().optional(),
-  accessed: z.string().optional(),
-});
-
-// Define schema for manuscripts
-const manuscriptsCollection = defineCollection({
-  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/manuscripts' }),
-  schema: z.object({
-    title: z.string().default('Untitled Manuscript'),
-    subtitle: z.string().nullable().optional(),
-    abstract: z.string().nullable().optional(),
-    authors: z.union([z.string(), z.array(z.string())]).optional().transform(val =>
-      val ? (Array.isArray(val) ? val : [val]) : []
-    ),
-    date: z.coerce.date().default(() => new Date()),
-    modified: z.coerce.date().optional(),
-    type: z.enum(['essay', 'paper', 'research-note', 'review', 'preprint', 'other']).optional().default('essay'),
-    status: z.string().nullable().optional().default('draft'),
-    tags: z.array(z.string()).nullable().optional(),
-    categories: z.array(z.string()).nullable().optional().default([]),
-    doi: z.string().nullable().optional(),
-    url: z.string().nullable().optional(),
-    pdf: z.string().nullable().optional(),
-    publishedIn: z.string().nullable().optional(),
-    volume: z.string().nullable().optional(),
-    issue: z.string().nullable().optional(),
-    pages: z.string().nullable().optional(),
-    references: z.array(citationReferenceSchema).optional().default([]),
-    draft: z.boolean().optional(),
-    noIndex: z.boolean().optional(),
-    hideTOC: z.boolean().optional().default(true),
-    showTOC: z.boolean().optional(),
-    featured: z.boolean().optional(),
-  }),
-});
-
-
 // Define schema for special home pages (homepage blurb, 404, projects index, docs index)
 const specialCollection = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/bin/special' }),
@@ -160,7 +109,6 @@ const categoriesCollection = defineCollection({
 export const collections = {
   posts: postsCollection,
   pages: pagesCollection,
-  manuscripts: manuscriptsCollection,
   special: specialCollection,
   tags: tagsCollection,
   categories: categoriesCollection,

@@ -6,6 +6,16 @@ import { type GraphRenderer } from './renderer';
 import { type GraphComponent } from './graph-component';
 import { ensureLeadingSlash } from '../../sitemap/browser-utils';
 
+// Targeting-reticle cursor: red ring + center dot, white outline ensures
+// visibility on both light and dark canvas backgrounds. Hotspot = center (10,10).
+const NODE_HOVER_CURSOR =
+	'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'20\' height=\'20\'%3E' +
+	'%3Ccircle cx=\'10\' cy=\'10\' r=\'7\' fill=\'none\' stroke=\'white\' stroke-width=\'3.5\'/%3E' +
+	'%3Ccircle cx=\'10\' cy=\'10\' r=\'7\' fill=\'none\' stroke=\'%23ef4444\' stroke-width=\'1.5\'/%3E' +
+	'%3Ccircle cx=\'10\' cy=\'10\' r=\'3\' fill=\'white\'/%3E' +
+	'%3Ccircle cx=\'10\' cy=\'10\' r=\'2\' fill=\'%23ef4444\'/%3E' +
+	'%3C/svg%3E") 10 10, crosshair';
+
 export class GraphSimulator {
 	container!: HTMLCanvasElement;
 	renderer!: GraphRenderer;
@@ -242,7 +252,7 @@ export class GraphSimulator {
 					this.context.setStyleHovered();
 					this.requestRender = true;
 				}
-				this.container.style.cursor = this.context.enableClick && this.isClickable(closestNode) ? 'pointer' : 'default';
+				this.container.style.cursor = NODE_HOVER_CURSOR;
 			} else if (this.currentlyHovered) {
 				this.unhoverNode();
 			}

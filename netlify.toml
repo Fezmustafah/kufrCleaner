@@ -133,20 +133,14 @@
   force = true
 
 [[redirects]]
-  from = "/posts/untitled-1319673407654330471"
-  to = "/posts/birth-of-prophet"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/black-seed"
-  to = "/posts/black-seed-in-islam-nigella-sativa-prophetic-medicine-and-modern-scientific-research"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/by-islamophobes-nightmare-pdf"
   to = "/posts/by-islamophobes-nightmare-pdf-slavery"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/camel-pee"
+  to = "/posts/camel-pee-notes"
   status = 301
   force = true
 
@@ -165,12 +159,6 @@
 [[redirects]]
   from = "/posts/circumambulating-the-kaaba"
   to = "/posts/circumambulating-the-kaaba-is-paganism-the-bible-answers"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/distortion-v1"
-  to = "/posts/corruption-of-bible-general-v2"
   status = 301
   force = true
 
@@ -225,6 +213,12 @@
 [[redirects]]
   from = "/posts/deception-no-4-why-is-hassans-character-similar-to-the-character-of-the-messenger-of-god"
   to = "/posts/did-al-hasan-resemble-prophet-muhammad-in-physical-strength"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/thread-did-early-christians-even-agree-on-what-the-bible-is"
+  to = "/posts/did-early-christians-even-agree-on-what-the-bible-is"
   status = 301
   force = true
 
@@ -403,24 +397,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/bhukhari-4503-they-are-from-them-killing-children-night-raid"
-  to = "/posts/did-the-prophet-allow-killing-women-and-children-a-complete-islamic-response"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/kissed-hassan-hussain"
-  to = "/posts/did-the-prophet-kiss-al-hasan-on-the-lips-context-hadith-analysis-christian-objections-refuted"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/prophet-kissed-hassan-and-hussain"
-  to = "/posts/did-the-prophet-kiss-al-hasan-on-the-lips-context-hadith-analysis-christian-objections-refuted"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/she-died-so-i-slept-with-her"
   to = "/posts/did-the-prophet-lie-with-fatima-bint-asad-in-her-grave-linguistic-and-hadith-refutation-of-the-christian-allegation"
   status = 301
@@ -453,12 +429,6 @@
 [[redirects]]
   from = "/posts/killing-of-kinana-bin-al-rabi-bin-abi-al-haqiq"
   to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-order-the-torture-of-kinanah-ibn-al-rabi-a-full-isnad-refutation-of-the-khaybar-slander"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/dawud-4449-trust-tawrat"
-  to = "/posts/did-the-prophet-صلى-الله-عليه-وسلم-place-his-hand-on-the-torah-refuting-the-weak-hisham-ibn-sad-report"
   status = 301
   force = true
 
@@ -553,18 +523,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/from-refuting-kufar-recommended"
-  to = "/posts/does-allah-pray-on-the-prophet-the-meaning-of-salawat-in-quran-33-56-christian-objection-refuted"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/allah-prays-scans"
-  to = "/posts/does-allah-pray-on-the-prophet-the-meaning-of-salawat-in-quran-33-56-christian-objection-refuted"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/refuting-the-christians-evidence-of-denying-the-good-news-of-muhammad-in-deuteronomy-18"
   to = "/posts/does-deuteronomy-18-18-prophesy-muhammad-the-prophet-like-moses-explained"
   status = 301
@@ -591,18 +549,6 @@
 [[redirects]]
   from = "/posts/the-name-of-muhammad-in-hosea-96"
   to = "/posts/does-hosea-9-6-mention-muhammad-by-name-the-hebrew-word-machmas-explained"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/isa42-even-accepted-by-jews-of-medina"
-  to = "/posts/does-isaiah-42-prophesy-muhammad-the-chosen-servant-prophecy-examined"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/isaiah-42-the-main-prophecy"
-  to = "/posts/does-isaiah-42-prophesy-muhammad-the-chosen-servant-prophecy-examined"
   status = 301
   force = true
 
@@ -709,20 +655,8 @@
   force = true
 
 [[redirects]]
-  from = "/posts/the-claim-that-god-almighty-does-not-have-the-exclusive-right-to-know-what-is-in-the-wombs"
-  to = "/posts/does-ultrasound-gender-detection-contradict-quran-31-34-hadith-scholars-embryology-answer"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/contradiction-in-the-quran-regarding-the-belief-and-disbelief-of-some-infidels"
   to = "/posts/does-you-do-not-worship-what-i-worship-contradict-later-conversion"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/1st-doubt"
-  to = "/posts/doubts-regarding-prophet-marriage-with-safiyyah-bint-huyayy"
   status = 301
   force = true
 
@@ -741,12 +675,6 @@
 [[redirects]]
   from = "/posts/even-if-he-committed-adultery-and-even-if-he-stole"
   to = "/posts/even-if-he-committed-adultery-and-even-if-he-stole-does-islam-permit-major-sins"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/final-academic-response"
-  to = "/posts/flat-earth-in-islam"
   status = 301
   force = true
 
@@ -943,6 +871,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/john-3-13"
+  to = "/posts/john-3-13-who-is-in-heaven-a-divinity-proof-text-absent-from-the-two-oldest-papyri-sinaiticus-and-vaticanus"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/the-story-of-the-angel-in-the-sinaiticus-manuscript-and-the-papal-lie-in-response-to-pope-shenouda"
   to = "/posts/john-5-34-and-the-angel-at-bethesda-missing-from-the-oldest-bible-manuscripts"
   status = 301
@@ -961,6 +895,42 @@
   force = true
 
 [[redirects]]
+  from = "/posts/corruption-of-the-gospel-of-john-9-35"
+  to = "/posts/john-9-35-son-of-man-or-son-of-god-how-one-word-change-turned-a-prophecy-verse-into-a-divinity-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-problem-of-distorting-luke-1-28"
+  to = "/posts/luke-1-28-blessed-are-you-among-women-a-later-scribal-addition-rejected-by-all-major-critical-editions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-distortion-of-luke-1-28-blessed-are-you-among-women"
+  to = "/posts/luke-1-28-blessed-are-you-among-women-a-later-scribal-addition-rejected-by-all-major-critical-editions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/distortion-of-the-text-of-luke-23-34-father-forgive-them-for-they-do-not-know-what-they-do"
+  to = "/posts/luke-23-34-father-forgive-them-absent-from-oldest-manuscripts-and-bracketed-by-all-critical-editions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-distortion-of-luke-23-34-father-forgive-them"
+  to = "/posts/luke-23-34-father-forgive-them-absent-from-oldest-manuscripts-and-bracketed-by-all-critical-editions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-distortion-of-luke-23-45-eclipse-or-darkness"
+  to = "/posts/luke-23-45-eclipse-or-darkness-how-scribes-changed-the-original-greek-word-to-hide-an-astronomical-problem"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/why-does-the-quran-describe-birds-as-speaking"
   to = "/posts/mantiq-al-tayr-did-the-quran-misuse-the-word-for-speech-the-linguistic-doubt-refuted"
   status = 301
@@ -969,6 +939,18 @@
 [[redirects]]
   from = "/posts/marginalia"
   to = "/posts/marginalia-test"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/mar-7-16-mark-9-44-mark-9-46"
+  to = "/posts/mark-7-16-and-mark-9-44-46-verses-deleted-from-the-oldest-manuscripts-and-absent-from-all-critical-editions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/when-an-accidental-error-is-more-serious-than-a-deliberate-distortion-the-problem-of-matthew-27-35"
+  to = "/posts/matthew-27-35-prophecy-fulfillment-addition-absent-from-the-five-most-important-manuscripts-and-rejected-by-all-critical-editions"
   status = 301
   force = true
 
@@ -997,12 +979,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/moon-split-2"
-  to = "/posts/moon-split-notes"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/deception-no-7-you-want-to-be-castrated-or-practice-temporary-marriage"
   to = "/posts/mutah-in-islam-was-temporary-marriage-later-forbidden"
   status = 301
@@ -1011,12 +987,6 @@
 [[redirects]]
   from = "/posts/as-for-my-cousin-he-violated-my-honor"
   to = "/posts/my-honor-was-violated-does-the-hadith-mean-the-prophet-صلى-الله-عليه-وسلم-was-assaulted"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/he-will-be-called-a-nazarene-a-false-prophecy-or-a-lost-text"
-  to = "/posts/nazareth-netzer-and-matthew-2-23-the-failed-christian-defense-refuted"
   status = 301
   force = true
 
@@ -1063,6 +1033,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/bukhari-4428-poisoned"
+  to = "/posts/prophet-muhammad-صلى-الله-عليه-وسلم-die-as-a-false-prophet-refuting-the-poison-and-aorta-arguments"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/revision"
   to = "/posts/prophets-doubt-in-islam-what-does-yunus-94-really-mean"
   status = 301
@@ -1093,6 +1069,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/bukhari-4557"
+  to = "/posts/refuting-the-chains-around-their-necks-misinterpretation-in-sahih-al-bukhari-4557"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/update-2026-1468269937515823264"
   to = "/posts/refuting-the-dirham-anachronism-how-the-quran-accurately-describes-ancient-currency"
   status = 301
@@ -1101,6 +1083,12 @@
 [[redirects]]
   from = "/posts/why-is-there-repetition-in-quran"
   to = "/posts/repetition-in-the-quran-weakness-or-eloquence-a-complete-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/bukhari-4697"
+  to = "/posts/sahih-al-bukhari-4697-explained-context-and-correct-understanding"
   status = 301
   force = true
 
@@ -1207,6 +1195,18 @@
   force = true
 
 [[redirects]]
+  from = "/posts/where-is-the-rest-of-surat-al-ahzab"
+  to = "/posts/the-doubt-about-the-missing-verses-of-surah-al-ahzab-a-full-response"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/as-an-example-who-wrote-it-in-response-to-the-theological-defense-team"
+  to = "/posts/the-epistle-to-the-hebrews-who-wrote-it"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/20-evidences-that-lie-the-story"
   to = "/posts/the-false-attribution-of-the-story-of-david-and-uriahs-wife-to-the-quran"
   status = 301
@@ -1239,6 +1239,12 @@
 [[redirects]]
   from = "/posts/deception-no-15-men-who-extinguish-the-sunnah-and-create-innovation"
   to = "/posts/the-hadith-of-unjust-rulers-delaying-prayer-explained"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/update-1340752533714501730"
+  to = "/posts/the-hadith-on-gender-determination-a-scientific-analysis"
   status = 301
   force = true
 
@@ -1345,6 +1351,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/beginners-guide-to-hadeeth-sunnah"
+  to = "/posts/the-sunnah-and-hadith-meaning-importance-and-preservation"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/and-we-decreed-to-the-children-of-israel-in-the-scripture-you-will-surely-cause-corruption-on-the"
   to = "/posts/the-testament-of-moses-prophecy-did-it-predict-prophet-muhammad-صلى-الله-عليه-وسلمs-birth"
   status = 301
@@ -1375,20 +1387,14 @@
   force = true
 
 [[redirects]]
-  from = "/posts/tirmidhi-2861-jinns-zutt-the-prophet"
-  to = "/posts/the-zutt-and-prophet"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/story-of-people-of-zutt-and-prophet"
-  to = "/posts/the-zutt-and-prophet"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/deception-no-11-there-are-12-hypocrites-among-my-companions"
   to = "/posts/twelve-hypocrites-vs-the-sahabah-a-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/bukhari-2771"
+  to = "/posts/understanding-the-hadith-of-the-man-accused-with-mariyah-bukhari-2771"
   status = 301
   force = true
 
@@ -1441,14 +1447,14 @@
   force = true
 
 [[redirects]]
-  from = "/posts/condition-of-peoples-and-countries-under-roman-and-persian-rule-before-the-islamic-conquest"
-  to = "/posts/were-the-islamic-conquests-oppressive-how-rome-and-persia-actually-treated-egypt-syria-and-the-levant"
+  from = "/posts/update-1342464262139809902"
+  to = "/posts/were-the-bones-created-first-or-the-flesh"
   status = 301
   force = true
 
 [[redirects]]
-  from = "/posts/untitled-1359074889570455562"
-  to = "/posts/what-has-islam-given-to-the-world"
+  from = "/posts/condition-of-peoples-and-countries-under-roman-and-persian-rule-before-the-islamic-conquest"
+  to = "/posts/were-the-islamic-conquests-oppressive-how-rome-and-persia-actually-treated-egypt-syria-and-the-levant"
   status = 301
   force = true
 
