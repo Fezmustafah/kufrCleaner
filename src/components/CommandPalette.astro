@@ -240,7 +240,8 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
 
   async function initPagefind(): Promise<any> {
     if (_pagefindReady) return _pagefind;
-    _pagefind = await import('/pagefind/pagefind.js');
+    const _pf = '/pagefind/pagefind.js';
+    _pagefind = await import(/* @vite-ignore */ _pf);
     await _pagefind.init();
     _pagefindReady = true;
     return _pagefind;

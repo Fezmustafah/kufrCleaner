@@ -270,7 +270,8 @@ const seoData = {
     async function initPagefind(): Promise<boolean> {
       if (pagefindReady) return true;
       try {
-        pagefind = await import('/pagefind/pagefind.js');
+        const _pf = '/pagefind/pagefind.js';
+        pagefind = await import(/* @vite-ignore */ _pf);
         await pagefind.init();
         pagefindReady = true;
         return true;
