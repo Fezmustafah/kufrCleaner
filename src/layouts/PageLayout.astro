@@ -66,7 +66,7 @@ const structuredData = {
   <div class="py-8">
     <div class="mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
       <!-- Page content -->
-      <article class={`bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm ${page.data.image ? 'overflow-hidden' : ''}`}>
+      <article data-pagefind-body class={`bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm ${page.data.image ? 'overflow-hidden' : ''}`}>
         {page.data.image && (() => {
           // Process image path similar to PostLayout
           let rawImage = page.data.image;
@@ -150,6 +150,8 @@ const structuredData = {
             <Content />
           </div>
         </div>
+        {/* Pagefind metadata */}
+        <span data-pagefind-meta="title" hidden>{page.data.title}</span>
       </article>
 
     </div>
