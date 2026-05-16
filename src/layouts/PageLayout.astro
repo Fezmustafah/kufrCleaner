@@ -140,7 +140,7 @@ const structuredData = {
         <div class={`p-6 ${page.data.image ? 'rounded-b-lg' : 'rounded-lg'}`}>
           <!-- Page header -->
           <header class="mb-4">
-            <h1 class="text-xl font-bold text-primary-900 dark:text-primary-50 mb-6 leading-tight">
+            <h1 data-pagefind-meta="title" class="text-xl font-bold text-primary-900 dark:text-primary-50 mb-6 leading-tight">
               {page.data.title}
             </h1>
           </header>
@@ -151,7 +151,6 @@ const structuredData = {
           </div>
         </div>
         {/* Pagefind metadata */}
-        <span data-pagefind-meta="title" hidden>{page.data.title}</span>
       </article>
 
     </div>
