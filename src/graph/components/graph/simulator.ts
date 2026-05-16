@@ -12,6 +12,10 @@ export class GraphSimulator {
 
 	simulation!: d3.Simulation<NodeData, undefined>;
 
+	// Quadtree for O(log N) hover detection — rebuilt lazily after each sim tick.
+	private _quadtree: d3.Quadtree<NodeData> | null = null;
+	private _maxNodeRadius: number = 0;
+
 	nodes!: NodeData[];
 	links!: LinkData[];
 
@@ -52,11 +56,15 @@ export class GraphSimulator {
 		this.container = this.renderer.canvas;
 		this.simulation = d3.forceSimulation<NodeData>(this.nodes);
 
-		this.requireDblClick = this.context.config.enableClick === 'dblclick';
+		// On touch-primary devices (no hover, coarse pointer) treat first tap as
+		// hover preview and require a second tap to navigate — same as dblclick mode.
+		const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+		this.requireDblClick = this.context.config.enableClick === 'dblclick' || isTouchDevice;
 		this.zoomTransform = d3.zoomIdentity.scale(scale);
 		this.scale = scale;
 
 		this.simulation.on('tick', () => {
+			this._quadtree = null; // node positions changed — invalidate quadtree
 			this.requestRender = true;
 		});
 	}
@@ -76,6 +84,8 @@ export class GraphSimulator {
 		d3.select(this.container).on('click', null);
 		d3.select(this.container).on('mousemove', null);
 		d3.select(this.container).on('mouseleave', null);
+		d3.select(this.container).on('touchstart.hover', null);
+		d3.select(this.container).on('touchmove.hover', null);
 	}
 
 	destroy() {
@@ -94,7 +104,7 @@ export class GraphSimulator {
 		this.simulation
 			.stop()
 			.force('link', linkForce)
-			.force('charge', d3.forceManyBody<NodeData>().distanceMax(500).strength(-this.context.config.repelForce))
+			.force('charge', d3.forceManyBody<NodeData>().distanceMax(400).strength(-this.context.config.repelForce))
 			.force('forceX', d3.forceX<NodeData>().strength(this.context.config.centerForce))
 			.force('forceY', d3.forceY<NodeData>().strength(this.context.config.centerForce))
 			.force(
@@ -104,18 +114,53 @@ export class GraphSimulator {
 					.radius(node => node.colliderSize! + this.context.config.colliderPadding),
 			)
 			.alphaDecay(this.context.config.alphaDecay)
+			// velocityDecay is friction (0 = frictionless, 1 = full stop each tick).
+			// D3 defaults to 0.4 which causes nodes to overshoot and oscillate.
+			// 0.6 settles nodes ~3× faster and is the primary fix for drag vibration.
+			.velocityDecay(0.6)
+			// alphaMin: stop simulation once kinetic energy is low. Default 0.001 runs
+			// ~300 ticks which blocks the main thread on large graphs. 0.05 stops after
+			// ~60–80 ticks — visually indistinguishable but eliminates the freeze.
+			.alphaMin(0.05)
 			.alpha(1)
 			.restart();
 	}
 
+	// Run N simulation ticks synchronously while the graph is still hidden.
+	// Cancels the async timer from update(), advances alpha, then restarts async
+	// for the remainder. This converts a 1-second "explosion" animation into a
+	// short gentle settling — nodes appear already spread when graph becomes visible.
+	prewarm(ticks: number) {
+		this.simulation.stop();
+		this.simulation.tick(ticks);
+		this._quadtree = null;
+		this.requestRender = true;
+		this.simulation.restart();
+	}
+
 	findOverlappingNode(x: number, y: number): NodeData | undefined {
-		for (const node of this.simulation.nodes()) {
-			if ((node.x! - x) ** 2 + (node.y! - y) ** 2 <= node.fullRadius! ** 2) {
-				return node;
+		const nodes = this.simulation.nodes();
+		if (!nodes.length) return undefined;
+
+		// Build quadtree lazily (invalidated on each simulation tick).
+		// d3.quadtree.find() is O(log N) vs the previous O(N) linear scan.
+		// maxNodeRadius is computed once during the build and reused each query.
+		if (!this._quadtree) {
+			this._maxNodeRadius = 0;
+			this._quadtree = d3.quadtree<NodeData>()
+				.x(d => d.x ?? 0)
+				.y(d => d.y ?? 0)
+				.addAll(nodes);
+			for (const n of nodes) {
+				if ((n.fullRadius ?? 0) > this._maxNodeRadius) this._maxNodeRadius = n.fullRadius!;
 			}
 		}
 
-		return undefined;
+		// find() returns the nearest node within maxNodeRadius; confirm exact hit.
+		const found = this._quadtree.find(x, y, this._maxNodeRadius);
+		if (!found) return undefined;
+		const dx = (found.x ?? 0) - x, dy = (found.y ?? 0) - y;
+		return dx * dx + dy * dy <= (found.fullRadius ?? 0) ** 2 ? found : undefined;
 	}
 
 	enableDrag() {
@@ -132,7 +177,11 @@ export class GraphSimulator {
 
 					this.userZoomed = true;
 
-					if (!e.active) this.simulation.alphaTarget(0.3).restart();
+					// 0.3 keeps the simulation in a high-energy state the whole time the
+					// user drags, causing hub nodes (tags with many connections) to oscillate
+					// wildly. 0.08 is enough to let the dragged node settle its neighbours
+					// without cascading oscillation across the graph.
+					if (!e.active) this.simulation.alphaTarget(0.08).restart();
 
 					e.subject.fx = e.subject.x;
 					e.subject.fy = e.subject.y;
@@ -160,29 +209,101 @@ export class GraphSimulator {
 	}
 
 	enableHover() {
-		d3.select(this.container).on('mousemove', (e: MouseEvent) => {
-			const [x, y] = this.transform.invert([e.offsetX, e.offsetY]);
+		// Coalesce mousemove events to one check per animation frame (rAF gate).
+		// A 3px dead zone prevents spurious re-triggers when the cursor barely moves.
+		// We also guard setStyleHovered() so it only fires when the hovered node changes,
+		// eliminating redundant color-animation cascades on intra-node cursor movement.
+		let _pendingX: number | null = null, _pendingY: number | null = null;
+		let _lastHX = 0, _lastHY = 0;
+		let _hoverRafId: number | null = null;
+
+		const processHover = () => {
+			_hoverRafId = null;
+			if (_pendingX === null) return;
+			const px = _pendingX!, py = _pendingY!;
+			_pendingX = _pendingY = null;
+
+			// Dead zone: skip if cursor moved less than 3 px since last processed position
+			const dx = px - _lastHX, dy = py - _lastHY;
+			if (dx * dx + dy * dy < 9) return;
+			_lastHX = px; _lastHY = py;
+
+			const [x, y] = this.transform.invert([px, py]);
 			const closestNode = this.findOverlappingNode(x, y);
 
 			if (closestNode) {
-				this.currentlyHovered = closestNode.id;
 				this.isHovering = true;
 				if (this.context.config.prefetchPages && closestNode !== this.currentNode && !closestNode.external) {
 					prefetch(ensureLeadingSlash(closestNode.id));
 				}
-				this.context.setStyleHovered();
-				this.requestRender = true;
+				// Only trigger hover style/animation when the hovered node actually changes
+				if (this.currentlyHovered !== closestNode.id) {
+					this.currentlyHovered = closestNode.id;
+					this.context.setStyleHovered();
+					this.requestRender = true;
+				}
 				this.container.style.cursor = this.context.enableClick && this.isClickable(closestNode) ? 'pointer' : 'default';
 			} else if (this.currentlyHovered) {
 				this.unhoverNode();
 			}
+		};
+
+		d3.select(this.container).on('mousemove', (e: MouseEvent) => {
+			_pendingX = e.offsetX;
+			_pendingY = e.offsetY;
+			if (_hoverRafId !== null) return; // already scheduled for this frame
+			_hoverRafId = requestAnimationFrame(processHover);
 		});
 
 		d3.select(this.container).on('mouseleave', (event) => {
+			_pendingX = _pendingY = null; // cancel any pending check
+			_lastHX = _lastHY = 0;       // reset dead zone on re-entry
 			if (this.currentlyHovered && !event.buttons) {
 				this.unhoverNode();
 			}
 		});
+
+		// Mobile touch: touchstart = show hover preview, touchmove > 5px = drag (unhover).
+		// Works alongside requireDblClick so: tap = preview, second tap = navigate.
+		if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+			let _touchStartX = 0, _touchStartY = 0;
+
+			d3.select(this.container).on('touchstart.hover', (e: TouchEvent) => {
+				const touch = e.touches[0];
+				_touchStartX = touch.clientX;
+				_touchStartY = touch.clientY;
+
+				const rect = this.container.getBoundingClientRect();
+				const px = touch.clientX - rect.left;
+				const py = touch.clientY - rect.top;
+				const [x, y] = this.transform.invert([px, py]);
+				const node = this.findOverlappingNode(x, y);
+
+				if (node) {
+					this.isHovering = true;
+					if (this.context.config.prefetchPages && node !== this.currentNode && !node.external) {
+						prefetch(ensureLeadingSlash(node.id));
+					}
+					if (this.currentlyHovered !== node.id) {
+						this.currentlyHovered = node.id;
+						this.context.setStyleHovered();
+						this.requestRender = true;
+					}
+				} else if (this.currentlyHovered) {
+					this.unhoverNode();
+				}
+			}, { passive: true } as AddEventListenerOptions);
+
+			d3.select(this.container).on('touchmove.hover', (e: TouchEvent) => {
+				const touch = e.touches[0];
+				const dx = touch.clientX - _touchStartX;
+				const dy = touch.clientY - _touchStartY;
+				// 5px threshold — finger moved, it's a pan/drag, clear preview
+				if (dx * dx + dy * dy > 25 && this.currentlyHovered) {
+					this.unhoverNode();
+				}
+			}, { passive: true } as AddEventListenerOptions);
+		}
 	}
 
 	unhoverNode() {
@@ -263,7 +384,7 @@ export class GraphSimulator {
 	}
 
 	isClickable(node: NodeData): boolean {
-		return node.exists && !(node.type === 'tag' || node.id === this.currentNode?.id);
+		return node.exists && node.id !== this.currentNode?.id;
 	}
 
 	resetZoom(immediate: boolean = false) {

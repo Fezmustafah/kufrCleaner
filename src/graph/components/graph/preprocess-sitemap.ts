@@ -65,8 +65,17 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 
 	let slug = context.currentPage;
 
+	const normalizeSlug = (s: string) =>
+		(s.startsWith('http') || s.startsWith('mailto:')) ? s : simplifySlug(s, context.trailingSlashes);
+
 	let corrected_data = Object.entries(siteData).map(([k, v]) => {
-		return [(k.startsWith("http") || k.startsWith("mailto:")) ? k : simplifySlug(k, context.trailingSlashes), v] as const
+		const key = normalizeSlug(k);
+		const normalizedV = {
+			...v,
+			links: (v.links ?? []).map(normalizeSlug),
+			backlinks: (v.backlinks ?? []).map(normalizeSlug),
+		};
+		return [key, normalizedV] as const;
 	});
 	if (context.config.nodeInclusionRules && (context.config.nodeInclusionRules.length > 1 || context.config.nodeInclusionRules[0] !== "**/*")) {
 		corrected_data = corrected_data.filter(([k, _]) => {
@@ -87,7 +96,8 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 	if (depth >= 5) depth = -1;
 
 	let links: LinkData[] = [];
-	const tags: Set<string> = new Set();
+	// Map: rawTagName → normalized tag page ID (e.g. 'arabic' → '/posts/tag/arabic')
+	const tags: Map<string, string> = new Map();
 	const validLinks = new Set(data.keys());
 	const neighbourhood = new Set<string>();
 
@@ -132,9 +142,10 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 
 				if (context.config.tagRenderMode === 'node' || context.config.tagRenderMode === 'both') {
 					for (const tag of node.tags ?? []) {
-						neighbourhood.add(tag);
-						tags.add(tag);
-						links.push({ source: current, target: tag });
+						const tagId = normalizeSlug(`posts/tag/${tag}`, context.trailingSlashes);
+						neighbourhood.add(tagId);
+						tags.set(tag, tagId);
+						links.push({ source: current, target: tagId });
 					}
 				}
 			}
@@ -150,9 +161,10 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 
 			if (context.config.tagRenderMode === 'node' || context.config.tagRenderMode === 'both') {
 				for (const tag of details.tags ?? []) {
-					neighbourhood.add(tag);
-					tags.add(tag);
-					links.push({ source: source, target: tag });
+					const tagId = normalizeSlug(`posts/tag/${tag}`, context.trailingSlashes);
+					neighbourhood.add(tagId);
+					tags.set(tag, tagId);
+					links.push({ source: source, target: tagId });
 				}
 			}
 		}
@@ -173,7 +185,7 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 		const node = data.get(id);
 		if (!node) continue;
 
-		const adjacent = new Set([...(node.links ?? []), ...(node.backlinks ?? [])]);
+		const adjacent = new Set([...(node.links ?? []), ...(node.backlinks ?? [])].map(normalizeSlug));
 
 		// Chain of declarations determines style priority
 		let style: NodeStyle = { ...context.config.nodeDefaultStyle } as NodeStyle;
@@ -192,15 +204,17 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 			};
 		}
 
-		if (id === context.currentPage) {
-			style = { ...style, ...(context.config.nodeCurrentStyle as NodeStyle) };
-		}
-
 		if (!node.exists) {
 			style = { ...style, ...(context.config.nodeUnresolvedStyle as NodeStyle) };
 		}
 
-		style = processStyle({ ...style, ...((node.nodeStyle ?? {}) as NodeStyle) });
+		// nodeStyle (category color from sitemap) applied here — after all base styles
+		// nodeCurrentStyle applied last so current-page always wins over category color
+		style = processStyle({
+			...style,
+			...((node.nodeStyle ?? {}) as NodeStyle),
+			...(id === context.currentPage ? (context.config.nodeCurrentStyle ?? {}) as NodeStyle : {}),
+		});
 
 		const { computedSize, fullRadius, colliderSize } = computeSizes(style, adjacent.size);
 		getUsedColors(style, usedColors, customColorMap);
@@ -232,22 +246,23 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 		});
 	}
 
-	for (const tag of tags) {
+	for (const [rawTag, tagId] of tags) {
 		const tagStyle = processStyle({
 			...context.config.tagDefaultStyle,
-			...(context.config.tagStyles[tag] ?? {}),
+			...(context.config.tagStyles[rawTag] ?? {}),
 		} as NodeStyle);
 
-		const adjacent = new Set([...links.filter(l => l.source === tag).map(l => l.target as string)]);
+		// Adjacent = all posts that link TO this tag node
+		const adjacent = new Set(links.filter(l => l.target === tagId).map(l => l.source as string));
 		const { computedSize, fullRadius, colliderSize } = computeSizes(tagStyle, adjacent.size);
 		getUsedColors(tagStyle, usedColors, customColorMap);
 
 		nodes.push({
-			id: tag,
+			id: tagId,       // /posts/tag/arabic — navigable URL
 			exists: true,
 			external: false,
-			text: tag,
-			tags: [tag],
+			text: rawTag,    // display name: 'arabic'
+			tags: [rawTag],
 			type: 'tag',
 			adjacent,
 

@@ -115,8 +115,8 @@ export class GraphComponent extends HTMLElement {
 
 			this.animator.startAnimationsTo(this.defaultColorTransitions, { duration: 200 });
 		});
-		this.themeObserver.observe(document.querySelector(':root')!, {
-			attributeFilter: ['data-theme'],
+		this.themeObserver.observe(document.documentElement, {
+			attributeFilter: ['class', 'data-theme'],
 		});
 
 		this.renderer = new GraphRenderer(this);
@@ -310,6 +310,11 @@ export class GraphComponent extends HTMLElement {
 		this.simulator.initialize(nodes, links, currentNode, this.config.scale);
 		this.renderer.initialize();
 		this.simulator.update();
+		// Pre-settle large graphs while still hidden — converts the initial
+		// "explosion" animation into gentle final-approach settling.
+		// 30 ticks with alphaDecay=0.06 gets alpha from 1→0.16; only ~17
+		// async ticks remain, so nodes appear nearly placed on first paint.
+		if (nodes.length > 50) this.simulator.prewarm(30);
 
 		if (this.config.enableDrag) this.simulator.enableDrag();
 
@@ -320,8 +325,19 @@ export class GraphComponent extends HTMLElement {
 		if (this.config.enableZoom || this.config.enablePan) this.simulator.enableZoom();
 
 		this.placeholderContainer.style.display = 'none';
+		this.classList.remove('slsg-graph-skeleton');
 		this.style.visibility = 'visible';
 		this.renderer.resize();
+	}
+
+	disconnectedCallback() {
+		// Swup navigation removes graph-component from DOM while fullscreen may be active.
+		// graphContainer and blurContainer live on document.body at that point — clean them up.
+		if (this.isFullscreen) {
+			this.graphContainer.remove();
+			this.blurContainer.remove();
+			document.body.dataset['graphBlur'] = '';
+		}
 	}
 
 	enableFullscreen() {
@@ -330,8 +346,14 @@ export class GraphComponent extends HTMLElement {
 		this.isFullscreen = true;
 
 		this.graphContainer.classList.toggle('slsg-is-fullscreen', true);
+		// Placeholder keeps the sidebar slot non-empty while graphContainer is elevated.
 		this.appendChild(this.mockGraphContainer);
-		this.appendChild(this.blurContainer);
+		// Move modal and backdrop to document.body so they paint in the root stacking
+		// context. Without this, position:sticky on post-layout-left-col creates a
+		// stacking context that traps z-index, causing the modal to render behind the
+		// article even though its z-index is 9998.
+		document.body.appendChild(this.graphContainer);
+		document.body.appendChild(this.blurContainer);
 		document.body.dataset['graphBlur'] = 'true';
 		this.fullscreenExitHandler = onClickOutside(this.graphContainer, () => {
 			this.disableFullscreen();
@@ -350,7 +372,9 @@ export class GraphComponent extends HTMLElement {
 
 		this.graphContainer.classList.toggle('slsg-is-fullscreen', false);
 		this.removeChild(this.mockGraphContainer);
-		this.removeChild(this.blurContainer);
+		// Move graphContainer back from body into this element, remove backdrop.
+		this.appendChild(this.graphContainer);
+		this.blurContainer.remove();
 		this.fullscreenExitHandler!();
 		this.graphContainer.onkeyup = e => {
 			if (e.key === 'f') this.enableFullscreen();

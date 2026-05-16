@@ -42,7 +42,13 @@ export class GraphRenderer {
 		await this.app.init({
 			antialias: true,
 			backgroundAlpha: 0,
-			resolution: Object.keys(this.context.sitemap).length > 5000 ? 2 : 4,
+			// Clamp renderer resolution to [2, 4].
+			// Minimum 2: on 1× displays, 2× oversampling gives PixiJS's 2D text canvas
+			// enough pixels to anti-alias cleanly (otherwise text has visible staircase aliasing).
+			// Maximum 4: above 4× the GPU fill-rate cost is extreme with negligible gain.
+			// autoDensity:true handles the CSS scaling so the canvas always fits its container.
+			resolution: Math.min(Math.max(window.devicePixelRatio ?? 2, 2), 4),
+			autoDensity: true,
 		} as PIXI.ApplicationOptions);
 		this.container.appendChild(this.app.canvas);
 
@@ -125,7 +131,15 @@ export class GraphRenderer {
 			this.simulator.animateZoomOverride = false;
 		}
 
-		if (this.simulator.requestRender || this.context.animator.anyAnimating) {
+		// Skip redrawing individual nodes when ONLY the zoom transform is animating.
+		// app.stage.updateTransform() (above) already repositions the whole scene via
+		// GPU transform, so per-node draw calls are redundant during pure zoom.
+		// We still draw when: sim tick fired (requestRender), a node is hovered (colors
+		// changing), or any non-zoom animation is running (label opacity, etc.).
+		const pureZoom = this.zoomIsAnimating()
+			&& !this.simulator.requestRender
+			&& this.simulator.currentlyHovered === '';
+		if (this.simulator.requestRender || (this.context.animator.anyAnimating && !pureZoom)) {
 			this.simulator.requestRender = false;
 			this.drawNodes(this.simulator.nodes);
 			this.drawLinks(this.simulator.links);
@@ -260,11 +274,21 @@ export class GraphRenderer {
 	}
 
 	drawNodes(nodes: NodeData[]) {
+		// Hoist hovered-node lookup outside the loop (O(N) once vs O(N²) per frame).
+		// Needed for the bidirectional adjacency check below.
+		const currentlyHovered = this.simulator.currentlyHovered;
+		const hoveredNode = currentlyHovered ? nodes.find(n => n.id === currentlyHovered) : undefined;
+
 		for (const node of nodes) {
-			const hovered = this.simulator.currentlyHovered !== '' && node.id === this.simulator.currentlyHovered;
+			const hovered = currentlyHovered !== '' && node.id === currentlyHovered;
 			let adjacent = false;
-			if (!hovered && this.simulator.currentlyHovered !== '') {
-				adjacent = node.adjacent.has(this.simulator.currentlyHovered);
+			if (!hovered && currentlyHovered !== '') {
+				// Tag nodes store adjacency as ONLY the articles that link TO them, so
+				// article.adjacent.has(tagId) is always false — the relationship is one-way
+				// in the data. Checking BOTH directions (node→hovered AND hovered→node)
+				// makes hover correctly reveal article labels when a tag is hovered.
+				adjacent = node.adjacent.has(currentlyHovered)
+					|| (hoveredNode?.adjacent.has(node.id) ?? false);
 			}
 			if (node.strokeWidth && node.strokeColor) {
 				this.drawNodeStroke(node, hovered);
@@ -272,8 +296,15 @@ export class GraphRenderer {
 			}
 			this.drawNodeShape(node, hovered, adjacent);
 
-			if (this.context.config.renderLabels) {
-				this.updateLabel(node, hovered, adjacent);
+			if (this.context.config.renderLabels && node.label) {
+				// Labels are hidden by default at every zoom level.
+				// They appear ONLY for the hovered node and its direct neighbours.
+				// This eliminates chaotic long-title overlap, fixes tag nodes not
+				// showing their label on hover, and reveals adjacent article titles
+				// when hovering a tag. PIXI skips invisible objects entirely.
+				const labelVisible = hovered || adjacent;
+				if (node.label.visible !== labelVisible) node.label.visible = labelVisible;
+				if (labelVisible) this.updateLabel(node, hovered, adjacent);
 			}
 
 			node.node!.position.set(node.x!, node.y!);
@@ -422,6 +453,12 @@ export class GraphRenderer {
 				fill: 0xffffff,
 				fontSize: this.context.config.labelFontSize,
 			},
+			// Render text textures at 4× regardless of the renderer resolution.
+			// The renderer canvas is kept at 2× for GPU performance (shapes, links),
+			// but PIXI.Text is a rasterized sprite — the higher its texture DPR, the
+			// crisper it stays when zoomed or on HiDPI screens. Text label textures
+			// are small so 4× adds negligible memory overhead.
+			resolution: 4,
 			zIndex: LABEL_DEFAULT_Z_INDEX,
 		});
 		node.label.anchor.set(0.5, 0.5);

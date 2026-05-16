@@ -26,7 +26,7 @@ const BASE_CONFIG: Partial<GraphConfig> = {
     // sidebar: depth=1 (direct neighbors only)
     // modal: depth=3, falls back to location.pathname as slug (data-slug="" → falsy → window.location)
     // hero: depth=-1 (full graph — unlimited; user can reduce via toolbar)
-    depth: mode === 'sidebar' ? 1 : mode === 'modal' ? 3 : -1,
+    depth: mode === 'sidebar' ? 1 : -1,  // sidebar: depth-1 local; modal + hero: full global graph
     scale: mode === 'sidebar' ? 1.0 : 1.1,
     enableDrag: true,
     enableZoom: true,
@@ -37,10 +37,24 @@ const BASE_CONFIG: Partial<GraphConfig> = {
     renderArrows: false,
     renderUnresolved: false,
     renderExternal: false,
+    tagRenderMode: 'node',
     actions: mode === 'sidebar'
-        ? ['fullscreen', 'depth', 'reset-zoom']
-        : ['fullscreen', 'depth', 'reset-zoom', 'render-arrows', 'settings'],
+        ? ['fullscreen', 'depth', 'reset-zoom', 'settings']
+        : ['reset-zoom', 'render-arrows', 'settings'],
     prefetchPages: true,
+
+    // Physics tuned per mode.
+    // Sidebar (5–20 nodes): defaults are fine.
+    // Modal/global (300+ nodes): aggressive repel + zero link distance causes
+    // nodes to slam together and bounce. Lower repel, add link spacing, faster
+    // alpha decay, and more collider room give a stable settled layout quickly.
+    ...(mode !== 'sidebar' ? {
+        repelForce:      80,   // default 200 — too aggressive for dense graphs
+        linkDistance:    50,   // default 0  — gives nodes a natural spacing goal
+        centerForce:     0.03, // default 0.05 — looser center pull, more spread
+        colliderPadding: 10,   // default 20 — less bounce between collision radii
+        alphaDecay:      0.06, // default 0.0228 — 3× faster convergence
+    } : {}),
 };
 
 const graphConfig = { ...BASE_CONFIG, ...configOverride } as GraphConfig;
