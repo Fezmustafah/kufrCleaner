@@ -349,28 +349,18 @@ export const siteConfig: SiteConfig = {
     social: [
       {
         title: "X / Twitter",
-        url: "#",
+        url: "https://x.com/kufrcleaner1",
         icon: "x-twitter",
       },
       {
-        title: "YouTube",
-        url: "#",
-        icon: "youtube",
-      },
-      {
-        title: "WhatsApp",
-        url: "#",
-        icon: "whatsapp",
+        title: "Instagram",
+        url: "https://www.instagram.com/kufrcleaner/?hl=en",
+        icon: "instagram",
       },
       {
         title: "Discord",
-        url: "#",
+        url: "https://discord.gg/29gmvhXRh8",
         icon: "discord",
-      },
-      {
-        title: "Telegram",
-        url: "#",
-        icon: "telegram",
       },
     ],
   },
