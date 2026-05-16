@@ -298,7 +298,8 @@ const seoData = {
     async function applyTagCategoryFiltersAndRender(): Promise<void> {
       if (!pagefindReady) return;
       const filters: Record<string, any> = {};
-      if (activeTagFilters.size > 0) filters.tag = [...activeTagFilters];
+      if (activeTagFilters.size === 1) filters.tag = [...activeTagFilters][0];
+      else if (activeTagFilters.size > 1) filters.tag = { any: [...activeTagFilters] };
       if (activeCategoryFilter) filters.category = activeCategoryFilter;
 
       if (Object.keys(filters).length > 0) {
@@ -745,7 +746,8 @@ const seoData = {
         allResults = await hydrateResults((unfiltered.results as any[]).slice(0, 100));
 
         const filters: Record<string, any> = {};
-        if (activeTagFilters.size > 0) filters.tag = [...activeTagFilters];
+        if (activeTagFilters.size === 1) filters.tag = [...activeTagFilters][0];
+        else if (activeTagFilters.size > 1) filters.tag = { any: [...activeTagFilters] };
         if (activeCategoryFilter) filters.category = activeCategoryFilter;
 
         if (Object.keys(filters).length > 0) {
