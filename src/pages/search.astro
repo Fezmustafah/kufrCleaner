@@ -179,8 +179,9 @@ const seoData = {
   }
 
   // Per-page-view state
-  let fuse: any = null;
-  let fuseItems: any[] = [];
+  let pagefind: any = null;
+  let pagefindReady = false;
+  let currentItems: any[] = [];
 
   // Filter state (reset on new search query)
   let allResults: any[] = [];
@@ -263,46 +264,33 @@ const seoData = {
 
     let debounceTimer: number;
     let selectedIndex = 0;
-    let currentItems: any[] = [];
     let currentQuery = '';
 
-    // ── Fuse init ─────────────────────────────────────────────────────────
-    async function ensureFuse() {
-      if (fuse) return true;
+    // ── Pagefind init ─────────────────────────────────────────────────────
+    async function initPagefind(): Promise<boolean> {
+      if (pagefindReady) return true;
       try {
-        const [fuseModule, postsRes] = await Promise.all([
-          import('fuse.js'),
-          fetch(`${import.meta.env.BASE_URL}api/posts.json`).then(r => r.ok ? r.json() : []),
-        ]);
-        const Fuse = fuseModule.default || fuseModule;
-        fuseItems = postsRes;
-        const normalized = fuseItems.map((item: any, idx: number) => ({
-          _idx: idx,
-          _title:       norm(item.title),
-          _description: norm(item.description || ''),
-          _excerpt:     norm(item.excerpt || ''),
-          _tags:        (item.tags || []).map(norm),
-          _category:    norm(item.category || ''),
-        }));
-        fuse = new Fuse(normalized, {
-          keys: [
-            { name: '_title',       weight: 0.45 },
-            { name: '_tags',        weight: 0.30 },
-            { name: '_description', weight: 0.15 },
-            { name: '_excerpt',     weight: 0.07 },
-            { name: '_category',    weight: 0.03 },
-          ],
-          threshold: 0.35,
-          includeScore: true,
-          minMatchCharLength: 2,
-          shouldSort: true,
-          findAllMatches: true,
-          ignoreLocation: true,
-        });
+        pagefind = await import('/pagefind/pagefind.js');
+        await pagefind.init();
+        pagefindReady = true;
         return true;
       } catch {
         return false;
       }
+    }
+
+    async function hydrateResults(results: any[]): Promise<any[]> {
+      const data = await Promise.all(results.map((r: any) => r.data()));
+      return data.map((d: any) => ({
+        title:       d.meta.title    || d.url,
+        url:         d.url,
+        description: d.excerpt,
+        excerpt:     d.excerpt,
+        tags:        d.filters.tag  ?? [],
+        category:    d.meta.category || '',
+        date:        d.meta.date    || '',
+        image:       d.meta.image   || '',
+      }));
     }
 
     // ── Filter & sort ──────────────────────────────────────────────────────
