@@ -28,6 +28,7 @@ import { remarkMarginalia } from './src/utils/remark-marginalia.ts';
 import remarkAnnotations from './src/utils/remark-annotations.ts';
 import remarkCitations from './src/utils/remark-citations.ts';
 import swup from '@swup/astro';
+import pagefind from 'astro-pagefind';
 import refreshContentOnChange from './src/integrations/refresh-content-on-change.ts';
 import { fileURLToPath } from 'node:url';
 
@@ -359,6 +360,7 @@ image: {
     remotePatterns: []
   },
   integrations: [
+    pagefind(),
     refreshContentOnChange(),
     tailwind(),
     sitemap(),
@@ -470,7 +472,6 @@ image: {
     assetsInclude: ['**/*.base', '**/*.home', '**/*.base'],
     build: {
       rollupOptions: {
-        external: ['/pagefind/pagefind.js'],
       },
     },
     resolve: {
