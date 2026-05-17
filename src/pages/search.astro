@@ -188,8 +188,7 @@ const seoData = {
   let activeTagFilters = new Set<string>();
   let activeCategoryFilter: string | null = null;
   let sortMode: 'relevance' | 'newest' = 'relevance';
-  let filterFromYear: number | null = null;
-  let filterToYear: number | null = null;
+  let filterYear: number | null = null;
   let filterBarOpen = false;
 
   function initSearch() {
@@ -319,14 +318,9 @@ const seoData = {
 
     function applyYearFilter(): void {
       let filtered = [...currentItems];
-      if (filterFromYear !== null) {
+      if (filterYear !== null) {
         filtered = filtered.filter((item: any) =>
-          item.date && new Date(item.date).getFullYear() >= filterFromYear!
-        );
-      }
-      if (filterToYear !== null) {
-        filtered = filtered.filter((item: any) =>
-          item.date && new Date(item.date).getFullYear() <= filterToYear!
+          item.date && new Date(item.date).getFullYear() === filterYear!
         );
       }
       if (sortMode === 'newest') {
@@ -353,7 +347,7 @@ const seoData = {
       const activeCount =
         activeTagFilters.size +
         (activeCategoryFilter ? 1 : 0) +
-        (filterFromYear !== null || filterToYear !== null ? 1 : 0) +
+        (filterYear !== null ? 1 : 0) +
         (sortMode !== 'relevance' ? 1 : 0);
 
       const chipBase  = 'text-xs px-2 py-0.5 rounded border transition-colors cursor-pointer';
@@ -393,23 +387,21 @@ const seoData = {
       const dateHtml = years.length > 1 ? `
         <div class="flex items-center gap-1.5">
           <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Year:</span>
-          <select id="filter-from-year" class="${selectCls}">
-            <option value="">From</option>
-            ${years.map(y => `<option value="${y}" ${filterFromYear === y ? 'selected' : ''}>${y}</option>`).join('')}
-          </select>
-          <span class="text-xs text-primary-400">–</span>
-          <select id="filter-to-year" class="${selectCls}">
-            <option value="">To</option>
-            ${years.map(y => `<option value="${y}" ${filterToYear === y ? 'selected' : ''}>${y}</option>`).join('')}
+          <select id="filter-year" class="${selectCls}">
+            <option value="">All</option>
+            ${[...years].reverse().map(y => `<option value="${y}" ${filterYear === y ? 'selected' : ''}>${y}</option>`).join('')}
           </select>
         </div>` : '';
 
       const clearHtml = activeCount > 0
-        ? `<button id="filter-clear-btn" class="text-xs text-primary-500 hover:text-primary-700 dark:hover:text-primary-300 underline transition-colors whitespace-nowrap ml-auto">Clear ${activeCount} filter${activeCount !== 1 ? 's' : ''}</button>`
+        ? `<button id="filter-clear-btn" class="ml-auto inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-white dark:bg-primary-900 border border-primary-300 dark:border-primary-600 text-primary-500 dark:text-primary-400 hover:border-highlight-500 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors whitespace-nowrap">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+            Clear${activeCount > 1 ? ' ' + activeCount : ''}
+          </button>`
         : '';
 
       filterBar.innerHTML = `
-        <div class="flex flex-wrap items-start gap-3 p-3 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700">
+        <div class="flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700">
           ${tagsHtml}${catsHtml}${sortHtml}${dateHtml}${clearHtml}
         </div>`;
       filterBar.classList.toggle('hidden', !filterBarOpen);
@@ -454,23 +446,17 @@ const seoData = {
         });
       });
 
-      const fromSel = filterBar.querySelector<HTMLSelectElement>('#filter-from-year');
-      const toSel   = filterBar.querySelector<HTMLSelectElement>('#filter-to-year');
-      fromSel?.addEventListener('change', () => {
-        filterFromYear = fromSel.value ? parseInt(fromSel.value) : null;
-        applyTagCategoryFiltersAndRender();
-      });
-      toSel?.addEventListener('change', () => {
-        filterToYear = toSel.value ? parseInt(toSel.value) : null;
+      const yearSel = filterBar.querySelector<HTMLSelectElement>('#filter-year');
+      yearSel?.addEventListener('change', () => {
+        filterYear = yearSel.value ? parseInt(yearSel.value) : null;
         applyTagCategoryFiltersAndRender();
       });
 
-      filterBar.querySelector<HTMLButtonElement>('#filter-clear-btn')?.addEventListener('click', async () => {
+      filterBar.querySelector<HTMLButtonElement>('#filter-clear-btn')?.addEventListener('click', () => {
         activeTagFilters.clear();
         activeCategoryFilter = null;
         sortMode = 'relevance';
-        filterFromYear = null;
-        filterToYear = null;
+        filterYear = null;
         applyTagCategoryFiltersAndRender();
       });
     }
@@ -601,25 +587,38 @@ const seoData = {
 
       if (items.length === 0) {
         const isFiltered =
-          activeTagFilters.size > 0 || activeCategoryFilter !== null ||
-          filterFromYear !== null || filterToYear !== null;
+          activeTagFilters.size > 0 || activeCategoryFilter !== null || filterYear !== null;
         enterResultsMode();
-        paneEl!.classList.add('hidden');
-        emptyEl!.classList.remove('hidden');
         searchHeader?.classList.remove('shadow-sm', 'border-b', 'border-primary-100');
 
         if (isFiltered) {
-          statusEl!.innerHTML = 'No results match the active filters. <button id="status-clear-filters" class="underline hover:text-primary-700 dark:hover:text-primary-300 transition-colors">Clear filters</button>';
-          statusEl!.classList.remove('hidden');
-          document.getElementById('status-clear-filters')?.addEventListener('click', async () => {
+          // Show no-results message inside the pane (below the filter bar)
+          paneEl!.classList.remove('hidden');
+          emptyEl!.classList.add('hidden');
+          searchHeader?.classList.add('shadow-sm', 'border-b', 'border-primary-100');
+          statusEl!.textContent = '';
+          statusEl!.classList.add('hidden');
+          resultsEl!.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full py-16 px-6 text-center">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary-300 dark:text-primary-600 mb-3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              <p class="text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">No results match the current filters</p>
+              <p class="text-xs text-primary-400 dark:text-primary-500 mb-4">Try removing a filter to broaden results</p>
+              <button id="pane-clear-filters" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-300 hover:border-highlight-500 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors">
+                <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+                Clear all filters
+              </button>
+            </div>`;
+          if (previewEl) previewEl.innerHTML = '';
+          document.getElementById('pane-clear-filters')?.addEventListener('click', () => {
             activeTagFilters.clear();
             activeCategoryFilter = null;
             sortMode = 'relevance';
-            filterFromYear = null;
-            filterToYear = null;
+            filterYear = null;
             applyTagCategoryFiltersAndRender();
           });
         } else {
+          paneEl!.classList.add('hidden');
+          emptyEl!.classList.remove('hidden');
           statusEl!.textContent = `No results for "${rawQuery}". Try fewer words or a #tag search.`;
           statusEl!.classList.remove('hidden');
         }
@@ -723,8 +722,7 @@ const seoData = {
         activeTagFilters.clear();
         activeCategoryFilter = null;
         sortMode = 'relevance';
-        filterFromYear = null;
-        filterToYear = null;
+        filterYear = null;
         return;
       }
 
