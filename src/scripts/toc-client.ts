@@ -159,11 +159,32 @@ function initializeTableOfContents() {
 
 (window as any).initializeTableOfContents = initializeTableOfContents;
 
-document.addEventListener('DOMContentLoaded', initializeTableOfContents);
+// Flash the heading that the URL hash points to (e.g. after clicking a search
+// result section link like /posts/foo/#some-heading).
+function flashHashHeading() {
+  const hash = window.location.hash;
+  if (!hash || hash.length <= 1) return;
+  // 300 ms lets the browser finish scrolling before the annotation paints.
+  window.setTimeout(() => flashHeadingAnnotation(hash.slice(1)), 300);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initializeTableOfContents();
+  flashHashHeading();
+});
+
+document.addEventListener('page:view', () => {
+  // Clean up annotation SVGs that Swup doesn't remove (they live outside #swup).
+  if (headingAnnotation) { headingAnnotation.hide(); headingAnnotation = null; }
+  document.querySelectorAll('svg.rough-annotation').forEach(el => el.remove());
+  initializeTableOfContents();
+  flashHashHeading();
+});
 
 document.addEventListener('astro:page-load', () => {
   if (scrollTimeout) clearTimeout(scrollTimeout);
   if (headingAnnotation) { headingAnnotation.hide(); headingAnnotation = null; }
   document.querySelectorAll('svg.rough-annotation').forEach(el => el.remove());
   initializeTableOfContents();
+  flashHashHeading();
 });
