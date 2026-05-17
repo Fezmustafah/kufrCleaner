@@ -644,9 +644,9 @@ const seoData = {
           // Show no-results message inside the pane (below the filter bar)
           paneEl!.classList.remove('hidden');
           emptyEl!.classList.add('hidden');
-          searchHeader?.classList.add('shadow-sm', 'border-b', 'border-primary-100');
+          searchHeader?.classList.add('shadow-sm');
           statusEl!.textContent = '';
-          statusEl!.classList.add('hidden');
+          statusEl!.classList.remove('hidden');
           resultsEl!.innerHTML = `
             <div class="flex flex-col items-center justify-center h-full py-16 px-6 text-center">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary-300 dark:text-primary-600 mb-3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -679,7 +679,7 @@ const seoData = {
       statusEl!.classList.remove('hidden');
       paneEl!.classList.remove('hidden');
       emptyEl!.classList.add('hidden');
-      searchHeader?.classList.add('shadow-sm', 'border-b', 'border-primary-100');
+      searchHeader?.classList.add('shadow-sm');
 
       resultsEl!.innerHTML = items.map((item, i) => renderResultItem(item, i, rawQuery)).join('');
 
@@ -845,8 +845,10 @@ const seoData = {
     const initialQuery = new URLSearchParams(window.location.search).get('q');
     if (initialQuery) {
       queryInput.value = initialQuery;
-      // setTimeout ensures DOM is fully settled after Swup navigation before searching
-      setTimeout(() => doSearch(initialQuery), 0);
+      // Wait for pagefind WASM worker to finish re-init before searching.
+      // initPagefind() was reset to false at top of initSearch() so this
+      // always re-runs pagefind.init() on each Swup navigation.
+      initPagefind().then(ok => { if (ok) doSearch(initialQuery); });
     }
   }
 
