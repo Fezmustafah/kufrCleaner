@@ -73,6 +73,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/al-andalus-before-and-after-the-islamic-conquest"
+  to = "/posts/al-andalus-islamic-civilization-and-the-liberation-from-visigothic-tyranny"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/al-buraq"
   to = "/posts/al-buraq-and-the-bible-refuting-christian-claims-about-mythical-creatures-in-islam"
   status = 301
@@ -577,12 +583,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/surah-baqarah-282-women-slow"
-  to = "/posts/does-islam-say-women-are-deficient-in-intelligence-and-religion"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/bukhari-304-dumb-women"
   to = "/posts/does-islam-say-women-are-stupid-refuting-the-deficient-in-intelligence-hadith"
   status = 301
@@ -945,6 +945,12 @@
 [[redirects]]
   from = "/posts/mar-7-16-mark-9-44-mark-9-46"
   to = "/posts/mark-7-16-and-mark-9-44-46-verses-deleted-from-the-oldest-manuscripts-and-absent-from-all-critical-editions"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/distortion-of-the-text-of-matthew-17-21"
+  to = "/posts/matthew-17-21-prayer-and-fasting-entire-verse-absent-from-sinaiticus-vaticanus-and-all-major-critical-editions"
   status = 301
   force = true
 
@@ -1365,12 +1371,6 @@
 [[redirects]]
   from = "/posts/mutah-pleasure-marriage"
   to = "/posts/the-truth-about-mutah-temporary-marriage-permanently-forbidden-in-quran-sunnah-full-evidence"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/and-indeed-it-is-expanding"
-  to = "/posts/the-universe-is-expanding"
   status = 301
   force = true
 
