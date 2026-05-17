@@ -655,12 +655,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/contradiction-in-the-quran-regarding-the-belief-and-disbelief-of-some-infidels"
-  to = "/posts/does-you-do-not-worship-what-i-worship-contradict-later-conversion"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/distortion-of-the-text-of-ephesians-3-9-who-created-all-things-through-jesus-christ"
   to = "/posts/ephesians-3-9-exposed-how-through-jesus-christ-was-added-to-the-bible"
   status = 301
@@ -1009,12 +1003,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/noahs-flood-peace-be-upon-him"
-  to = "/posts/noahs-flood-was-it-global-or-local-the-quran-vs-the-torah"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/why-does-god-swear-by-his-creatures-and-not-by-his-divine-self"
   to = "/posts/oaths-in-the-quran-why-does-allah-swear-by-his-creation-the-eloquence-and-purpose-explained"
   status = 301
@@ -1153,12 +1141,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/the-historical-miracle-in-the-quran-and-proof-of-the-destruction-of-the-villages-of-sodom-and-gomorr"
-  to = "/posts/sodom-and-gomorrah-in-the-quran-historical-evidence-and-the-tall-el-hammam-discovery"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/more-questions-asked-about-it-summary-of-debate"
   to = "/posts/surah-al-rum-prophecy-refuted-answering-the-badr-hadith-and-ghalabat-reading-doubt"
   status = 301
@@ -1191,12 +1173,6 @@
 [[redirects]]
   from = "/posts/muslim-2361"
   to = "/posts/the-date-palm-pollination-hadith-scholarly-positions"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/the-miracle-in-the-almightys-saying-he-said-your-appointment-is-the-day-of-adornment"
-  to = "/posts/the-day-of-adornment-in-the-quran-the-pharaonic-festival-that-confirms-divine-revelation"
   status = 301
   force = true
 
@@ -1305,12 +1281,6 @@
 [[redirects]]
   from = "/posts/the-danger-of-usury-testimonials-from-non-muslims"
   to = "/posts/the-quran-was-right-non-muslim-scholars-economists-us-senate-reports-on-the-harm-of-usury"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/the-quranic-miracle-in-mentioning-that-abraham-peace-be-upon-him-is-the-friend-of-god"
-  to = "/posts/the-quranic-miracle-of-ibrahim-as-khalil-allah-does-abraham-mean-friend-of-the-creator"
   status = 301
   force = true
 
