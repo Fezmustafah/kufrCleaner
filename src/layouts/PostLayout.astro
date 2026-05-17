@@ -137,7 +137,8 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
               <a
                 href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent((post.data as any).category)}`}
                 class="inline-block text-xs font-semibold tracking-[0.12em] uppercase text-highlight-600 dark:text-highlight-400 mb-3 hover:opacity-75 transition-opacity"
-                data-pagefind-meta={`category[${(post.data as any).category}]`}
+                data-pagefind-meta="category"
+                data-pagefind-filter="category"
               >
                 {(post.data as any).category}
               </a>
@@ -151,7 +152,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             <!-- Single meta line: date · read time · word count · tags -->
             <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-primary-400 dark:text-primary-500">
 
-              <time datetime={post.data.date.toISOString()} data-pagefind-meta={`date[${post.data.date.toISOString()}]`}>
+              <time datetime={post.data.date.toISOString()} data-pagefind-meta="date">
                 {formatDate(post.data.date)}
               </time>
 
@@ -179,6 +180,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
                         <a
                           href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`}
                           class="hover:text-secondary-500 dark:hover:text-secondary-300 transition-colors"
+                          data-pagefind-filter="tag"
                         >
                           {tag}
                         </a>
@@ -253,16 +255,9 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
         )}
         </div>
 
-        {/* Pagefind filters — empty spans, invisible to users, not hidden from pagefind */}
-        {post.data.tags?.filter((tag: string) => tag.trim()).map((tag: string) => (
-          <span data-pagefind-filter={`tag[${tag}]`}></span>
-        ))}
-        {(post.data as any).category && (
-          <span data-pagefind-filter={`category[${(post.data as any).category}]`}></span>
-        )}
-        <span data-pagefind-filter={`year[${post.data.date.getFullYear()}]`}></span>
-        {/* Image meta — clip-hidden so pagefind can read it but users don't see the URL */}
-        <span data-pagefind-meta="image" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">{seoData.ogImage?.url || ''}</span>
+        {/* Pagefind year filter + image meta — off-screen spans with text content, no hidden attribute */}
+        <span data-pagefind-filter="year" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">{String(post.data.date.getFullYear())}</span>
+        <span data-pagefind-meta="image" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">{seoData.ogImage?.url || ''}</span>
       </article>
 
       <!-- Left sidebar: Contents header (toggle) + TOC + Local graph -->
