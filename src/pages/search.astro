@@ -450,8 +450,7 @@ const seoData = {
       filterBar.querySelectorAll<HTMLButtonElement>('[data-sort]').forEach(btn => {
         btn.addEventListener('click', () => {
           sortMode = btn.getAttribute('data-sort') as 'relevance' | 'newest';
-          buildFilterBar(allResults);
-          applyYearFilter();
+          applyTagCategoryFiltersAndRender();
         });
       });
 
