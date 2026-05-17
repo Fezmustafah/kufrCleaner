@@ -64,15 +64,23 @@ const seoData = {
         <!-- Status + filter toggle -->
         <div class="flex items-center justify-between mt-2 min-h-[1.5rem]">
           <p id="search-status" class="text-sm text-primary-500 dark:text-primary-400 hidden"></p>
-          <button id="filter-toggle"
-                  style="display:none"
-                  class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-300 hover:border-primary-400 dark:hover:border-primary-500 hover:text-primary-900 dark:hover:text-primary-50 transition-colors"
-                  aria-expanded="false"
-                  aria-controls="filter-bar">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="1" x2="7" y1="14" y2="14"/><line x1="9" x2="15" y1="8" y2="8"/><line x1="17" x2="23" y1="16" y2="16"/></svg>
-            Filters
-            <span id="filter-badge" style="display:none" class="ml-0.5 min-w-[1.25rem] text-center px-1 py-0.5 text-xs font-semibold bg-highlight-500 text-white rounded-full leading-none tabular-nums"></span>
-          </button>
+          <div class="flex items-center gap-1.5">
+            <!-- Clear button — shown when filters active, sits next to Filters toggle -->
+            <button id="filter-clear-outer" style="display:none"
+                    class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg border border-primary-200 dark:border-primary-700 text-primary-500 dark:text-primary-400 hover:border-highlight-500 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Clear<span id="filter-clear-count" class="tabular-nums"></span>
+            </button>
+            <button id="filter-toggle"
+                    style="display:none"
+                    class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-300 hover:border-primary-400 dark:hover:border-primary-500 hover:text-primary-900 dark:hover:text-primary-50 transition-colors"
+                    aria-expanded="false"
+                    aria-controls="filter-bar">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="1" x2="7" y1="14" y2="14"/><line x1="9" x2="15" y1="8" y2="8"/><line x1="17" x2="23" y1="16" y2="16"/></svg>
+              Filters
+              <span id="filter-badge" style="display:none" class="ml-0.5 min-w-[1.25rem] text-center px-1 py-0.5 text-xs font-semibold bg-highlight-500 text-white rounded-full leading-none tabular-nums"></span>
+            </button>
+          </div>
         </div>
 
         <!-- Filter bar -->
@@ -160,6 +168,8 @@ const seoData = {
     triangleAlert: `<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17 .01 0"/>`,
     calendar:      `<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>`,
     clock:         `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,
+    sortLines:     `<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/>`,
+    xMark:         `<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`,
   };
 
   const norm = (s: string) =>
@@ -194,6 +204,8 @@ const seoData = {
   function initSearch() {
     // Always release scroll lock left over from a mobile sheet that was open during navigation
     document.body.style.overflow = '';
+    // Re-init pagefind on each Swup navigation — its WASM worker may have been killed
+    pagefindReady = false;
 
     const queryInput     = document.getElementById('search-query') as HTMLInputElement | null;
     const resultsEl      = document.getElementById('search-results');
@@ -207,8 +219,19 @@ const seoData = {
     const searchHeader   = document.getElementById('search-header');
     const searchShell    = document.getElementById('search-shell');
     const searchIntro    = document.getElementById('search-intro');
-    const filterToggle   = document.getElementById('filter-toggle');
-    const filterBadge    = document.getElementById('filter-badge');
+    const filterToggle      = document.getElementById('filter-toggle');
+    const filterBadge       = document.getElementById('filter-badge');
+    const filterClearOuter  = document.getElementById('filter-clear-outer') as HTMLButtonElement | null;
+    const filterClearCount  = document.getElementById('filter-clear-count');
+    if (filterClearOuter) {
+      filterClearOuter.onclick = () => {
+        activeTagFilters.clear();
+        activeCategoryFilter = null;
+        sortMode = 'relevance';
+        filterYear = null;
+        applyTagCategoryFiltersAndRender();
+      };
+    }
     const mobileSheet    = document.getElementById('mobile-sheet');
     const mobileBackdrop = document.getElementById('mobile-sheet-backdrop');
     const mobileClose    = document.getElementById('mobile-sheet-close');
@@ -342,6 +365,8 @@ const seoData = {
         filterBar.classList.add('hidden');
         filterBar.innerHTML = '';
         if (filterToggle) filterToggle.style.display = 'none';
+        const outerClearEl2 = document.getElementById('filter-clear-outer') as HTMLButtonElement | null;
+        if (outerClearEl2) outerClearEl2.style.display = 'none';
         return;
       }
 
@@ -351,14 +376,27 @@ const seoData = {
         (filterYear !== null ? 1 : 0) +
         (sortMode !== 'relevance' ? 1 : 0);
 
+      // Update the outer clear button (next to Filters toggle)
+      const outerClearEl = document.getElementById('filter-clear-outer') as HTMLButtonElement | null;
+      const outerCountEl = document.getElementById('filter-clear-count');
+      if (outerClearEl) {
+        if (activeCount > 0) {
+          outerClearEl.style.display = 'inline-flex';
+          if (outerCountEl) outerCountEl.textContent = activeCount > 1 ? ` ${activeCount}` : '';
+        } else {
+          outerClearEl.style.display = 'none';
+        }
+      }
+
       const chipBase  = 'text-xs px-2 py-0.5 rounded border transition-colors cursor-pointer';
       const chipOff   = 'border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-300 hover:border-highlight-400 hover:text-highlight-600 dark:hover:text-highlight-400 bg-white dark:bg-primary-900';
       const chipOnTag = 'bg-highlight-500 border-highlight-500 text-white';
       const chipOnCat = 'bg-primary-700 dark:bg-primary-200 border-primary-700 dark:border-primary-200 text-white dark:text-primary-900';
+      const iconCls   = 'text-primary-400 dark:text-primary-500 flex-shrink-0';
 
       const tagsHtml = tags.length > 0 ? `
         <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Tags:</span>
+          <span class="${iconCls}">${svg(svgPaths.tag, 12)}</span>
           ${tags.map(tag => {
             const on = activeTagFilters.has(tag);
             return `<button data-filter-tag="${escapeHtml(tag)}" class="${chipBase} rounded-full ${on ? chipOnTag : chipOff}">#${escapeHtml(tag)}</button>`;
@@ -367,7 +405,7 @@ const seoData = {
 
       const catsHtml = categories.length > 0 ? `
         <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Category:</span>
+          <span class="${iconCls}">${svg(svgPaths.folder, 12)}</span>
           ${categories.map(cat => {
             const on = activeCategoryFilter === cat;
             return `<button data-filter-category="${escapeHtml(cat)}" class="${chipBase} rounded-md ${on ? chipOnCat : chipOff}">${escapeHtml(cat)}</button>`;
@@ -376,7 +414,7 @@ const seoData = {
 
       const sortHtml = `
         <div class="flex items-center gap-1.5">
-          <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Sort:</span>
+          <span class="${iconCls}">${svg(svgPaths.sortLines, 12)}</span>
           ${(['relevance', 'newest'] as const).map(mode => {
             const on = sortMode === mode;
             const label = mode === 'relevance' ? 'Relevance' : 'Newest';
@@ -387,23 +425,19 @@ const seoData = {
       const selectCls = 'text-xs px-2 py-0.5 rounded border border-primary-300 dark:border-primary-600 bg-white dark:bg-primary-800 text-primary-700 dark:text-primary-300 focus:outline-none focus:border-highlight-400';
       const dateHtml = years.length > 1 ? `
         <div class="flex items-center gap-1.5">
-          <span class="text-xs text-primary-500 dark:text-primary-400 font-medium whitespace-nowrap">Year:</span>
+          <span class="${iconCls}">${svg(svgPaths.calendar, 12)}</span>
           <select id="filter-year" class="${selectCls}">
-            <option value="">All</option>
+            <option value="">All years</option>
             ${[...years].reverse().map(y => `<option value="${y}" ${filterYear === y ? 'selected' : ''}>${y}</option>`).join('')}
           </select>
         </div>` : '';
 
-      const clearHtml = activeCount > 0
-        ? `<button id="filter-clear-btn" class="ml-auto inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-white dark:bg-primary-900 border border-primary-300 dark:border-primary-600 text-primary-500 dark:text-primary-400 hover:border-highlight-500 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors whitespace-nowrap">
-            <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
-            Clear${activeCount > 1 ? ' ' + activeCount : ''}
-          </button>`
-        : '';
+      const divider = (tags.length > 0 || categories.length > 0)
+        ? `<span class="h-4 w-px bg-primary-200 dark:bg-primary-700 flex-shrink-0 self-center"></span>` : '';
 
       filterBar.innerHTML = `
-        <div class="flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700">
-          ${tagsHtml}${catsHtml}${sortHtml}${dateHtml}${clearHtml}
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-200 dark:border-primary-700">
+          ${tagsHtml}${catsHtml}${divider}${sortHtml}${dateHtml}
         </div>`;
       filterBar.classList.toggle('hidden', !filterBarOpen);
 
@@ -453,13 +487,6 @@ const seoData = {
         applyTagCategoryFiltersAndRender();
       });
 
-      filterBar.querySelector<HTMLButtonElement>('#filter-clear-btn')?.addEventListener('click', () => {
-        activeTagFilters.clear();
-        activeCategoryFilter = null;
-        sortMode = 'relevance';
-        filterYear = null;
-        applyTagCategoryFiltersAndRender();
-      });
     }
 
     // ── Skeleton loading ───────────────────────────────────────────────────
@@ -818,7 +845,8 @@ const seoData = {
     const initialQuery = new URLSearchParams(window.location.search).get('q');
     if (initialQuery) {
       queryInput.value = initialQuery;
-      doSearch(initialQuery);
+      // setTimeout ensures DOM is fully settled after Swup navigation before searching
+      setTimeout(() => doSearch(initialQuery), 0);
     }
   }
 
