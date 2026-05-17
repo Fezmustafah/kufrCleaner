@@ -295,19 +295,24 @@ const seoData = {
     }
 
     // ── Filter & sort ──────────────────────────────────────────────────────
-    async function applyTagCategoryFiltersAndRender(): Promise<void> {
-      if (!pagefindReady) return;
-      const filters: Record<string, any> = {};
-      if (activeTagFilters.size === 1) filters.tag = [...activeTagFilters][0];
-      else if (activeTagFilters.size > 1) filters.tag = { any: [...activeTagFilters] };
-      if (activeCategoryFilter) filters.category = activeCategoryFilter;
+    function applyTagCategoryFiltersAndRender(): void {
+      let filtered = [...allResults];
 
-      if (Object.keys(filters).length > 0) {
-        const s = await pagefind.search(currentQuery, { filters });
-        currentItems = await hydrateResults((s.results as any[]).slice(0, 100));
-      } else {
-        currentItems = allResults;
+      if (activeTagFilters.size > 0) {
+        filtered = filtered.filter((item: any) =>
+          (item.tags || []).some((t: string) =>
+            [...activeTagFilters].some(active => norm(t) === norm(active))
+          )
+        );
       }
+
+      if (activeCategoryFilter) {
+        filtered = filtered.filter((item: any) =>
+          norm(item.category || '') === norm(activeCategoryFilter!)
+        );
+      }
+
+      currentItems = filtered;
       buildFilterBar(allResults);
       applyYearFilter();
     }
@@ -430,7 +435,7 @@ const seoData = {
         btn.addEventListener('click', async () => {
           const tag = btn.getAttribute('data-filter-tag')!;
           activeTagFilters.has(tag) ? activeTagFilters.delete(tag) : activeTagFilters.add(tag);
-          await applyTagCategoryFiltersAndRender();
+          applyTagCategoryFiltersAndRender();
         });
       });
 
@@ -438,7 +443,7 @@ const seoData = {
         btn.addEventListener('click', async () => {
           const cat = btn.getAttribute('data-filter-category')!;
           activeCategoryFilter = activeCategoryFilter === cat ? null : cat;
-          await applyTagCategoryFiltersAndRender();
+          applyTagCategoryFiltersAndRender();
         });
       });
 
@@ -467,7 +472,7 @@ const seoData = {
         sortMode = 'relevance';
         filterFromYear = null;
         filterToYear = null;
-        await applyTagCategoryFiltersAndRender();
+        applyTagCategoryFiltersAndRender();
       });
     }
 
@@ -613,7 +618,7 @@ const seoData = {
             sortMode = 'relevance';
             filterFromYear = null;
             filterToYear = null;
-            await applyTagCategoryFiltersAndRender();
+            applyTagCategoryFiltersAndRender();
           });
         } else {
           statusEl!.textContent = `No results for "${rawQuery}". Try fewer words or a #tag search.`;
@@ -744,18 +749,7 @@ const seoData = {
       } else {
         const unfiltered = await pagefind.search(rawQuery);
         allResults = await hydrateResults((unfiltered.results as any[]).slice(0, 100));
-
-        const filters: Record<string, any> = {};
-        if (activeTagFilters.size === 1) filters.tag = [...activeTagFilters][0];
-        else if (activeTagFilters.size > 1) filters.tag = { any: [...activeTagFilters] };
-        if (activeCategoryFilter) filters.category = activeCategoryFilter;
-
-        if (Object.keys(filters).length > 0) {
-          const filtered = await pagefind.search(rawQuery, { filters });
-          currentItems = await hydrateResults((filtered.results as any[]).slice(0, 100));
-        } else {
-          currentItems = allResults;
-        }
+        currentItems = allResults;
       }
 
       buildFilterBar(allResults);
