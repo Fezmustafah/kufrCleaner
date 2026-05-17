@@ -286,6 +286,7 @@ const seoData = {
         url:         d.url,
         description: d.excerpt,
         excerpt:     d.excerpt,
+        subResults:  d.sub_results  || [],
         tags:        d.filters?.tag  ?? [],
         category:    d.meta.category || '',
         date:        d.meta.date    || '',
@@ -523,7 +524,11 @@ const seoData = {
                 ? `<div class="mt-1 flex flex-wrap items-center gap-1">${categoryHtml}${tagsHtml}</div>`
                 : ''}
               ${datePart || timePart
-                ? `<div class="mt-1 flex items-center gap-2">${datePart}${timePart}</div>`
+                ? `<div class="mt-1 flex items-center gap-2">${datePart}${timePart}${
+                    (item.subResults || []).length > 1
+                      ? `<span class="text-xs text-primary-300 dark:text-primary-600 tabular-nums">${(item.subResults || []).length} sections</span>`
+                      : ''
+                  }</div>`
                 : ''}
             </div>
           </div>
@@ -532,7 +537,7 @@ const seoData = {
 
     // ── Preview pane / sheet content ───────────────────────────────────────
     function buildPreviewHtml(item: any, rawQuery: string) {
-      const snippet = item.description;
+      const subResults: any[] = item.subResults || [];
 
       const tagsHtml = (item.tags || []).map((t: string) =>
         `<a href="${import.meta.env.BASE_URL}tags/${escapeHtml(t)}"
@@ -565,11 +570,28 @@ const seoData = {
         ${categoryHtml || tagsHtml
           ? `<div class="flex flex-wrap items-center gap-2 mb-4">${categoryHtml}${tagsHtml}</div>`
           : ''}
-        ${snippet
-          ? `<p class="text-sm leading-relaxed text-primary-700 dark:text-primary-300">${snippet}</p>`
-          : ''}
+        ${subResults.length > 0 ? `
+          <div>
+            ${subResults.length > 1
+              ? `<p class="text-xs font-medium text-primary-400 dark:text-primary-500 mb-2.5">${subResults.length} matching sections</p>`
+              : ''}
+            <div class="space-y-2">
+              ${subResults.map((sr: any) => {
+                const heading = sr.anchor?.text || null;
+                const sectionUrl = escapeHtml(safeUrl(sr.url || item.url));
+                return `
+                  <div class="rounded-lg border border-primary-100 dark:border-primary-700/50 overflow-hidden">
+                    ${heading ? `
+                      <a href="${sectionUrl}" class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-800/50 text-xs font-medium text-highlight-600 dark:text-highlight-400 hover:text-highlight-700 dark:hover:text-highlight-300 border-b border-primary-100 dark:border-primary-700/50 transition-colors">
+                        ${svg(svgPaths.arrowRight, 10, 'opacity-60 -rotate-45')}${escapeHtml(heading)}
+                      </a>` : ''}
+                    <p class="px-3 py-2.5 text-sm leading-relaxed text-primary-700 dark:text-primary-300">…${sr.excerpt}…</p>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>` : ''}
         <a href="${escapeHtml(safeUrl(item.url))}"
-           class="inline-flex items-center gap-2 mt-6 px-4 py-2 rounded-lg bg-highlight-500 hover:bg-highlight-600 text-white text-sm font-medium transition-colors">
+           class="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-lg bg-highlight-500 hover:bg-highlight-600 text-white text-sm font-medium transition-colors">
           Read post ${svg(svgPaths.arrowRight, 14, 'text-white')}
         </a>`;
     }
