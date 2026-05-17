@@ -458,11 +458,11 @@ const seoData = {
       const toSel   = filterBar.querySelector<HTMLSelectElement>('#filter-to-year');
       fromSel?.addEventListener('change', () => {
         filterFromYear = fromSel.value ? parseInt(fromSel.value) : null;
-        applyYearFilter();
+        applyTagCategoryFiltersAndRender();
       });
       toSel?.addEventListener('change', () => {
         filterToYear = toSel.value ? parseInt(toSel.value) : null;
-        applyYearFilter();
+        applyTagCategoryFiltersAndRender();
       });
 
       filterBar.querySelector<HTMLButtonElement>('#filter-clear-btn')?.addEventListener('click', async () => {
