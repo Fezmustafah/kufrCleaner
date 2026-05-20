@@ -226,14 +226,20 @@ export function generateDocumentationSEO(
 
 // Generate SEO data for homepage
 export function generateHomeSEO(url: string): SEOData {
-  let ogImage: OpenGraphImage | undefined;
-
-  // Always use fallback image for homepage
-  ogImage = getDefaultOGImage();
-  ogImage = {
-    ...ogImage,
-    url: `${siteConfig.site}${ogImage.url}`,
-  };
+  // Use the site hero image as the homepage OG image when configured;
+  // falls back to /open-graph.png via getDefaultOGImage().
+  const heroPath = siteConfig.hero?.image;
+  const ogImage: OpenGraphImage = heroPath
+    ? {
+        url: `${siteConfig.site}${heroPath}`,
+        alt: siteConfig.hero?.imageAlt || siteConfig.defaultOgImageAlt,
+        width: 1200,
+        height: 630,
+      }
+    : {
+        ...getDefaultOGImage(),
+        url: `${siteConfig.site}${getDefaultOGImage().url}`,
+      };
 
   return {
     title: siteConfig.title,
