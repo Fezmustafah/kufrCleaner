@@ -195,7 +195,7 @@ export const siteConfig: SiteConfig = {
   homepageTitle: "",
   // [CONFIG:HERO]
   hero: {
-    image: "/hero.jpg",         // place your image at public/hero.jpg
+    image: "/hero.webp",        // place your image at public/hero.webp
     imageAlt: "Alhambra palace",
     overlayOpacity: 0.55,       // 0 = no overlay, 1 = fully dark
   },

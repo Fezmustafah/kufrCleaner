@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://www.openislam.wiki/sitemap.xml
+
+# RSS Feed
+# https://www.openislam.wiki/rss.xml
+
+# Disallow common non-content paths
+Disallow: /api/
+Disallow: /_astro/
+Disallow: /_image/
+Disallow: /admin/
+Disallow: /.well-known/
+
+# Allow search engines to crawl images
+Allow: /posts/attachments/
+Allow: /pages/attachments/

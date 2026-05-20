@@ -411,13 +411,13 @@ function processExcerptLinks(text: string, targetSlug: string): string {
           // Collapse
           freshContent.style.maxHeight = '0';
           freshContent.style.opacity = '0';
-          freshArrowIcon.style.setProperty('--arrow-rotation', '90deg');
+          freshArrowIcon.style.transform = 'rotate(-180deg)';
           newToggle.setAttribute('aria-expanded', 'false');
         } else {
           // Expand
           freshContent.style.maxHeight = freshContent.scrollHeight + 'px';
           freshContent.style.opacity = '1';
-          freshArrowIcon.style.setProperty('--arrow-rotation', '0deg');
+          freshArrowIcon.style.transform = 'rotate(0deg)';
           newToggle.setAttribute('aria-expanded', 'true');
         }
       });
@@ -425,7 +425,7 @@ function processExcerptLinks(text: string, targetSlug: string): string {
       // Initialize with expanded state
       freshContent.style.maxHeight = freshContent.scrollHeight + 'px';
       freshContent.style.opacity = '1';
-      freshArrowIcon.style.setProperty('--arrow-rotation', '0deg');
+      freshArrowIcon.style.transform = 'rotate(0deg)';
     }
   }
 
@@ -468,7 +468,7 @@ function processExcerptLinks(text: string, targetSlug: string): string {
   /* Ensure smooth arrow transition */
   #linked-mentions-arrow-icon {
     display: inline-block;
-    transition: transform 200ms ease-in-out !important;
-    transform: rotate(var(--arrow-rotation, 0deg));
+    transition: transform 200ms ease-in-out;
+    transform: rotate(0deg);
   }
 </style>

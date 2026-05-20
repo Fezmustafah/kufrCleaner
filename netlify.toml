@@ -49,6 +49,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/breastfeeding-an-adult-between-christianity-and-islam"
+  to = "/posts/adult-breastfeeding-in-islam-the-case-of-salim-the-prohibition-of-adoption-and-the-christian-double-standard"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/ahad-vs-wahid"
   to = "/posts/ahad-vs-wahidواحد-vs-أحد-the-arabic-word-that-proves-gods-absolute-oneness-in-surah-al-ikhlas"
   status = 301
@@ -103,8 +109,8 @@
   force = true
 
 [[redirects]]
-  from = "/posts/the-arabs-who-settled-in-the-levant-and-iraq-were-called-syrian-arabs-because-syria-originally-refer"
-  to = "/posts/arabs-of-the-levant-and-iraq-were-called-syrians-what-ancient-greek-and-roman-sources-actually-say"
+  from = "/posts/animal-rights-between-christianity-and-islam"
+  to = "/posts/animal-rights-in-islam-vs-the-bible-dominion-versus-honor-a-comparative-study"
   status = 301
   force = true
 
@@ -121,12 +127,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/documented-scientific-references"
-  to = "/posts/authors-of-gospels"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/by-sawt-al-haqiqa-ig"
   to = "/posts/aw-rah-of-slave-women"
   status = 301
@@ -135,6 +135,18 @@
 [[redirects]]
   from = "/posts/slave-as-second-wife-in-christianity"
   to = "/posts/biblical-concubinage-was-not-normal-marriage-jewish-sources-expose-the-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/blasphemy-and-atonement-in-christianity"
+  to = "/posts/blasphemy-and-takfir-in-christianity-from-the-bible-the-fathers-the-synaxarium-and-coptic-hymns"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/useless-try-to-debunk-me-on-breastfeeding-in-islam-topic"
+  to = "/posts/breastfeeding-from-the-semen-of-a-stallion-refuting-the-polemical-misreading-of-sahih-muslim-and-the-hadith-of-aflah-ibn-abi-al-qays"
   status = 301
   force = true
 
@@ -243,12 +255,6 @@
 [[redirects]]
   from = "/posts/did-abdullah-bin-masoud-deny-the-two-muawwidhat"
   to = "/posts/did-ibn-masud-deny-surah-al-falaq-and-surah-an-nas"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/responding-to-the-doubt-about-breastfeeding-an-adult-in-detail"
-  to = "/posts/did-islam-allow-breastfeeding-an-adult-scholarly-refutation-of-the-salim-hadith-misconception"
   status = 301
   force = true
 
@@ -679,6 +685,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/belief-in-god-almighty-between-islam-and-christianity"
+  to = "/posts/god-in-islam-and-christianity-tawhid-the-deleted-trinity-verse-and-twenty-unworthy-biblical"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/embroyoloy"
   to = "/posts/hadith-of-42-nights-embryology-sex-differentiation-and-organ-formation-explained"
   status = 301
@@ -711,12 +723,6 @@
 [[redirects]]
   from = "/posts/the-response-to-the-doubt-about-the-ant-conversation-with-solomon"
   to = "/posts/how-did-the-ant-speak-in-surah-an-naml-science-arabic-linguistics-biblical-parallels"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/conditions-of-the-peoples-of-the-sasanian-empire-before-and-after-the-islamic-conquest"
-  to = "/posts/how-islam-liberated-persia-from-sasanian-oppression-and-built-a-civilization"
   status = 301
   force = true
 
@@ -907,6 +913,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/an-angel-from-heaven-appeared-to-him-to-strengthen-him"
+  to = "/posts/luke-22-43-44-an-angel-strengthens-jesus-in-gethsemane-four-theological-problems-for-christianity"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/distortion-of-the-text-of-luke-23-34-father-forgive-them-for-they-do-not-know-what-they-do"
   to = "/posts/luke-23-34-father-forgive-them-absent-from-oldest-manuscripts-and-bracketed-by-all-critical-editions"
   status = 301
@@ -955,6 +967,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/8-messianic-prophecies-contained-in-the-gospel-of-matthew"
+  to = "/posts/matthews-fabricated-messianic-prophecies-eight-old-testament-texts-ripped-out-of-context-and-misattributed-to-jesus"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/untitled-1319706055076220939"
   to = "/posts/mercy-of-prophet-muhammad"
   status = 301
@@ -975,6 +993,12 @@
 [[redirects]]
   from = "/posts/moon-split"
   to = "/posts/moon-split-miracle-nasa-mayan-and-indian-evidence-that-critics-ignore"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/christians-doubt-about-the-stone-fleeing-in-moses-garment"
+  to = "/posts/moses-and-the-stone-refuting-the-christian-objection-to-the-hadith-of-prophetic-modesty-and-the-children-of-israel"
   status = 301
   force = true
 
@@ -1083,6 +1107,12 @@
 [[redirects]]
   from = "/posts/bukhari-4697"
   to = "/posts/sahih-al-bukhari-4697-explained-context-and-correct-understanding"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/bukharis-manuscripts"
+  to = "/posts/sahih-al-bukhari-transmission-chains-manuscript-history-authentication-methodology-and-the-narrators-who-were-criticized"
   status = 301
   force = true
 
@@ -1365,6 +1395,12 @@
 [[redirects]]
   from = "/posts/bukhari-2771"
   to = "/posts/understanding-the-hadith-of-the-man-accused-with-mariyah-bukhari-2771"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/attributes-of-god-in-the-old-testament"
+  to = "/posts/unworthy-attributes-of-god-in-the-old-testament-fatigue-weakness-ignorance-regret-and-forgetfulness"
   status = 301
   force = true
 

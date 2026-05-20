@@ -114,7 +114,11 @@ const structuredData = {
   <HomepageHero postCount={postCount} categoryCount={categoryCount} />
 
   <!-- Development notice popup — homepage only -->
-  <div id="dev-notice-overlay" class="dev-notice-overlay" role="dialog" aria-modal="true" aria-labelledby="dev-notice-title">
+  <dialog
+    id="dev-notice-dialog"
+    aria-labelledby="dev-notice-title"
+    aria-describedby="dev-notice-desc"
+  >
     <div class="dev-notice-box">
       <div class="dev-notice-ornament" aria-hidden="true">
         <span class="dev-notice-ornament-line"></span>
@@ -122,34 +126,54 @@ const structuredData = {
         <span class="dev-notice-ornament-line"></span>
       </div>
       <h2 id="dev-notice-title" class="dev-notice-title">Site Under Development</h2>
-      <p class="dev-notice-body">
-        This website is still being developed. Articles are currently being reviewed and upgraded for quality.
-      </p>
-      <p class="dev-notice-body dev-notice-body--secondary">
-        Content may change or be temporarily unavailable. Thank you for your patience.
-      </p>
-      <button id="dev-notice-close" class="dev-notice-close-btn" aria-label="Close notice">
+      <div id="dev-notice-desc">
+        <p class="dev-notice-body">
+          This website is still being developed. Articles are currently being reviewed and upgraded for quality.
+        </p>
+        <p class="dev-notice-body dev-notice-body--secondary">
+          Content may change or be temporarily unavailable. Thank you for your patience.
+        </p>
+      </div>
+      <button id="dev-notice-close" class="dev-notice-close-btn" autofocus>
         Got it
       </button>
     </div>
-  </div>
+  </dialog>
 
   <script>
-    const overlay = document.getElementById('dev-notice-overlay');
-    const closeBtn = document.getElementById('dev-notice-close');
-    if (overlay && !sessionStorage.getItem('dev-notice-dismissed')) {
-      overlay.style.display = 'flex';
-    }
-    closeBtn?.addEventListener('click', () => {
-      sessionStorage.setItem('dev-notice-dismissed', '1');
-      overlay?.style.setProperty('display', 'none');
-    });
-    overlay?.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        sessionStorage.setItem('dev-notice-dismissed', '1');
-        overlay.style.display = 'none';
+    function initDevNotice() {
+      const dialog = document.getElementById('dev-notice-dialog') as HTMLDialogElement | null;
+      if (!dialog) return;
+
+      // Show once per session
+      if (!sessionStorage.getItem('dev-notice-dismissed')) {
+        dialog.showModal();
       }
-    });
+
+      // Persist dismiss on any close (button click OR Escape key)
+      dialog.addEventListener('close', () => {
+        sessionStorage.setItem('dev-notice-dismissed', '1');
+      }, { once: true });
+
+      // Close button
+      document.getElementById('dev-notice-close')?.addEventListener('click', () => {
+        dialog.close();
+      }, { once: true });
+
+      // Click backdrop (the <dialog> element itself, outside the box) to dismiss
+      dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) dialog.close();
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initDevNotice);
+    } else {
+      initDevNotice();
+    }
+
+    // Reinit after Swup/Astro navigation back to homepage
+    document.addEventListener('astro:page-load', initDevNotice);
   </script>
 
   <div class="py-8 relative">
@@ -359,16 +383,27 @@ const structuredData = {
 
 <style>
   /* ── Development notice popup ── */
-  .dev-notice-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
+  #dev-notice-dialog {
+    border: none;
+    padding: 0;
+    background: transparent;
+    max-width: 26rem;
+    width: calc(100% - 2rem);
+    /* Entry animation */
+    animation: dev-notice-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  #dev-notice-dialog::backdrop {
     background: rgb(0 0 0 / 0.55);
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
     backdrop-filter: blur(2px);
+    animation: dev-notice-backdrop-in 0.22s ease both;
+  }
+  @keyframes dev-notice-in {
+    from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+  @keyframes dev-notice-backdrop-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
   .dev-notice-box {

@@ -58,6 +58,14 @@ export interface Props {
 const { seoData, bodyClass = '' } = Astro.props;
 
 const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrollbars';
+
+const _baseUrl = import.meta.env.BASE_URL;
+const _heroImg = siteConfig.hero?.image;
+const _heroPreloadSrc = _heroImg
+  ? (_heroImg.startsWith('http') ? _heroImg : `${_baseUrl}${_heroImg.replace(/^\//, '')}`)
+  : null;
+const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/' ||
+  Astro.url.pathname === _baseUrl.replace(/\/$/, '');
 ---
 
 <!DOCTYPE html>
@@ -182,6 +190,11 @@ const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrol
       <link href={getGoogleFontsUrl(siteConfig.fonts.families.heading, siteConfig.fonts.families.body)} rel="stylesheet" media="print" onload="this.media='all'">
       <noscript><link href={getGoogleFontsUrl(siteConfig.fonts.families.heading, siteConfig.fonts.families.body)} rel="stylesheet"></noscript>
     </>
+  )}
+
+  <!-- Preload hero image on homepage to improve LCP -->
+  {_isHomePage && _heroPreloadSrc && (
+    <link rel="preload" as="image" href={_heroPreloadSrc} fetchpriority="high" />
   )}
 
   <!-- Font Awesome Icons now handled by hybrid Icon component -->
