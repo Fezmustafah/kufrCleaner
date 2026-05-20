@@ -1,99 +1,209 @@
-# CLAUDE.md — Astro Modular (kufrCleaner)
+# CLAUDE.md — kufrCleaner (OpenIslam Wiki)
 
-> **Primary reference**: [`AGENTS.md`](AGENTS.md) contains exhaustive technical docs. Read its critical sections before making any changes.
+> **Primary reference**: [`AGENTS.md`](AGENTS.md) contains exhaustive technical docs for every subsystem. Read its relevant sections before touching unfamiliar code.
 
 ## Project
 
-Astro 6 blog theme designed around Obsidian as a CMS. Version 0.8.6. MIT license.
+**OpenIslam Wiki** — Islamic knowledge blog. Fork of `davidvkimball/astro-modular`. Version **0.8.6**. MIT license.  
+Live site: `https://www.openislam.wiki`
 
-**Stack**: Astro 6 · TypeScript · Tailwind CSS 3 · MDX · Swup · Fuse.js · Sharp · KaTeX · Mermaid · D3
+**Stack**: Astro 6.1.2 · TypeScript · Tailwind CSS 3 · MDX · Swup · Pagefind · Satori/Sharp · D3 + PixiJS · rough-notation · KaTeX · Mermaid · JEXL · Giscus
 
-**Package manager**: pnpm (requires pnpm 10.29.3+, Node 24.13.0+)
+**Package manager**: pnpm  
+**Deployment**: Cloudflare Workers (`wrangler.toml`)
 
-**Deployment targets**: Netlify, Vercel, Cloudflare Workers, GitHub Pages (configured in `src/config.ts`)
+---
 
-## Critical Rules (do not violate)
+## 🚨 Critical Rules
 
-1. **Use `entry.id`, never `entry.slug`** — `slug` is removed in Astro v6 and returns `undefined`. All API routes and URL generation must use `entry.id`.
-2. **Never edit `src/content/**/*.md` files** without explicit user permission. Content is user-authored.
-3. **Swup page transitions break JS** — any interactive element added must re-initialize on Swup's `page:view` event. See AGENTS.md for the pattern.
-4. **Never disable `devToolbar.enabled: true`** in `astro.config.mjs` — it will cause module loading errors.
-5. **No `console.log()` in production code** — gate logging behind `import.meta.env.DEV`.
-6. **Math rendering**: CSS must hide `.math-inline .katex-html` and `.math-display .katex-html` to prevent duplication.
-7. **Plugin order matters** — remark plugins run sequentially; changing order breaks embed/callout handling.
+1. **`entry.id` not `entry.slug`** — `slug` is removed in Astro v6. Always use `entry.id`.
+2. **Never edit `src/content/**`** without explicit user permission. It is a **git submodule** — never `git add src/content/...` directly.
+3. **Swup breaks JS** — every interactive component must re-initialize on Swup's `page:view` event. See AGENTS.md §Swup.
+4. **Never disable `devToolbar.enabled: true`** in `astro.config.mjs` — causes module loading errors.
+5. **No `console.log()` in production** — gate behind `import.meta.env.DEV`.
+6. **Plugin order is load-bearing** — remark/rehype plugins run sequentially. Do not reorder without reading AGENTS.md §Plugin Pipeline.
+7. **`[CONFIG:KEY]` markers are sacred** — comments like `// [CONFIG:SITE_TITLE]` in `src/config.ts` are used by the Astro Modular Settings Obsidian plugin. Never remove them.
+8. **Pagefind, not fuse.js** — search is build-time indexed via `astro-pagefind`. There is no runtime fuse filter function. Do not import or reference fuse.js.
+9. **`src/graph/` contains vendored PixiJS** (`pixi.js` + `pixi.d.ts`). Never edit those vendored files.
+10. **Math CSS** — `.math-inline .katex-html` and `.math-display .katex-html` must stay hidden to prevent duplicate rendering.
+11. **Theme options** — only `"minimal"`, `"custom"`, `"al-andalus"` are valid. The upstream 17-theme list does not apply to this fork.
+12. **Collections use `bin/` subfolder** — `pages` and `special` load from `src/content/bin/`, not `src/content/` root. See §Content Collections below.
+
+---
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `src/config.ts` | All site configuration (theme, layout, nav, features) |
-| `src/content.config.ts` | Content collection schemas (posts, pages, projects, docs, special) |
-| `astro.config.mjs` | Astro integrations, CSP headers, remark/rehype plugin chain |
-| `tailwind.config.mjs` | Theme colors (CSS vars), typography, dark mode |
-| `src/types.ts` | Shared TypeScript types |
-| `src/utils/internallinks.ts` | Wikilink/folder image resolution |
-| `src/utils/remark-*.ts` | Custom remark plugins (callouts, embeds, mermaid, etc.) |
-| `src/utils/rehype-*.ts` | Custom rehype plugins (anchors, image attrs, mark) |
-| `src/utils/seo.ts` | SEO/OG metadata helpers |
-| `src/utils/images.ts` | Image processing utilities |
-| `scripts/` | Build-time Node scripts (image sync, alias processing, graph data) |
+| `src/config.ts` | All site configuration — the single source of truth |
+| `src/content.config.ts` | Content collection schemas and glob loaders |
+| `astro.config.mjs` | Integrations, CSP, remark/rehype pipeline, Swup, Vite |
+| `tailwind.config.mjs` | CSS custom properties → Tailwind classes, typography |
+| `src/types.ts` | Shared TS types (Post, Page, SEOData, NavigationItem, etc.) |
+| `src/utils/internallinks.ts` | Wikilink + standard link resolution, URL mapping |
+| `src/utils/remark-marginalia.ts` | `{{margin note}}` side-note system |
+| `src/utils/remark-annotations.ts` | `==highlight==` / `!!underline!!` / etc. (rough-notation) |
+| `src/utils/remark-citations.ts` | `[@key]` inline citations, reads `global-refs.json` |
+| `src/utils/remark-callouts.ts` | `> [!note]` callout blocks |
+| `src/utils/rehype-figure-captions.ts` | `img[alt]` → `<figure><figcaption>` |
+| `src/utils/rehype-heading-highlight.ts` | Wraps heading text in `<span class="highlight-span">` |
+| `src/utils/rehype-rebase-links.ts` | Prepends base path to absolute links (GitHub Pages) |
+| `src/utils/seo.ts` | SEO/OG metadata generation |
+| `src/utils/images.ts` | Image path resolution, Obsidian bracket stripping |
+| `src/utils/markdown.ts` | `shouldShowPost`, `sortPostsByDate`, `extractTags`, etc. |
+| `src/utils/search.ts` | `cleanContent`, `escapeHtml` for search previews |
+| `src/utils/navigation.ts` | `isOptionalContentTypeEnabled` |
+| `src/utils/theme.ts` | `getSystemTheme`, `getStoredTheme`, `setTheme` |
+| `src/utils/bases/` | JEXL-powered content query system (6 files) |
+| `src/graph/` | Full graph system — 25+ files, do not touch without reading AGENTS.md §Graph |
+| `src/scripts/` | Client-side TS scripts loaded per-page (5 files) |
+| `src/integrations/refresh-content-on-change.ts` | Dev-mode content layer hot reload |
+| `src/integrations/escape-marginalia-mdx.ts` | Vite pre-transform: `{{}}` → `⟪⟫` in .mdx |
+| `src/config/dev.ts` | Dev-mode image fallback configuration |
+| `src/data/global-refs.json` | Generated BibTeX reference data (from `parse-bib.mjs`) |
+| `src/generated/callouts-custom.json` | Generated callout metadata (from `generate-callout-css.js`) |
+| `src/styles/global.css` | Global styles, annotation CSS vars, Tailwind entry |
+| `src/styles/marginalia.css` | Marginalia layout styles |
+| `src/styles/transition.css` | Swup page transition animations |
+| `src/styles/callouts-custom.css` | Auto-generated custom callout styles |
+| `scripts/generate-graph-data.js` | Generates `public/graph/graph-data.json` + `sitemap.json` |
+| `scripts/parse-bib.mjs` | Parses `_refs.bib` → `src/data/global-refs.json` |
+| `scripts/generate-callout-css.js` | Reads Obsidian callout-manager → CSS + JSON |
+| `scripts/sync-images.js` | Copies + WebP-converts images from content to `public/` |
+| `scripts/process-aliases.js` | Frontmatter `aliases:` → redirect rules |
+| `scripts/generate-deployment-config.js` | Platform-specific config generation |
+
+---
 
 ## Path Aliases
 
 ```
-@/          → src/
-@/components → src/components/
-@/layouts   → src/layouts/
-@/utils     → src/utils/
-@/types     → src/types.ts
-@/config    → src/config.ts
+@/            → src/
+@/components  → src/components/
+@/layouts     → src/layouts/
+@/utils       → src/utils/
+@/types       → src/types.ts
+@/config      → src/config.ts
+@/graph       → src/graph/
 ```
+
+---
 
 ## Content Collections
 
-All use glob loaders (Astro Content Layer). IDs are derived from filename/path.
+`src/content/` is a **git submodule**. All edits must go through the submodule repo.
 
-- `posts` — blog articles (`src/content/posts/`)
-- `pages` — static pages (`src/content/pages/`)
-- `projects` — project showcase (`src/content/projects/`)
-- `docs` — documentation (`src/content/docs/`)
-- `special` — homepage & special pages (`src/content/special/`)
+| Collection | Glob base | Notes |
+|---|---|---|
+| `posts` | `src/content/posts/` | Blog articles. Supports folder-based (`post-name/index.md`). |
+| `pages` | `src/content/bin/pages/` | Static pages (about, contact, etc.) |
+| `special` | `src/content/bin/special/` | 404, homepage blurb, posts-index meta |
+| `tags` | `src/content/tags/` | Optional tag description pages |
+| `categories` | `src/content/categories/` | Optional category description pages |
 
-Folder-based posts: a post at `src/content/posts/my-post/index.md` gets `id = "my-post"` (not `"my-post/index"`).
+**No `projects` or `docs` collections** — `optionalContentTypes` is empty in this fork.
+
+Folder-based post at `posts/my-post/index.md` → `id = "my-post"` (not `"my-post/index"`).
+
+### Posts frontmatter fields
+`title` · `description` · `date` · `tags` · `draft` · `image` · `imageOG` · `imageAlt` · `hideCoverImage` · `hideTOC` · `showTOC` · `targetKeyword` · `author` · `banner` · `modified` · `noIndex` · `category`
+
+> `banner` — dedicated OG image (overrides `image` for social cards).  
+> `category` — singular string (not array). Drives category pages + graph node color.
+
+---
 
 ## Dev Workflow
 
 ```bash
-pnpm dev       # sync images → process aliases → gen configs/graph → dev server (port 5000)
-pnpm build     # same pipeline then Astro build
-pnpm preview   # build then preview
+# Dev server (port 5000, fallback 5001)
+pnpm dev
+# Pipeline: setup-dev → sync-images → process-aliases → generate-deployment-config
+#           → generate-graph-data → parse-bib → generate-callout-css → dev server
+
+# Production build
+pnpm build
+# Pipeline: sync-images → process-aliases → generate-deployment-config
+#           → generate-graph-data --production → parse-bib → generate-callout-css → astro build
+
+# Utilities
+pnpm check-images          # Find missing image references
+pnpm parse-bib             # Re-parse _refs.bib → global-refs.json
+pnpm generate-graph-data   # Re-generate graph data only
+pnpm sync-images           # Sync images only
+pnpm process-aliases       # Re-generate redirect rules
 ```
+
+---
 
 ## Markdown Processing Pipeline
 
-Remark plugins (in order): internal links → folder images → callouts → image grids → mermaid → Obsidian embeds → bases → inline tags → comments → image size → math → reading time → TOC → line breaks
+### Remark plugins (exact order)
+1. `remarkCitations` — `[@key]` inline citations ← runs FIRST to avoid conflicts
+2. `remarkObsidianImageSize` — `![[img|500]]` size syntax
+3. `remarkInternalLinks` — wikilinks + standard link resolution
+4. `remarkInlineTags` — `#tag` inline tags
+5. `remarkObsidianComments` — removes `%%...%%` comments
+6. `remarkMarginalia` — `{{note}}` margin notes (handles `⟪⟫` from MDX escape internally)
+7. `remarkAnnotations` — `==text==` / `!!text!!` / `^^text^^` / `((text))` / `||text||`
+8. `remarkFolderImages` — folder-relative image path resolution
+9. `remarkObsidianEmbeds` — `![[post-name]]` post embeds
+10. `remarkBases` — ` ```base ` query blocks
+11. `remarkImageCaptions` — image caption extraction
+12. `remarkMath` — `$...$` / `$$...$$` math
+13. `remarkCallouts` — `> [!type]` callout blocks
+14. `remarkBreaks` — soft line breaks
+15. `remarkImageGrids` — consecutive images → responsive grid
+16. `remarkMermaid` — mermaid diagram fences
+17. `remarkReadingTime` — injects reading time into frontmatter
+18. `remarkToc` — auto-generates TOC (heading: "contents" / "table of contents" / "toc")
 
-Rehype plugins (in order): KaTeX → mark → image attributes → slug → autolink headings → anchor normalization
+### Rehype plugins (exact order)
+1. `rehypeKatex` — renders KaTeX math
+2. `rehypeMark` — `==text==` → `<mark>`
+3. `rehypeImageAttributes` — applies width/class from Obsidian image syntax
+4. `rehypeFigureCaptions` — wraps `<img alt="...">` in `<figure><figcaption>`
+5. `rehypeSlug` — adds `id` to headings (skips h1)
+6. `rehypeHeadingHighlight` — wraps heading text in `<span class="highlight-span">`
+7. `rehypeAutolinkHeadings` — appends permalink icon to headings (skips h1)
+8. `rehypeNormalizeAnchors` — **LAST** — fixes className/href on all anchors
 
 Shiki syntax theme: `github-dark`
 
-## Themes
+---
 
-15+ built-in themes in `src/themes/`. Custom themes go in `src/themes/custom/`. Theme selection and font families are set in `src/config.ts`. Colors are CSS custom properties consumed by Tailwind.
+## Theming
+
+Three themes: `"minimal"` · `"custom"` · `"al-andalus"`. Currently active: `"al-andalus"`.
+
+Custom themes: `src/themes/custom/`. Set `theme: "custom"` and `customThemeFile: "filename"` in `src/config.ts`.
+
+Colors are CSS custom properties (`--color-primary-*`, `--color-highlight-*`) mapped to Tailwind via `tailwind.config.mjs`. Always use Tailwind theme classes, never hardcoded hex values.
+
+---
 
 ## Image System
 
-Two separate systems:
-- **Post card images** — frontmatter `image` field, rendered in listing pages
-- **Post content images** — processed by remark plugins, supports Obsidian syntax (`![[image.png|caption|500]]`)
+Two independent systems — never confuse them:
 
-Images sync from `src/content/` to `public/` via `scripts/sync-images.js` at dev/build time.
+1. **Post card images** — frontmatter `image` field. Visibility controlled by `postOptions.showPostCardCoverImages`. Synced to `public/posts/{id}/` by `sync-images.js`.
+2. **Post content images** — inside markdown body. Visibility controlled by `hideCoverImage` frontmatter. Processed by `rehypeImageAttributes` + `rehypeFigureCaptions`.
 
-## API Routes
+`sync-images.js` converts images to WebP (quality 85) and copies to `public/`.
 
-Static JSON endpoints at `src/pages/api/`:
-- `posts.json.ts`, `pages.json.ts`, `projects.json.ts`, `docs.json.ts` — collection data for command palette/search
-- `files.json.ts` — file listing for graph view
-- `og-image.ts` — Open Graph image generation
+---
 
-All use `entry.id` (not `entry.slug`).
+## New Systems Added in This Fork (vs upstream)
+
+| System | Entry point | AGENTS.md section |
+|---|---|---|
+| Graph view (PixiJS + D3) | `src/components/SiteGraph.astro` | §Graph System |
+| Full-text search (Pagefind) | `src/pages/search.astro` | §Search (Pagefind) |
+| Margin notes | `src/utils/remark-marginalia.ts` | §Marginalia |
+| rough-notation annotations | `src/utils/remark-annotations.ts` | §Annotations |
+| Citations / BibTeX | `src/utils/remark-citations.ts` | §Citations |
+| Dynamic OG images (satori) | `src/pages/og/[...id].png.ts` | §OG Image Generation |
+| Bases (JEXL queries) | `src/utils/bases/`, `src/pages/base/` | §Bases System |
+| `llms.txt` endpoint | `src/pages/llms.txt.ts` | — |
+| Custom callout CSS gen | `scripts/generate-callout-css.js` | §Scripts |
+| Content as git submodule | `src/content/` | §Content Submodule |
