@@ -747,11 +747,24 @@ const seoData = {
 
     if (mobileSheet) {
       let touchStartY = 0;
+      let touchStartedOnHandle = false;
+
       mobileSheet.addEventListener('touchstart', e => {
         touchStartY = e.touches[0].clientY;
+        // True when touch starts on the drag-handle / header, not inside the scrollable content area.
+        // Allows normal scrolling inside content without accidentally triggering dismiss.
+        touchStartedOnHandle = !mobileContent?.contains(e.target as Node);
       }, { passive: true });
+
       mobileSheet.addEventListener('touchend', e => {
-        if (e.changedTouches[0].clientY - touchStartY > 80) closeMobileSheet();
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+        const contentAtTop = !mobileContent || mobileContent.scrollTop <= 2;
+        // Dismiss only when swiped down far enough AND either:
+        //   (a) gesture started on the handle (safe to always dismiss), or
+        //   (b) content is scrolled to the very top (no scroll to lose).
+        if (deltaY > 80 && (touchStartedOnHandle || contentAtTop)) {
+          closeMobileSheet();
+        }
       }, { passive: true });
     }
 
