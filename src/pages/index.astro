@@ -113,6 +113,45 @@ const structuredData = {
 
   <HomepageHero postCount={postCount} categoryCount={categoryCount} />
 
+  <!-- Development notice popup — homepage only -->
+  <div id="dev-notice-overlay" class="dev-notice-overlay" role="dialog" aria-modal="true" aria-labelledby="dev-notice-title">
+    <div class="dev-notice-box">
+      <div class="dev-notice-ornament" aria-hidden="true">
+        <span class="dev-notice-ornament-line"></span>
+        <span class="dev-notice-ornament-glyph">◈</span>
+        <span class="dev-notice-ornament-line"></span>
+      </div>
+      <h2 id="dev-notice-title" class="dev-notice-title">Site Under Development</h2>
+      <p class="dev-notice-body">
+        This website is still being developed. Articles are currently being reviewed and upgraded for quality.
+      </p>
+      <p class="dev-notice-body dev-notice-body--secondary">
+        Content may change or be temporarily unavailable. Thank you for your patience.
+      </p>
+      <button id="dev-notice-close" class="dev-notice-close-btn" aria-label="Close notice">
+        Got it
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const overlay = document.getElementById('dev-notice-overlay');
+    const closeBtn = document.getElementById('dev-notice-close');
+    if (overlay && !sessionStorage.getItem('dev-notice-dismissed')) {
+      overlay.style.display = 'flex';
+    }
+    closeBtn?.addEventListener('click', () => {
+      sessionStorage.setItem('dev-notice-dismissed', '1');
+      overlay?.style.setProperty('display', 'none');
+    });
+    overlay?.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        sessionStorage.setItem('dev-notice-dismissed', '1');
+        overlay.style.display = 'none';
+      }
+    });
+  </script>
+
   <div class="py-8 relative">
     <div class="mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
 
@@ -319,6 +358,105 @@ const structuredData = {
 
 
 <style>
+  /* ── Development notice popup ── */
+  .dev-notice-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgb(0 0 0 / 0.55);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(2px);
+  }
+
+  .dev-notice-box {
+    background: rgb(var(--color-primary-50));
+    border: 1px solid rgb(var(--color-highlight-500) / 0.35);
+    border-radius: 0.35rem;
+    padding: 2.25rem 2rem 2rem;
+    max-width: 26rem;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.18);
+  }
+  :global(.dark) .dev-notice-box {
+    background: rgb(var(--color-primary-900));
+    border-color: rgb(var(--color-highlight-600) / 0.3);
+  }
+
+  .dev-notice-ornament {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .dev-notice-ornament-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgb(var(--color-highlight-500) / 0.4));
+  }
+  .dev-notice-ornament-line:last-child {
+    background: linear-gradient(to left, transparent, rgb(var(--color-highlight-500) / 0.4));
+  }
+  .dev-notice-ornament-glyph {
+    color: rgb(var(--color-highlight-500));
+    font-size: 0.85rem;
+  }
+
+  .dev-notice-title {
+    font-family: var(--font-heading, serif);
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-900));
+    margin: 0 0 1rem;
+  }
+  :global(.dark) .dev-notice-title {
+    color: rgb(var(--color-primary-50));
+  }
+
+  .dev-notice-body {
+    font-family: var(--font-prose, serif);
+    font-size: 0.97rem;
+    line-height: 1.75;
+    color: rgb(var(--color-primary-700));
+    margin: 0 0 0.75rem;
+  }
+  :global(.dark) .dev-notice-body {
+    color: rgb(var(--color-primary-300));
+  }
+  .dev-notice-body--secondary {
+    font-size: 0.88rem;
+    color: rgb(var(--color-primary-500));
+    margin-bottom: 1.5rem;
+  }
+  :global(.dark) .dev-notice-body--secondary {
+    color: rgb(var(--color-primary-400));
+  }
+
+  .dev-notice-close-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 1.6rem;
+    background: rgb(var(--color-highlight-500));
+    color: #fff;
+    font-family: var(--font-prose, serif);
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    border: 1px solid rgb(var(--color-highlight-500));
+    border-radius: 0.2rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .dev-notice-close-btn:hover {
+    background: rgb(var(--color-highlight-400));
+    border-color: rgb(var(--color-highlight-400));
+  }
+
   .section-heading {
     display: flex;
     align-items: center;
