@@ -120,46 +120,44 @@ const mdPath = `/posts/${postId}.md`;
 
 <script>
   function initializePageActions() {
-    const btn = document.querySelector<HTMLButtonElement>('.pa-copy-btn');
-    if (!btn) return;
+    document.querySelectorAll<HTMLButtonElement>('.pa-copy-btn').forEach((btn) => {
+      // Clone to strip stale listeners from previous Swup navigation
+      const fresh = btn.cloneNode(true) as HTMLButtonElement;
+      btn.parentNode?.replaceChild(fresh, btn);
 
-    // Clone to strip stale listeners from previous Swup navigation
-    const fresh = btn.cloneNode(true) as HTMLButtonElement;
-    btn.parentNode?.replaceChild(fresh, btn);
+      const copyIcon  = fresh.querySelector<HTMLElement>('.pa-copy-icon');
+      const checkIcon = fresh.querySelector<HTMLElement>('.pa-check-icon');
+      const label     = fresh.querySelector<HTMLElement>('.pa-copy-label');
 
-    const copyIcon  = fresh.querySelector<HTMLElement>('.pa-copy-icon');
-    const checkIcon = fresh.querySelector<HTMLElement>('.pa-check-icon');
-    const label     = fresh.querySelector<HTMLElement>('.pa-copy-label');
+      let resetTimer: ReturnType<typeof setTimeout> | null = null;
 
-    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+      fresh.addEventListener('click', async () => {
+        const mdPath = fresh.dataset.mdPath;
+        if (!mdPath) return;
 
-    fresh.addEventListener('click', async () => {
-      const mdPath = fresh.dataset.mdPath;
-      if (!mdPath) return;
+        try {
+          const res = await fetch(mdPath);
+          if (!res.ok) throw new Error(`fetch ${mdPath} → ${res.status}`);
+          const text = await res.text();
+          await navigator.clipboard.writeText(text);
 
-      try {
-        const res = await fetch(mdPath);
-        if (!res.ok) throw new Error(`fetch ${mdPath} → ${res.status}`);
-        const text = await res.text();
-        await navigator.clipboard.writeText(text);
+          fresh.classList.add('is-copied');
+          if (copyIcon)  copyIcon.style.display  = 'none';
+          if (checkIcon) checkIcon.style.display = '';
+          if (label)     label.textContent = 'Copied!';
 
-        // Success state
-        fresh.classList.add('is-copied');
-        if (copyIcon)  copyIcon.style.display  = 'none';
-        if (checkIcon) checkIcon.style.display = '';
-        if (label)     label.textContent = 'Copied!';
-
-        if (resetTimer) clearTimeout(resetTimer);
-        resetTimer = setTimeout(() => {
-          fresh.classList.remove('is-copied');
-          if (copyIcon)  copyIcon.style.display  = '';
-          if (checkIcon) checkIcon.style.display = 'none';
-          if (label)     label.textContent = 'Copy Markdown';
-          resetTimer = null;
-        }, 2000);
-      } catch (err) {
-        if (import.meta.env.DEV) console.warn('[PageActions] copy failed:', err);
-      }
+          if (resetTimer) clearTimeout(resetTimer);
+          resetTimer = setTimeout(() => {
+            fresh.classList.remove('is-copied');
+            if (copyIcon)  copyIcon.style.display  = '';
+            if (checkIcon) checkIcon.style.display = 'none';
+            if (label)     label.textContent = 'Copy Markdown';
+            resetTimer = null;
+          }, 2000);
+        } catch (err) {
+          if (import.meta.env.DEV) console.warn('[PageActions] copy failed:', err);
+        }
+      });
     });
   }
 
