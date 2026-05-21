@@ -201,7 +201,8 @@ const aiItems = [
   .pa-menu {
     display: none;
     position: absolute;
-    top: calc(100% + 0.375rem);
+    bottom: calc(100% + 0.375rem);  /* open upward — section is always near page bottom */
+    top: auto;
     left: 0;
     z-index: 50;
     min-width: 180px;
