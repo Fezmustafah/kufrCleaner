@@ -194,15 +194,20 @@ const mdPath = `/posts/${postId}.md`;
       });
     });
 
-    // Close all on outside click
-    document.addEventListener('click', () => {
+    // Close all on outside click — remove previous listener before re-adding
+    if ((window as any)._paOutsideClickHandler) {
+      document.removeEventListener('click', (window as any)._paOutsideClickHandler);
+    }
+    const outsideClickHandler = () => {
       document.querySelectorAll('.pa-dropdown-menu').forEach((m) =>
         m.classList.remove('is-open')
       );
       document.querySelectorAll('.pa-dropdown-toggle').forEach((t) =>
         (t as HTMLButtonElement).setAttribute('aria-expanded', 'false')
       );
-    });
+    };
+    (window as any)._paOutsideClickHandler = outsideClickHandler;
+    document.addEventListener('click', outsideClickHandler);
   }
 
   // Expose for Swup re-init
