@@ -1,0 +1,217 @@
+---
+// src/components/PageActions.astro
+import Icon from '@/components/Icon.astro';
+import PageActionsDropdown from '@/components/PageActionsDropdown.astro';
+
+interface Props {
+  postId: string;    // post.id — used to build /posts/{id}.md URL
+  postTitle: string; // post.data.title — URL-encoded for share links
+  postUrl: string;   // Astro.url.href — full canonical URL
+}
+
+const { postId, postTitle, postUrl } = Astro.props;
+
+const prompt = encodeURIComponent(`Read ${postUrl} and answer my questions about it.`);
+const encodedUrl = encodeURIComponent(postUrl);
+const encodedTitle = encodeURIComponent(postTitle);
+
+const openItems = [
+  { label: 'Open in ChatGPT',   href: `https://chatgpt.com/?q=${prompt}` },
+  { label: 'Open in Claude',    href: `https://claude.ai/new?q=${prompt}` },
+  { label: 'Open in Perplexity',href: `https://perplexity.ai/?q=${prompt}` },
+];
+
+const shareItems = [
+  { label: 'Share on X',           href: `https://x.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}` },
+  { label: 'Share on WhatsApp',    href: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}` },
+  { label: 'Share on Telegram',    href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}` },
+  { label: 'Share on LinkedIn',    href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
+  { label: 'Share on Reddit',      href: `https://reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}` },
+  { label: 'Share on Facebook',    href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+  { label: 'Share on Bluesky',     href: `https://bsky.app/intent/compose?text=${encodedTitle}%20${encodedUrl}` },
+  { label: 'Share via Email',      href: `mailto:?subject=${encodedTitle}&body=${encodedUrl}` },
+  { label: 'Share on Hacker News', href: `https://news.ycombinator.com/submitlink?u=${encodedUrl}&t=${encodedTitle}` },
+];
+
+const mdPath = `/posts/${postId}.md`;
+---
+
+<div class="page-actions" data-pagefind-ignore>
+  <PageActionsDropdown id="open"  label="Open in AI" items={openItems} align="left" />
+  <PageActionsDropdown id="share" label="Share"       items={shareItems} align="right" />
+
+  <button
+    class="pa-btn pa-copy-btn"
+    data-md-path={mdPath}
+    aria-label="Copy raw Markdown to clipboard"
+    type="button"
+  >
+    <span class="pa-copy-icon">
+      <Icon name="clipboard" class="w-3.5 h-3.5" />
+    </span>
+    <span class="pa-check-icon" aria-hidden="true" style="display:none">
+      <Icon name="check" class="w-3.5 h-3.5" />
+    </span>
+    <span class="pa-copy-label">Copy Markdown</span>
+  </button>
+</div>
+
+<style>
+  .page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.375rem;
+    margin-top: 0.75rem;
+  }
+
+  /* Shared button style — used by both the toggle buttons and the copy button */
+  :global(.pa-btn) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 2rem;
+    padding: 0 0.625rem;
+    border-radius: 0.375rem;
+    border: 1px solid rgb(var(--color-primary-200) / 1);
+    background-color: rgb(var(--color-primary-100) / 0.6);
+    color: rgb(var(--color-primary-600) / 1);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+    text-decoration: none;
+  }
+
+  :global(.dark .pa-btn) {
+    border-color: rgb(var(--color-primary-700) / 1);
+    background-color: rgb(var(--color-primary-800) / 0.6);
+    color: rgb(var(--color-primary-300) / 1);
+  }
+
+  :global(.pa-btn:hover) {
+    background-color: rgb(var(--color-primary-200) / 1);
+    border-color: rgb(var(--color-primary-300) / 1);
+    color: rgb(var(--color-primary-700) / 1);
+  }
+
+  :global(.dark .pa-btn:hover) {
+    background-color: rgb(var(--color-primary-700) / 1);
+    border-color: rgb(var(--color-primary-600) / 1);
+    color: rgb(var(--color-primary-100) / 1);
+  }
+
+  /* Copy success state */
+  :global(.pa-copy-btn.is-copied) {
+    color: rgb(var(--color-highlight-600) / 1);
+    border-color: rgb(var(--color-highlight-300) / 1);
+    background-color: rgb(var(--color-highlight-50) / 0.5);
+  }
+
+  :global(.dark .pa-copy-btn.is-copied) {
+    color: rgb(var(--color-highlight-400) / 1);
+    border-color: rgb(var(--color-highlight-700) / 1);
+    background-color: rgb(var(--color-highlight-900) / 0.3);
+  }
+</style>
+
+<script>
+  function initializePageActions() {
+    const btn = document.querySelector<HTMLButtonElement>('.pa-copy-btn');
+    if (!btn) return;
+
+    // Clone to strip stale listeners from previous Swup navigation
+    const fresh = btn.cloneNode(true) as HTMLButtonElement;
+    btn.parentNode?.replaceChild(fresh, btn);
+
+    const copyIcon  = fresh.querySelector<HTMLElement>('.pa-copy-icon');
+    const checkIcon = fresh.querySelector<HTMLElement>('.pa-check-icon');
+    const label     = fresh.querySelector<HTMLElement>('.pa-copy-label');
+
+    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+
+    fresh.addEventListener('click', async () => {
+      const mdPath = fresh.dataset.mdPath;
+      if (!mdPath) return;
+
+      try {
+        const res = await fetch(mdPath);
+        if (!res.ok) throw new Error(`fetch ${mdPath} → ${res.status}`);
+        const text = await res.text();
+        await navigator.clipboard.writeText(text);
+
+        // Success state
+        fresh.classList.add('is-copied');
+        if (copyIcon)  copyIcon.style.display  = 'none';
+        if (checkIcon) checkIcon.style.display = '';
+        if (label)     label.textContent = 'Copied!';
+
+        if (resetTimer) clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => {
+          fresh.classList.remove('is-copied');
+          if (copyIcon)  copyIcon.style.display  = '';
+          if (checkIcon) checkIcon.style.display = 'none';
+          if (label)     label.textContent = 'Copy Markdown';
+          resetTimer = null;
+        }, 2000);
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn('[PageActions] copy failed:', err);
+      }
+    });
+  }
+
+  function initializePageActionDropdowns() {
+    const allDropdowns = document.querySelectorAll<HTMLElement>('.pa-dropdown');
+
+    allDropdowns.forEach((dropdown) => {
+      const dropdownId = dropdown.dataset.dropdownId!;
+      const toggle = dropdown.querySelector<HTMLButtonElement>(`#pa-toggle-${dropdownId}`);
+      const menu   = dropdown.querySelector<HTMLElement>(`#pa-menu-${dropdownId}`);
+      if (!toggle || !menu) return;
+
+      // Clone toggle to strip stale listeners
+      const freshToggle = toggle.cloneNode(true) as HTMLButtonElement;
+      toggle.parentNode?.replaceChild(freshToggle, toggle);
+
+      freshToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains('is-open');
+        // Close all dropdowns first
+        document.querySelectorAll('.pa-dropdown-menu').forEach((m) =>
+          m.classList.remove('is-open')
+        );
+        document.querySelectorAll('.pa-dropdown-toggle').forEach((t) =>
+          (t as HTMLButtonElement).setAttribute('aria-expanded', 'false')
+        );
+        // Toggle this one
+        if (!isOpen) {
+          menu.classList.add('is-open');
+          freshToggle.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    // Close all on outside click
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.pa-dropdown-menu').forEach((m) =>
+        m.classList.remove('is-open')
+      );
+      document.querySelectorAll('.pa-dropdown-toggle').forEach((t) =>
+        (t as HTMLButtonElement).setAttribute('aria-expanded', 'false')
+      );
+    });
+  }
+
+  // Expose for Swup re-init
+  (window as any).initializePageActions = initializePageActions;
+  (window as any).initializePageActionDropdowns = initializePageActionDropdowns;
+
+  // Initial page load
+  document.addEventListener('DOMContentLoaded', () => {
+    initializePageActions();
+    initializePageActionDropdowns();
+  });
+</script>
