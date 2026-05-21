@@ -337,6 +337,7 @@ export const siteConfig: SiteConfig = {
       { title: "Home", url: "/" },
       { title: "Posts", url: "/posts/" },
       { title: "Categories", url: "/posts/category/" },
+      { title: "Search", url: "/search/" },
       { title: "About", url: "/about/",
         children: [
           { title: "Contact", url: "/contact/" },
