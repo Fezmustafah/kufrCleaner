@@ -334,10 +334,9 @@ export const siteConfig: SiteConfig = {
     showMobileMenu: true,
     // [CONFIG:NAVIGATION_PAGES]
     pages: [
+      { title: "Home", url: "/" },
       { title: "Posts", url: "/posts/" },
-      { title: "Tags", url: "/posts/tag/" },
       { title: "Categories", url: "/posts/category/" },
-      { title: "Search", url: "/search/" },
       { title: "About", url: "/about/",
         children: [
           { title: "Contact", url: "/contact/" },
