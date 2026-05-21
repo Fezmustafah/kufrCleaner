@@ -1521,6 +1521,8 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
       safe(function () { if (window._lgRun) window._lgRun(); });
       safe(function () { if (window._margRun) window._margRun(); });
       safe(function () { if (window._annRun) window._annRun(); });
+      safe(() => window.initializePageActions?.());
+      safe(() => window.initializePageActionDropdowns?.());
 
       // Slight delay for embeds/tables/Mermaid that depend on other scripts settling
       setTimeout(() => {

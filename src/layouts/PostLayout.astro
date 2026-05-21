@@ -13,6 +13,7 @@ import GiscusComments from '@/components/GiscusComments.astro';
 import Lightbox from '@/components/Lightbox.astro';
 import Icon from '@/components/Icon.astro';
 import ImageWrapper from '@/components/ImageWrapper.astro';
+import PageActions from '@/components/PageActions.astro';
 import { devConfig } from '@/config/dev';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -191,6 +192,13 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
               )}
 
             </div>
+
+            <!-- Page action buttons: Open in AI · Share · Copy Markdown -->
+            <PageActions
+              postId={post.id}
+              postTitle={post.data.title}
+              postUrl={Astro.url.href}
+            />
           </header>
 
         <!-- Article content -->
