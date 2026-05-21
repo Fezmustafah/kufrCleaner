@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:\\Users\\windows11\\.claude\\plugins\\cache\\context-mode\\context-mode\\1.0.75/hooks/pretooluse.mjs\""
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/windows11/AppData/Roaming/npm/node_modules/context-mode/hooks/pretooluse.mjs\""
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:\\Users\\windows11\\.claude\\plugins\\cache\\context-mode\\context-mode\\1.0.75/hooks/posttooluse.mjs\""
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/windows11/AppData/Roaming/npm/node_modules/context-mode/hooks/posttooluse.mjs\""
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:\\Users\\windows11\\.claude\\plugins\\cache\\context-mode\\context-mode\\1.0.75/hooks/precompact.mjs\""
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/windows11/AppData/Roaming/npm/node_modules/context-mode/hooks/precompact.mjs\""
           }
         ]
       }
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:\\Users\\windows11\\.claude\\plugins\\cache\\context-mode\\context-mode\\1.0.75/hooks/sessionstart.mjs\""
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/windows11/AppData/Roaming/npm/node_modules/context-mode/hooks/sessionstart.mjs\""
           }
         ]
       }

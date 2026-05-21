@@ -192,19 +192,19 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
               )}
 
             </div>
-
-            <!-- Page action buttons: Open in AI · Share · Copy Markdown -->
-            <PageActions
-              postId={post.id}
-              postTitle={post.data.title}
-              postUrl={Astro.url.href}
-            />
           </header>
 
         <!-- Article content -->
         <div class="prose dark:prose-dark max-w-none" id="post-content">
           <Content />
         </div>
+
+        <!-- Page actions: Share · Open in AI · Copy Markdown -->
+        <PageActions
+          postId={post.id}
+          postTitle={post.data.title}
+          postUrl={Astro.url.href}
+        />
 
         {siteConfig.postOptions.linkedMentions.enabled && (
           <div data-pagefind-ignore>
