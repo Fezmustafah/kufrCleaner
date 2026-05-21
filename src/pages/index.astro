@@ -113,67 +113,28 @@ const structuredData = {
 
   <HomepageHero postCount={postCount} categoryCount={categoryCount} />
 
-  <!-- Development notice popup — homepage only -->
-  <dialog
-    id="dev-notice-dialog"
-    aria-labelledby="dev-notice-title"
-    aria-describedby="dev-notice-desc"
-  >
-    <div class="dev-notice-box">
-      <div class="dev-notice-ornament" aria-hidden="true">
-        <span class="dev-notice-ornament-line"></span>
-        <span class="dev-notice-ornament-glyph">◈</span>
-        <span class="dev-notice-ornament-line"></span>
-      </div>
-      <h2 id="dev-notice-title" class="dev-notice-title">Site Under Development</h2>
-      <div id="dev-notice-desc">
-        <p class="dev-notice-body">
-          This website is still being developed. Articles are currently being reviewed and upgraded for quality.
-        </p>
-        <p class="dev-notice-body dev-notice-body--secondary">
-          Content may change or be temporarily unavailable. Thank you for your patience.
-        </p>
-      </div>
-      <button id="dev-notice-close" class="dev-notice-close-btn" autofocus>
-        Got it
-      </button>
+  <!-- Development notice — homepage only, small floating card -->
+  <div id="dev-notice" class="dev-notice" role="status" aria-labelledby="dev-notice-title">
+    <div class="dev-notice-accent" aria-hidden="true"></div>
+    <div class="dev-notice-content">
+      <p id="dev-notice-title" class="dev-notice-title">Actively Under Development</p>
+      <p class="dev-notice-body">
+        Articles on this site are upgraded daily — refined, expanded, and strengthened based on ongoing research and incoming inquiries.
+      </p>
     </div>
-  </dialog>
+    <button id="dev-notice-close" class="dev-notice-close" aria-label="Dismiss">✕</button>
+  </div>
 
   <script>
-    function initDevNotice() {
-      const dialog = document.getElementById('dev-notice-dialog') as HTMLDialogElement | null;
-      if (!dialog) return;
-
-      // Show once per session
-      if (!sessionStorage.getItem('dev-notice-dismissed')) {
-        dialog.showModal();
-      }
-
-      // Persist dismiss on any close (button click OR Escape key)
-      dialog.addEventListener('close', () => {
-        sessionStorage.setItem('dev-notice-dismissed', '1');
-      }, { once: true });
-
-      // Close button
-      document.getElementById('dev-notice-close')?.addEventListener('click', () => {
-        dialog.close();
-      }, { once: true });
-
-      // Click backdrop (the <dialog> element itself, outside the box) to dismiss
-      dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) dialog.close();
-      });
+    const notice = document.getElementById('dev-notice');
+    const closeBtn = document.getElementById('dev-notice-close');
+    if (notice && !sessionStorage.getItem('dev-notice-dismissed')) {
+      notice.style.display = 'flex';
     }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initDevNotice);
-    } else {
-      initDevNotice();
-    }
-
-    // Reinit after Swup/Astro navigation back to homepage
-    document.addEventListener('astro:page-load', initDevNotice);
+    closeBtn?.addEventListener('click', () => {
+      sessionStorage.setItem('dev-notice-dismissed', '1');
+      if (notice) notice.style.display = 'none';
+    });
   </script>
 
   <div class="py-8 relative">
@@ -382,114 +343,87 @@ const structuredData = {
 
 
 <style>
-  /* ── Development notice popup ── */
-  #dev-notice-dialog {
-    border: none;
-    padding: 0;
-    background: transparent;
-    max-width: 26rem;
-    width: calc(100% - 2rem);
-    /* Entry animation */
-    animation: dev-notice-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  #dev-notice-dialog::backdrop {
-    background: rgb(0 0 0 / 0.55);
-    backdrop-filter: blur(2px);
-    animation: dev-notice-backdrop-in 0.22s ease both;
-  }
-  @keyframes dev-notice-in {
-    from { opacity: 0; transform: translateY(-10px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
-  }
-  @keyframes dev-notice-backdrop-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-
-  .dev-notice-box {
+  /* ── Development notice — small floating card ── */
+  .dev-notice {
+    display: none;
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 9999;
+    max-width: 22rem;
+    width: calc(100vw - 2rem);
     background: rgb(var(--color-primary-50));
-    border: 1px solid rgb(var(--color-highlight-500) / 0.35);
-    border-radius: 0.35rem;
-    padding: 2.25rem 2rem 2rem;
-    max-width: 26rem;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 8px 32px rgb(0 0 0 / 0.18);
+    border: 1px solid rgb(var(--color-highlight-500) / 0.3);
+    border-left: none;
+    border-radius: 0.3rem;
+    box-shadow: 0 4px 20px rgb(0 0 0 / 0.12);
+    align-items: flex-start;
+    gap: 0;
+    overflow: hidden;
   }
-  :global(.dark) .dev-notice-box {
+  :global(.dark) .dev-notice {
     background: rgb(var(--color-primary-900));
-    border-color: rgb(var(--color-highlight-600) / 0.3);
+    border-color: rgb(var(--color-highlight-600) / 0.25);
+    box-shadow: 0 4px 20px rgb(0 0 0 / 0.35);
   }
 
-  .dev-notice-ornament {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1.25rem;
+  .dev-notice-accent {
+    width: 3px;
+    min-width: 3px;
+    align-self: stretch;
+    background: rgb(var(--color-highlight-500));
   }
-  .dev-notice-ornament-line {
+
+  .dev-notice-content {
     flex: 1;
-    height: 1px;
-    background: linear-gradient(to right, transparent, rgb(var(--color-highlight-500) / 0.4));
-  }
-  .dev-notice-ornament-line:last-child {
-    background: linear-gradient(to left, transparent, rgb(var(--color-highlight-500) / 0.4));
-  }
-  .dev-notice-ornament-glyph {
-    color: rgb(var(--color-highlight-500));
-    font-size: 0.85rem;
+    padding: 0.9rem 0.85rem 0.9rem 0.9rem;
   }
 
   .dev-notice-title {
     font-family: var(--font-heading, serif);
-    font-size: 1.15rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgb(var(--color-primary-900));
-    margin: 0 0 1rem;
+    color: rgb(var(--color-highlight-600));
+    margin: 0 0 0.35rem;
   }
   :global(.dark) .dev-notice-title {
-    color: rgb(var(--color-primary-50));
+    color: rgb(var(--color-highlight-400));
   }
 
   .dev-notice-body {
     font-family: var(--font-prose, serif);
-    font-size: 0.97rem;
-    line-height: 1.75;
+    font-size: 0.875rem;
+    line-height: 1.6;
     color: rgb(var(--color-primary-700));
-    margin: 0 0 0.75rem;
+    margin: 0;
   }
   :global(.dark) .dev-notice-body {
     color: rgb(var(--color-primary-300));
   }
-  .dev-notice-body--secondary {
-    font-size: 0.88rem;
-    color: rgb(var(--color-primary-500));
-    margin-bottom: 1.5rem;
-  }
-  :global(.dark) .dev-notice-body--secondary {
-    color: rgb(var(--color-primary-400));
-  }
 
-  .dev-notice-close-btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.55rem 1.6rem;
-    background: rgb(var(--color-highlight-500));
-    color: #fff;
-    font-family: var(--font-prose, serif);
-    font-size: 0.95rem;
-    font-weight: 500;
-    letter-spacing: 0.03em;
-    border: 1px solid rgb(var(--color-highlight-500));
-    border-radius: 0.2rem;
+  .dev-notice-close {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin: 0.55rem 0.55rem 0 0;
+    padding: 0.2rem 0.3rem;
+    background: transparent;
+    border: none;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    font-size: 0.7rem;
+    color: rgb(var(--color-primary-400));
+    line-height: 1;
+    border-radius: 0.15rem;
+    transition: color 0.15s, background 0.15s;
   }
-  .dev-notice-close-btn:hover {
-    background: rgb(var(--color-highlight-400));
-    border-color: rgb(var(--color-highlight-400));
+  .dev-notice-close:hover {
+    color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-100));
+  }
+  :global(.dark) .dev-notice-close:hover {
+    color: rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-800));
   }
 
   .section-heading {
