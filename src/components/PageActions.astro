@@ -80,18 +80,6 @@ const aiItems = [
       </div>
     </div>
 
-    <!-- Copy Markdown -->
-    <button class="pa-pill pa-copy-btn" data-md-path={mdPath}
-      aria-label="Copy raw Markdown to clipboard" type="button">
-      <span class="pa-copy-icon-wrap">
-        <Icon name="clipboard" size={13} class="pa-pill-icon" />
-      </span>
-      <span class="pa-check-icon-wrap" aria-hidden="true" style="display:none">
-        <Icon name="circle-check" size={13} class="pa-pill-icon" />
-      </span>
-      <span class="pa-copy-label">Copy Markdown</span>
-    </button>
-
   </div>
 </aside>
 
@@ -249,43 +237,6 @@ const aiItems = [
 
 <script>
   function initializePageActions() {
-    // ── Copy button ──────────────────────────────────────────────
-    document.querySelectorAll<HTMLButtonElement>('.pa-copy-btn').forEach((btn) => {
-      const fresh = btn.cloneNode(true) as HTMLButtonElement;
-      btn.parentNode?.replaceChild(fresh, btn);
-
-      const copyWrap  = fresh.querySelector<HTMLElement>('.pa-copy-icon-wrap');
-      const checkWrap = fresh.querySelector<HTMLElement>('.pa-check-icon-wrap');
-      const label     = fresh.querySelector<HTMLElement>('.pa-copy-label');
-      let timer: ReturnType<typeof setTimeout> | null = null;
-
-      fresh.addEventListener('click', async () => {
-        const mdPath = fresh.dataset.mdPath;
-        if (!mdPath) return;
-        try {
-          const res = await fetch(mdPath);
-          if (!res.ok) throw new Error(`${res.status}`);
-          await navigator.clipboard.writeText(await res.text());
-
-          fresh.classList.add('is-copied');
-          if (copyWrap)  copyWrap.style.display  = 'none';
-          if (checkWrap) checkWrap.style.display = '';
-          if (label)     label.textContent = 'Copied!';
-
-          if (timer) clearTimeout(timer);
-          timer = setTimeout(() => {
-            fresh.classList.remove('is-copied');
-            if (copyWrap)  copyWrap.style.display  = '';
-            if (checkWrap) checkWrap.style.display = 'none';
-            if (label)     label.textContent = 'Copy Markdown';
-            timer = null;
-          }, 2000);
-        } catch (err) {
-          if (import.meta.env.DEV) console.warn('[PageActions] copy failed:', err);
-        }
-      });
-    });
-
     // ── Dropdowns ────────────────────────────────────────────────
     document.querySelectorAll<HTMLElement>('.pa-dropdown').forEach((dropdown) => {
       const id     = dropdown.dataset.dropdownId!;
