@@ -36,16 +36,16 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     <div class="hero-ornament-top" aria-hidden="true"></div>
 
     <!-- Site title -->
-    <h1 class="hero-title">Open Islam</h1>
+    <h1 class="hero-title">OpenIslam</h1>
 
     <!-- Subtitle -->
-    <p class="hero-subtitle">Establishing the Ḥaqq Through Evidence</p>
+    <p class="hero-subtitle">Evidence-Based Islamic Scholarship & Apologetics</p>
 
     <!-- Mission statement -->
     <p class="hero-mission">
-      A scholarly knowledge base dedicated to defending Islam through manuscript
-      evidence, linguistic proof, and hadith authentication —
-      built for seekers of truth in an age of organised doubt.
+      Scholarly refutations of doubts about Islam — drawing on manuscript evidence,
+      hadith authentication, Quranic linguistics, and Islamic history.
+      Built for Muslims and researchers who need answers that hold up to scrutiny.
     </p>
 
     <!-- Live stats bar -->
@@ -58,14 +58,10 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     <!-- CTAs -->
     <div class="hero-ctas">
       <a href={`${baseUrl}posts/`} class="hero-btn-primary">
-        Browse the Library
+        Browse All Articles
       </a>
-      <button id="hero-search-btn" class="hero-btn-outline" aria-label="Open command palette search (⌘K)">
-        <span>Search</span>
-        <kbd aria-hidden="true">⌘K</kbd>
-      </button>
-      <a href={`${baseUrl}search/`} class="hero-btn-ghost" aria-label="Full search page">
-        Full search
+      <a href={`${baseUrl}search/`} class="hero-btn-outline">
+        Search
       </a>
     </div>
 
@@ -81,24 +77,6 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
 
 </section>
 
-<script>
-  function wireHeroSearch() {
-    const btn = document.getElementById('hero-search-btn');
-    if (!btn || (btn as any)._heroWired) return;
-    (btn as any)._heroWired = true;
-    btn.addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('openCommandPalette'));
-    });
-  }
-
-  wireHeroSearch();
-
-  document.addEventListener('swup:page:view', () => {
-    const btn = document.getElementById('hero-search-btn');
-    if (btn) (btn as any)._heroWired = false;
-    wireHeroSearch();
-  });
-</script>
 
 <style>
   /* ── Section — full initial viewport, full-bleed, extends behind navbar ── */

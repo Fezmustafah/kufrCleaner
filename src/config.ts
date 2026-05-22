@@ -190,9 +190,9 @@ export const siteConfig: SiteConfig = {
   // [CONFIG:SITE_URL]
   site: "https://www.openislam.wiki",
   // [CONFIG:SITE_TITLE]
-  title: "OpenIslam Wiki",
+  title: "OpenIslam",
   // [CONFIG:HOMEPAGE_TITLE]
-  homepageTitle: "",
+  homepageTitle: "OpenIslam — Islamic Scholarship & Apologetics",
   // [CONFIG:HERO]
   hero: {
     image: "/hero.webp",        // place your image at public/hero.webp
@@ -200,7 +200,7 @@ export const siteConfig: SiteConfig = {
     overlayOpacity: 0.55,       // 0 = no overlay, 1 = fully dark
   },
   // [CONFIG:SITE_DESCRIPTION]
-  description: "Cleaning kufr.",
+  description: "Evidence-based refutations of doubts about Islam. Scholarly articles on hadith authentication, Quranic linguistics, Islamic history, and apologetics.",
   // [CONFIG:SITE_AUTHOR]
   author: "Faiz Mustafa",
   // [CONFIG:SITE_LANGUAGE]
