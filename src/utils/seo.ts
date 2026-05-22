@@ -14,7 +14,7 @@ import {
 // Helper function to get default OG image
 function getDefaultOGImage(): OpenGraphImage {
   return {
-    url: "/open-graph.png",
+    url: "/hero.webp",
     alt: siteConfig.defaultOgImageAlt,
     width: 1200,
     height: 630,
@@ -270,7 +270,7 @@ export function generateTagSEO(
     ogType: "website",
     ogImage: {
       ...getDefaultOGImage(),
-      url: `${siteConfig.site}/open-graph.png`,
+      url: `${siteConfig.site}/hero.webp`,
     },
   };
 }
@@ -298,7 +298,7 @@ export function generatePostsListSEO(
     ogType: "website",
     ogImage: {
       ...getDefaultOGImage(),
-      url: `${siteConfig.site}/open-graph.png`,
+      url: `${siteConfig.site}/hero.webp`,
     },
   };
 }

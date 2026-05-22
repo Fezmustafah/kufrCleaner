@@ -79,19 +79,62 @@ if (siteConfig.homepageTitle) seoData.title = siteConfig.homepageTitle;
 // Structured data for the website
 const structuredData = {
   '@context': 'https://schema.org',
-  '@type': 'Blog',
-  name: siteConfig.title,
-  description: siteConfig.description,
-  url: siteConfig.site,
-  author: {
-    '@type': 'Person',
-    name: siteConfig.author
-  },
-  publisher: {
-    '@type': 'Organization',
-    name: siteConfig.title,
-    url: siteConfig.site
-  }
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${siteConfig.site}/#website`,
+      name: siteConfig.title,
+      url: siteConfig.site,
+      description: siteConfig.description,
+      inLanguage: siteConfig.language,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${siteConfig.site}/search/?q={search_term_string}`
+        },
+        'query-input': 'required name=search_term_string'
+      }
+    },
+    {
+      '@type': 'Organization',
+      '@id': `${siteConfig.site}/#organization`,
+      name: siteConfig.title,
+      url: siteConfig.site,
+      sameAs: [
+        'https://x.com/kufrcleaner1',
+        'https://www.instagram.com/kufrcleaner/',
+        'https://discord.gg/29gmvhXRh8'
+      ]
+    },
+    {
+      '@type': 'ItemList',
+      '@id': `${siteConfig.site}/#topics`,
+      name: 'Topics',
+      description: 'Islamic apologetics topics covered on OpenIslam',
+      itemListElement: allCategories.map((cat: string, i: number) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: cat,
+        url: `${siteConfig.site}/posts/category/${encodeURIComponent(cat)}`
+      }))
+    },
+    {
+      '@type': 'Blog',
+      '@id': `${siteConfig.site}/#blog`,
+      name: siteConfig.title,
+      description: siteConfig.description,
+      url: siteConfig.site,
+      inLanguage: siteConfig.language,
+      author: {
+        '@type': 'Person',
+        name: siteConfig.author
+      },
+      publisher: {
+        '@id': `${siteConfig.site}/#organization`
+      }
+    }
+  ]
 };
 ---
 
@@ -113,28 +156,62 @@ const structuredData = {
 
   <HomepageHero postCount={postCount} categoryCount={categoryCount} />
 
-  <!-- Development notice — homepage only, small floating card -->
-  <div id="dev-notice" class="dev-notice" role="status" aria-labelledby="dev-notice-title">
-    <div class="dev-notice-accent" aria-hidden="true"></div>
-    <div class="dev-notice-content">
-      <p id="dev-notice-title" class="dev-notice-title">Actively Under Development</p>
-      <p class="dev-notice-body">
-        Articles on this site are upgraded daily — refined, expanded, and strengthened based on ongoing research and incoming inquiries.
+  <!-- Welcome modal — homepage only -->
+  <div id="dev-notice-overlay" class="dev-overlay" role="dialog" aria-modal="true" aria-labelledby="dev-notice-title">
+    <div class="dev-modal" id="dev-modal">
+
+      <!-- Close × -->
+      <button id="dev-notice-close" class="dev-modal-close" aria-label="Close">✕</button>
+
+      <!-- Brand mark -->
+      <p class="dev-modal-brand">OpenIslam</p>
+
+      <!-- Heading -->
+      <h2 id="dev-notice-title" class="dev-modal-title">Actively Under Development</h2>
+
+      <!-- Body -->
+      <p class="dev-modal-body">
+        Articles on this site are upgraded daily — refined, expanded, and strengthened
+        based on ongoing research and incoming inquiries.
       </p>
+
+      <!-- Dismiss -->
+      <button id="dev-notice-dismiss" class="dev-modal-btn">Understood</button>
+
     </div>
-    <button id="dev-notice-close" class="dev-notice-close" aria-label="Dismiss">✕</button>
   </div>
 
   <script>
-    const notice = document.getElementById('dev-notice');
-    const closeBtn = document.getElementById('dev-notice-close');
-    if (notice && !sessionStorage.getItem('dev-notice-dismissed')) {
-      notice.style.display = 'flex';
+    function initDevNotice() {
+      const overlay = document.getElementById('dev-notice-overlay');
+      if (!overlay) return;
+
+      if (sessionStorage.getItem('dev-notice-dismissed')) return;
+
+      overlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+
+      function dismiss() {
+        sessionStorage.setItem('dev-notice-dismissed', '1');
+        overlay.style.opacity = '0';
+        document.body.style.overflow = '';
+        setTimeout(() => { overlay.style.display = 'none'; }, 280);
+      }
+
+      document.getElementById('dev-notice-close')?.addEventListener('click', dismiss);
+      document.getElementById('dev-notice-dismiss')?.addEventListener('click', dismiss);
+
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) dismiss();
+      });
+
+      document.addEventListener('keydown', function onKey(e) {
+        if (e.key === 'Escape') { dismiss(); document.removeEventListener('keydown', onKey); }
+      });
     }
-    closeBtn?.addEventListener('click', () => {
-      sessionStorage.setItem('dev-notice-dismissed', '1');
-      if (notice) notice.style.display = 'none';
-    });
+
+    initDevNotice();
+    document.addEventListener('swup:page:view', initDevNotice);
   </script>
 
   <div class="py-8 relative">
@@ -343,87 +420,158 @@ const structuredData = {
 
 
 <style>
-  /* ── Development notice — small floating card ── */
-  .dev-notice {
+  /* ── Welcome modal overlay ── */
+  .dev-overlay {
     display: none;
     position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
+    inset: 0;
     z-index: 9999;
-    max-width: 22rem;
-    width: calc(100vw - 2rem);
-    background: rgb(var(--color-primary-50));
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(13, 10, 5, 0.72);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    opacity: 1;
+    transition: opacity 0.28s ease;
+  }
+
+  /* ── Glass modal box ── */
+  .dev-modal {
+    position: relative;
+    width: 100%;
+    max-width: 30rem;
+    padding: 2.25rem 2rem 2rem;
+    text-align: center;
+    border-radius: 0.45rem;
+    background: linear-gradient(
+      135deg,
+      rgba(30, 22, 10, 0.82) 0%,
+      rgba(20, 14, 6, 0.78) 100%
+    );
+    backdrop-filter: blur(28px) saturate(1.4);
+    -webkit-backdrop-filter: blur(28px) saturate(1.4);
     border: 1px solid rgb(var(--color-highlight-500) / 0.3);
-    border-left: none;
-    border-radius: 0.3rem;
-    box-shadow: 0 4px 20px rgb(0 0 0 / 0.12);
-    align-items: flex-start;
-    gap: 0;
-    overflow: hidden;
-  }
-  :global(.dark) .dev-notice {
-    background: rgb(var(--color-primary-900));
-    border-color: rgb(var(--color-highlight-600) / 0.25);
-    box-shadow: 0 4px 20px rgb(0 0 0 / 0.35);
+    box-shadow:
+      0 0 0 1px rgb(var(--color-highlight-400) / 0.08),
+      0 8px 40px rgba(0, 0, 0, 0.55),
+      0 0 80px rgb(var(--color-highlight-600) / 0.06) inset;
   }
 
-  .dev-notice-accent {
-    width: 3px;
-    min-width: 3px;
-    align-self: stretch;
-    background: rgb(var(--color-highlight-500));
+  /* ── Top ornament ── */
+  .dev-modal-ornament {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
   }
-
-  .dev-notice-content {
+  .dev-modal-ornament-line {
     flex: 1;
-    padding: 0.9rem 0.85rem 0.9rem 0.9rem;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgb(var(--color-highlight-500) / 0.45));
   }
-
-  .dev-notice-title {
-    font-family: var(--font-heading, serif);
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgb(var(--color-highlight-600));
-    margin: 0 0 0.35rem;
+  .dev-modal-ornament-line:last-child {
+    background: linear-gradient(to left, transparent, rgb(var(--color-highlight-500) / 0.45));
   }
-  :global(.dark) .dev-notice-title {
+  .dev-modal-ornament-glyph {
     color: rgb(var(--color-highlight-400));
+    font-size: 0.85rem;
+    line-height: 1;
   }
 
-  .dev-notice-body {
-    font-family: var(--font-prose, serif);
-    font-size: 0.875rem;
-    line-height: 1.6;
-    color: rgb(var(--color-primary-700));
-    margin: 0;
-  }
-  :global(.dark) .dev-notice-body {
-    color: rgb(var(--color-primary-300));
-  }
-
-  .dev-notice-close {
-    flex-shrink: 0;
-    align-self: flex-start;
-    margin: 0.55rem 0.55rem 0 0;
-    padding: 0.2rem 0.3rem;
+  /* ── Close button ── */
+  .dev-modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.85rem;
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: rgb(var(--color-primary-400));
+    padding: 0.25rem 0.35rem;
+    border-radius: 0.2rem;
     line-height: 1;
-    border-radius: 0.15rem;
     transition: color 0.15s, background 0.15s;
   }
-  .dev-notice-close:hover {
-    color: rgb(var(--color-primary-700));
-    background: rgb(var(--color-primary-100));
+  .dev-modal-close:hover {
+    color: rgb(var(--color-highlight-300));
+    background: rgb(var(--color-highlight-500) / 0.1);
   }
-  :global(.dark) .dev-notice-close:hover {
-    color: rgb(var(--color-primary-200));
-    background: rgb(var(--color-primary-800));
+
+  /* ── Brand mark ── */
+  .dev-modal-brand {
+    font-family: var(--font-heading, serif);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-500));
+    margin: 0 0 0.7rem;
+  }
+
+  /* ── Title ── */
+  .dev-modal-title {
+    font-family: var(--font-heading, serif);
+    font-size: clamp(1.15rem, 3vw, 1.45rem);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: rgb(var(--color-primary-50));
+    margin: 0 0 1rem;
+    line-height: 1.3;
+  }
+
+  /* ── Body ── */
+  .dev-modal-body {
+    font-family: var(--font-prose, serif);
+    font-size: 0.935rem;
+    line-height: 1.8;
+    color: rgb(var(--color-primary-300));
+    margin: 0 0 1.5rem;
+  }
+
+  /* ── Divider ornament ── */
+  .dev-modal-divider {
+    position: relative;
+    height: 1px;
+    background:
+      linear-gradient(to right, transparent, rgb(var(--color-highlight-500) / 0.35)) 0 0 / 44% 1px no-repeat,
+      linear-gradient(to left, transparent, rgb(var(--color-highlight-500) / 0.35)) 100% 0 / 44% 1px no-repeat;
+    margin-bottom: 1.5rem;
+    overflow: visible;
+  }
+  .dev-modal-divider-ornament {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: rgb(var(--color-highlight-400));
+    font-size: 0.55em;
+    letter-spacing: 0.35em;
+    white-space: nowrap;
+    background: rgba(20, 14, 6, 0.85);
+    padding: 0 0.5rem;
+  }
+
+  /* ── Dismiss button ── */
+  .dev-modal-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 1.75rem;
+    background: rgb(var(--color-highlight-500));
+    color: #fff;
+    font-family: var(--font-prose, serif);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    border: 1px solid rgb(var(--color-highlight-500));
+    border-radius: 0.2rem;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s;
+  }
+  .dev-modal-btn:hover {
+    background: rgb(var(--color-highlight-400));
+    border-color: rgb(var(--color-highlight-400));
   }
 
   .section-heading {
