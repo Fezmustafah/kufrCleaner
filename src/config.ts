@@ -374,9 +374,9 @@ export const siteConfig: SiteConfig = {
       // [CONFIG:HOME_OPTIONS_FEATURED_POST_ENABLED]
       enabled: true, // Show featured post on homepage
       // [CONFIG:HOME_OPTIONS_FEATURED_POST_TYPE]
-      type: "latest", // "latest" or "featured"
+      type: "featured", // "latest" or "featured"
       // [CONFIG:HOME_OPTIONS_FEATURED_POST_SLUG]
-      slug: "getting-started", // Slug of post after '/posts/' to be featured (e.g. "post-title"). Only used when type is "featured"
+      slug: "did-islam-spread-by-the-sword-what-historians-actually-say", // Slug of post after '/posts/' to be featured (e.g. "post-title"). Only used when type is "featured"
     },
     recentPosts: {
       // [CONFIG:HOME_OPTIONS_RECENT_POSTS_ENABLED]
