@@ -77,7 +77,7 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
   <!-- SEO Meta Tags -->
   <title>{seoData.title}</title>
   <meta name="description" content={seoData.description}>
-  <link rel="canonical" href={seoData.canonical}>
+  <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href}>
 
   <!-- Robots meta tag -->
   {seoData.noIndex && (

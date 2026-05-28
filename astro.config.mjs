@@ -38,6 +38,7 @@ const isGitHubPages = DEPLOYMENT_PLATFORM === 'github-pages';
 
 export default defineConfig({
   site: siteConfig.site,
+  trailingSlash: 'always',
   prefetch: true,
   base: undefined,
   deployment: {
@@ -350,7 +351,9 @@ export default defineConfig({
   '/posts/circumcision-a-medical-and-legislative-miracle-in-the-final-message': '/posts/why-islam-prescribed-circumcision-modern-medicine-confirms-the-sunnah',
   '/posts/why-was-the-quran-not-compiled-during-the-era-of-the-prophet': '/posts/why-was-the-quran-not-compiled-during-the-prophets-lifetime-the-doubt-answered',
   '/posts/untitled-1319668747341926410': '/posts/women-rights-before-islam',
-  '/posts/a-womans-testimony-alone': '/posts/womens-testimony-in-islam-why-two-women-half-a-mind-the-complete-scholarly-analysis-from-ibn-taymiyyah-to-mahmoud-shaltut'
+  '/posts/a-womans-testimony-alone': '/posts/womens-testimony-in-islam-why-two-women-half-a-mind-the-complete-scholarly-analysis-from-ibn-taymiyyah-to-mahmoud-shaltut',
+  '/posts/category/Christanity': '/posts/category/Christianity',
+  '/posts/category/Christanity/': '/posts/category/Christianity/'
 } : {},
 image: {
     service: {
