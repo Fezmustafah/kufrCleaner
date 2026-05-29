@@ -56,6 +56,9 @@ function cleanBody(body) {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // markdown links
     .replace(/\{\{.*?\}\}/g, '')          // sidenotes
     .replace(/^\s*[-*+]\s+/gm, '')        // list bullets
+    .replace(/^[-*_]{3,}\s*$/gm, '')      // horizontal rules (---, ***, ___)
+    .replace(/https?:\/\/\S+/g, '')       // all URLs (bare lines and inline)
+    .replace(/\{Embed\}/gi, '')           // embed placeholders
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -64,7 +67,13 @@ function extractSentences(text, maxChars = 400) {
   const sentences = text
     .split(/(?<=[.!?؟])\s+/)
     .map(s => s.trim())
-    .filter(s => s.length > 30 && !/^\d+\./.test(s)); // skip numbered list items
+    .filter(s =>
+      s.length > 30 &&
+      !/^\d+\./.test(s) &&                              // numbered list items
+      !/^https?:\/\//.test(s) &&                        // bare URLs
+      !/table of contents/i.test(s) &&                  // TOC headings
+      !/(?:link is|click here|page number|as follows|see below|see above|visit|subscribe)/i.test(s) // reference orphans
+    );
 
   let result = '';
   for (const s of sentences) {
