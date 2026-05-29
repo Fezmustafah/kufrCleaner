@@ -18,6 +18,7 @@ const POSTS_DIR = path.join(__dirname, '..', 'src', 'content', 'posts');
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
+const FORCE   = args.includes('--force');
 const LIMIT = (() => { const i = args.indexOf('--limit'); return i !== -1 ? parseInt(args[i + 1]) : Infinity; })();
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -84,6 +85,9 @@ function extractSentences(text, maxChars = 400) {
 }
 
 function buildDescription(title, category, opening) {
+  // Collapse newlines — multi-line descriptions break YAML frontmatter
+  opening = opening.replace(/\s*\n+\s*/g, ' ').trim();
+
   // Try to build a 140–155 char description
 
   // Strategy 1: if opening sentences are good, use them directly
@@ -123,9 +127,13 @@ function buildDescription(title, category, opening) {
 
 function injectDescription(content, description) {
   const escaped = description.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  // Replace empty description field if it exists
-  if (/^description:\s*$/m.test(content) || /^description:\s*["']{2}\s*$/m.test(content)) {
-    return content.replace(/^description:.*$/m, `description: "${escaped}"`);
+  // Replace any existing description field (single or multi-line quoted value)
+  if (/^description:/m.test(content)) {
+    // Remove old description (handles multi-line quoted YAML strings too)
+    const cleaned = content.replace(/^description:[ \t]*"[\s\S]*?(?<!\\)"\s*\n/m, '')
+                           .replace(/^description:[ \t]*'[\s\S]*?(?<!\\)'\s*\n/m, '')
+                           .replace(/^description:.*\n/m, '');
+    return cleaned.replace(/^(title:.*$)/m, `$1\ndescription: "${escaped}"`);
   }
   // Inject after title line
   return content.replace(/^(title:.*$)/m, `$1\ndescription: "${escaped}"`);
@@ -137,6 +145,7 @@ const allFiles = fs.readdirSync(POSTS_DIR)
   .filter(f => f.endsWith('.md') && !f.includes('attachments'));
 
 let toProcess = allFiles.filter(f => {
+  if (FORCE) return true;
   const content = fs.readFileSync(path.join(POSTS_DIR, f), 'utf8');
   const parsed = parseFrontmatter(content);
   if (!parsed) return false;
