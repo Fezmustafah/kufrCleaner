@@ -49,7 +49,7 @@ function cleanBody(body) {
     .replace(/^>+.*/gm, '')               // blockquotes
     .replace(/<[^>]+>/g, '')              // HTML tags
     .replace(/^\|.*\|$/gm, '')            // tables
-    .replace(/^#{1,6}\s+/gm, '')          // headings
+    .replace(/^#{1,6}\s+.*$/gm, '')        // remove entire heading lines
     .replace(/\*\*([^*]+)\*\*/g, '$1')    // bold
     .replace(/\*([^*]+)\*/g, '$1')        // italic
     .replace(/==([^=]+)==/g, '$1')        // highlights
@@ -107,7 +107,9 @@ function buildDescription(title, category, opening) {
     if (lastPeriod > 80) {
       return truncated.slice(0, lastPeriod + 1).trim();
     }
-    return truncated.slice(0, 150).trim() + '…';
+    const hardCut = truncated.slice(0, 150);
+    const lastSpace = hardCut.lastIndexOf(' ');
+    return (lastSpace > 100 ? hardCut.slice(0, lastSpace) : hardCut).trim() + '…';
   }
 
   // Strategy 3: opening too short — pad with category context
