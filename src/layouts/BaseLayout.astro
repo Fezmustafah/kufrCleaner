@@ -1180,8 +1180,7 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
   <slot name="head" />
 
 
-  <!-- Twitter Widgets Script -->
-  <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+  <!-- Twitter Widgets Script is injected on-demand (only on pages that embed a tweet) -->
 
 </head>
 
@@ -1902,15 +1901,33 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     // Listen for browser back/forward button
     window.addEventListener('popstate', handlePopState);
 
-    // Twitter widget initialization
+    // Twitter widget initialization — lazy. The widgets.js script is heavy and
+    // was previously loaded on every page; now it's only injected on pages that
+    // actually embed a tweet, and we stop polling otherwise.
     function initializeTwitterWidgets() {
+      // Bail immediately on the ~99% of pages with no tweet — no script, no polling.
+      if (!document.querySelector('.twitter-tweet, iframe[src*="platform.twitter.com"]')) {
+        return;
+      }
+
       if (typeof window.twttr !== 'undefined' && window.twttr.widgets) {
         // Load Twitter widgets for all tweets on page
         window.twttr.widgets.load();
-      } else {
-        // If Twitter script hasn't loaded yet, wait for it
-        setTimeout(initializeTwitterWidgets, 500);
+        return;
       }
+
+      // Inject the widgets script once, on demand.
+      if (typeof window.twttr === 'undefined' && !document.getElementById('twitter-wjs')) {
+        const s = document.createElement('script');
+        s.id = 'twitter-wjs';
+        s.async = true;
+        s.charset = 'utf-8';
+        s.src = 'https://platform.twitter.com/widgets.js';
+        document.head.appendChild(s);
+      }
+
+      // Wait for the script to define window.twttr, then render.
+      setTimeout(initializeTwitterWidgets, 500);
     }
 
     // Make Twitter widget function globally available
@@ -2088,31 +2105,7 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
       }
     }
 
-    // Listen for theme changes using MutationObserver (elegant approach from master)
-    if (typeof window !== 'undefined') {
-      // Watch for class changes on documentElement (theme toggle)
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-            const isDark = document.documentElement.classList.contains('dark');
-            const wasDark = mutation.oldValue && mutation.oldValue.includes('dark');
-            
-            // Only re-render if theme actually changed
-            if (isDark !== wasDark) {
-              handleMermaidThemeChange();
-              handleTwitterThemeChange(isDark);
-              handleGiscusThemeChange(isDark);
-            }
-          }
-        });
-      });
-      
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeOldValue: true,
-        attributeFilter: ['class']
-      });
-    }
+    // (Theme-class MutationObserver is already registered above — no duplicate needed.)
 
     function initializeTableWrappers() {
       // Try multiple selectors to catch all tables

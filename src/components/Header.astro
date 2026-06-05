@@ -182,11 +182,20 @@ function loadNavScript() {
     }
   }
 
+  // rAF-throttle the scroll handler so we touch layout at most once per frame
+  // (reading scrollTop + writing styles on every raw scroll event causes jank).
+  let navTicking = false;
+  function onNavScroll() {
+    if (navTicking) return;
+    navTicking = true;
+    requestAnimationFrame(() => { updateNav(); navTicking = false; });
+  }
+
   // Tear down previous listener (Swup navigations)
   const prev = (window as any)._navbarScroll;
   if (prev) window.removeEventListener('scroll', prev, false);
-  (window as any)._navbarScroll = updateNav;
-  window.addEventListener('scroll', updateNav, { passive: true });
+  (window as any)._navbarScroll = onNavScroll;
+  window.addEventListener('scroll', onNavScroll, { passive: true });
 
   // Detect dark hero on this page — only homepage has .hero-section
   // When present, outer nav items get white text while transparent

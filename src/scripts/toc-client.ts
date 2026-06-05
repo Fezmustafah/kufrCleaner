@@ -134,10 +134,20 @@ function initializeTableOfContents() {
     updateActiveIndicator(activeItems);
   }
 
+  // Coalesce observer fires into one layout pass per frame — updateActiveState
+  // reads getBoundingClientRect() for every heading, so calling it on each raw
+  // fire during fast scrolling thrashes layout.
+  let tocTicking = false;
+  function requestActiveStateUpdate(): void {
+    if (tocTicking) return;
+    tocTicking = true;
+    requestAnimationFrame(() => { tocTicking = false; updateActiveState(); });
+  }
+
   if (tocObserver) tocObserver.disconnect();
 
   tocObserver = new IntersectionObserver(() => {
-    updateActiveState();
+    requestActiveStateUpdate();
   }, {
     rootMargin: '0px 0px 0px 0px',
     threshold: 0,
@@ -153,7 +163,7 @@ function initializeTableOfContents() {
     });
   });
 
-  nav.addEventListener('mousemove', () => nav.classList.add('is-hovered'), { once: false });
+  nav.addEventListener('mouseenter', () => nav.classList.add('is-hovered'));
   nav.addEventListener('mouseleave', () => nav.classList.remove('is-hovered'));
 }
 
