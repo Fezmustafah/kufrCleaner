@@ -1,25 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <!-- OpenIslam Wiki mark: eight-pointed khatam star (green) framing a gold
-       mihrab arch over a flared open-book base. al-andalus palette.
-       This is a clean vector recreation — replace with the original artwork
-       and re-run scripts/generate-favicons.mjs to regenerate all sizes. -->
+       mihrab arch over an open-book base. al-andalus palette.
+       Clean vector recreation — replace with the original artwork and re-run
+       scripts/generate-favicons.mjs to regenerate every size. -->
   <g stroke-linejoin="round" stroke-linecap="round" fill="none">
     <!-- Eight-pointed star outline -->
     <path
       d="M256 71 L300 150 L387 125 L362 212 L441 256 L362 300 L387 387 L300 362 L256 441 L212 362 L125 387 L150 300 L71 256 L150 212 L125 125 L212 150 Z"
       stroke="#2F6E62" stroke-width="16" />
 
-    <!-- Flared open-book base (green) -->
-    <path
-      d="M256 430 C220 410 180 408 140 430 C175 455 215 458 250 458 C256 455 256 445 256 430 Z"
+    <!-- Open-book base (green) -->
+    <path d="M256 390 C218 368 172 366 136 384 C150 398 200 396 252 404 C255 400 256 396 256 390 Z"
       fill="#2F6E62" stroke="none" />
-    <path
-      d="M256 430 C292 410 332 408 372 430 C337 455 297 458 262 458 C256 455 256 445 256 430 Z"
+    <path d="M256 390 C294 368 340 366 376 384 C362 398 312 396 260 404 C257 400 256 396 256 390 Z"
       fill="#2F6E62" stroke="none" />
 
     <!-- Mihrab pointed arch (gold) -->
     <path
-      d="M200 360 L200 255 Q205 175 256 152 Q307 175 312 255 L312 360"
+      d="M200 372 L200 255 Q205 175 256 152 Q307 175 312 255 L312 372"
       stroke="#C99A3E" stroke-width="16" />
   </g>
 </svg>

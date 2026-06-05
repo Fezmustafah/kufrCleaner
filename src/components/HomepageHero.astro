@@ -32,6 +32,9 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
 
   <div class="hero-inner">
 
+    <!-- Logo mark -->
+    <img src={`${baseUrl}logo.png`} alt="" width="112" height="112" class="hero-logo" />
+
     <!-- Site title -->
     <h1 class="hero-title">OpenIslam</h1>
 
@@ -127,6 +130,18 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     font-size: 0.9rem;
     line-height: 1;
     white-space: nowrap;
+  }
+
+  /* ── Logo mark ── */
+  .hero-logo {
+    display: block;
+    width: clamp(72px, 12vw, 112px);
+    height: auto;
+    margin: 0 auto 1.25rem;
+    filter: drop-shadow(0 0 28px rgb(var(--color-highlight-500) / 0.45));
+  }
+  @media (max-width: 480px) {
+    .hero-logo { margin-bottom: 0.9rem; }
   }
 
   /* ── Title ── */
