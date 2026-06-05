@@ -21,13 +21,25 @@ const LOGO = join(PUBLIC, 'logo.png');
 
 const BROWN = '#4D3514'; // header / brand background
 
-// Transparent favicon at `size` — no card/badge, per spec.
+// Rounded brand-brown tile so the mark stays legible on both light and dark
+// browser chrome (a fully transparent mark goes dim on dark tabs).
+const tileBg = (size, color) =>
+  Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">` +
+      `<rect width="${size}" height="${size}" rx="${Math.round(size * 0.2)}" ry="${Math.round(size * 0.2)}" fill="${color}"/>` +
+      `</svg>`
+  );
+
 async function favicon(outName, size = 512) {
-  await sharp(MARK)
-    .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  const mark = await sharp(MARK)
+    .resize(Math.round(size * 0.74), Math.round(size * 0.74),
+      { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png().toBuffer();
+  await sharp(tileBg(size, BROWN))
+    .composite([{ input: mark, gravity: 'center' }])
     .png()
     .toFile(join(PUBLIC, outName));
-  console.log(`  ✓ ${outName} (${size}, transparent)`);
+  console.log(`  ✓ ${outName} (${size}, brown tile)`);
 }
 
 async function appleTouchIcon() {
