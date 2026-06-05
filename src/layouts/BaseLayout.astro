@@ -155,6 +155,7 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
   ) : (
     <link rel="icon" href="/favicon.png" type="image/png" />
   )}
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
   <!-- JSON-LD structured data -->
   {seoData.ogType === 'article' && seoData.publishedTime && (
