@@ -1,7 +1,7 @@
 ---
 import { siteConfig, getFontFamily, getGoogleFontsUrl, shouldLoadLocalFonts, shouldLoadCdnFonts, getFontDisplay, getThemeDisplayName } from '@/config';
 import type { SEOData } from '@/types';
-import { generateStructuredData, generateOrganizationSchema, generateWebsiteSchema } from '@/utils/seo';
+import { generateStructuredData, generateOrganizationSchema, generateWebsiteSchema, generateDefinedTermSchema } from '@/utils/seo';
 import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
 import CommandPalette from '@/components/CommandPalette.astro';
@@ -177,6 +177,12 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
   <!-- Organization entity (site-wide) — establishes OpenIslam as a distinct
        entity so search/AI does not conflate it with similarly-named sites. -->
   <script type="application/ld+json" set:html={generateOrganizationSchema()} />
+
+  <!-- DefinedTerm (homepage) — pins the name "OpenIslam" and its variants to
+       this site, explicitly distinct from WikiIslam. -->
+  {_isHomePage && (
+    <script type="application/ld+json" set:html={generateDefinedTermSchema()} />
+  )}
 
   <!-- Preconnect to external domains for faster resource loading -->
   {shouldLoadCdnFonts() && (

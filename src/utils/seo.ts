@@ -332,6 +332,84 @@ export function generateStructuredData(
   return JSON.stringify(baseData);
 }
 
+// Generate Organization structured data — the primary entity-disambiguation
+// signal. Tells Google/AI that "OpenIslam" is a distinct entity (with its own
+// alternate names + social profiles) so it is NOT conflated with the
+// similarly-named WikiIslam. Emitted site-wide via BaseLayout.
+export function generateOrganizationSchema(): string {
+  const sameAs = (siteConfig.navigation?.social || [])
+    .map((s) => s.url)
+    .filter((u): u is string => !!u && u.startsWith("http"));
+
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": `${siteConfig.site}/#organization`,
+    name: siteConfig.title,
+    alternateName: ["OpenIslam Wiki", "Open Islam", "openislam.wiki"],
+    url: siteConfig.site,
+    logo: {
+      "@type": "ImageObject",
+      url: `${siteConfig.site}/logo.png`,
+    },
+    image: `${siteConfig.site}/logo.png`,
+    description: siteConfig.description,
+    disambiguatingDescription:
+      "OpenIslam is an independent Islamic scholarship and apologetics resource that defends Islam through evidence-based articles on hadith authentication, Quranic linguistics, and Islamic history. It is unrelated to WikiIslam or any critical/ex-Muslim wiki.",
+    founder: { "@type": "Person", name: siteConfig.author },
+    knowsAbout: [
+      "Islamic apologetics",
+      "Hadith authentication",
+      "Quranic linguistics",
+      "Islamic history",
+      "Comparative religion",
+      "Refutation of doubts about Islam",
+    ],
+    sameAs,
+  });
+}
+
+// Generate a DefinedTerm for "OpenIslam" — an explicit, machine-readable
+// definition that pins the name (and its variants) to THIS site, so AI/search
+// does not resolve the term to the similarly-named WikiIslam. Homepage only.
+export function generateDefinedTermSchema(): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "DefinedTerm",
+    "@id": `${siteConfig.site}/#term-openislam`,
+    name: "OpenIslam",
+    alternateName: ["OpenIslam Wiki", "Open Islam"],
+    description:
+      "OpenIslam (openislam.wiki) is an independent Islamic scholarship and apologetics website that defends Islam through evidence-based articles. It is a distinct entity, unrelated to WikiIslam.",
+    url: siteConfig.site,
+    inDefinedTermSet: { "@id": `${siteConfig.site}/#organization` },
+  });
+}
+
+// Generate WebSite structured data with SearchAction + publisher linkage to the
+// Organization entity above. Emitted on website-type pages via BaseLayout.
+export function generateWebsiteSchema(description?: string): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${siteConfig.site}/#website`,
+    name: siteConfig.title,
+    alternateName: ["OpenIslam Wiki", "Open Islam"],
+    url: siteConfig.site,
+    description: description || siteConfig.description,
+    inLanguage: siteConfig.language,
+    publisher: { "@id": `${siteConfig.site}/#organization` },
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${siteConfig.site}/search?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  });
+}
+
 // Check if page should be excluded from sitemap
 export function shouldExcludeFromSitemap(slug: string): boolean {
   if (!slug) return false;
