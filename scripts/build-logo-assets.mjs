@@ -82,6 +82,12 @@ await sharp(out, { raw: { width: W, height: H, channels: C } })
   .then((b) => sharp(b).resize({ width: 1024 }).png().toFile(join(PUBLIC, 'logo.png')));
 console.log('  ✓ logo.png (lockup, cream/gold wordmark, transparent)');
 
+// ── logo-light.png : the ORIGINAL lockup (green wordmark) for the light-mode
+//    header, where cream text would be invisible. Just trimmed + resized. ──
+await sharp(SRC).png().trim().toBuffer()
+  .then((b) => sharp(b).resize({ width: 1024 }).png().toFile(join(PUBLIC, 'logo-light.png')));
+console.log('  ✓ logo-light.png (lockup, original green/gold wordmark, transparent)');
+
 // Flattened previews for visual QA (deleted after review).
 await sharp(join(PUBLIC, 'favicon-source.png')).flatten({ background: '#4D3514' }).resize(300).jpeg().toFile(join(PUBLIC, '_fav_preview.jpg'));
 await sharp(join(PUBLIC, 'logo.png')).flatten({ background: '#4D3514' }).resize(760).jpeg().toFile(join(PUBLIC, '_logo_preview.jpg'));

@@ -1,7 +1,7 @@
 ---
 import { siteConfig, getFontFamily, getGoogleFontsUrl, shouldLoadLocalFonts, shouldLoadCdnFonts, getFontDisplay, getThemeDisplayName } from '@/config';
 import type { SEOData } from '@/types';
-import { generateStructuredData } from '@/utils/seo';
+import { generateStructuredData, generateOrganizationSchema, generateWebsiteSchema } from '@/utils/seo';
 import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
 import CommandPalette from '@/components/CommandPalette.astro';
@@ -171,12 +171,12 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     })} />
   )}
   {seoData.ogType === 'website' && (
-    <script type="application/ld+json" set:html={generateStructuredData('website', {
-      name: siteConfig.title,
-      description: seoData.description || siteConfig.description,
-      url: siteConfig.site,
-    })} />
+    <script type="application/ld+json" set:html={generateWebsiteSchema(seoData.description)} />
   )}
+
+  <!-- Organization entity (site-wide) — establishes OpenIslam as a distinct
+       entity so search/AI does not conflate it with similarly-named sites. -->
+  <script type="application/ld+json" set:html={generateOrganizationSchema()} />
 
   <!-- Preconnect to external domains for faster resource loading -->
   {shouldLoadCdnFonts() && (
@@ -409,10 +409,11 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
 
     // Initialize theme before page renders to prevent flash
     async function initTheme() {
-      // Handle dark/light mode
+      // Handle dark/light mode — DARK is the default for new/unset users.
+      // OS preference is intentionally ignored; only an explicit user choice
+      // (stored 'theme') overrides the dark default, and the toggle still works.
       const storedMode = localStorage.getItem('theme');
-      const systemMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      const mode = storedMode || systemMode;
+      const mode = storedMode || 'dark';
 
       document.documentElement.classList.remove('light', 'dark');
       document.documentElement.classList.add(mode);
@@ -436,19 +437,9 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
 
     // View Transitions disabled - no need for astro:page-load
 
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      if (window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')) {
-      }
-      if (!localStorage.getItem('theme')) {
-        const newTheme = e.matches ? 'dark' : 'light';
-        localStorage.setItem('theme', newTheme);
-        initTheme();
-      } else {
-        if (window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')) {
-        }
-      }
-    });
+    // Dark is the default regardless of OS preference. We no longer auto-follow
+    // system theme changes — only an explicit user toggle (stored 'theme') changes
+    // the mode. (Listener intentionally removed.)
 
     // Global theme toggle function - always available regardless of button visibility
     function toggleTheme() {
