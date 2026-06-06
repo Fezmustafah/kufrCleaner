@@ -122,9 +122,9 @@ export class GraphComponent extends HTMLElement {
 		this.renderer = new GraphRenderer(this);
 		this.simulator = new GraphSimulator(this);
 
-		this.renderer.mount(this.simulator, this.graphContainer).then(() => {
-			this.setup();
-		});
+		this.renderer.mount(this.simulator, this.graphContainer)
+			.then(() => this.setup())
+			.catch((e) => this.handleInitFailure(e));
 		this.simulator.mount(this.renderer);
 
 		this.propertyObserver = new MutationObserver(mutations => {
@@ -140,6 +140,24 @@ export class GraphComponent extends HTMLElement {
 			});
 		});
 		this.propertyObserver.observe(this, { attributes: true });
+	}
+
+	/**
+	 * PixiJS renderer init (WebGL) — or the first setup() — can fail on machines
+	 * with hardware acceleration disabled or a blocklisted GPU. Without a catch the
+	 * `.then(setup)` chain silently rejects and the loading skeleton pulses forever
+	 * as a dark box. Clear it and hide the graph so the surrounding layout looks
+	 * intentional rather than broken.
+	 */
+	handleInitFailure(e: unknown) {
+		console.error('[STARLIGHT-SITE-GRAPH] graph failed to initialize:', e);
+		this.classList.remove('slsg-graph-skeleton');
+		this.placeholderContainer.style.display = 'none';
+		// Hide the whole SiteGraph wrapper (covers sidebar / modal / hero) so no
+		// empty bordered strip or dead canvas remains.
+		const wrapper = this.closest('.slsg-wrapper') as HTMLElement | null;
+		if (wrapper) wrapper.style.display = 'none';
+		this.style.display = 'none';
 	}
 
 	async connectedCallback() {

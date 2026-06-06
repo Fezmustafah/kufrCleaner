@@ -39,17 +39,28 @@ export class GraphRenderer {
 		// Don't use resizeTo — when the container starts as display:none (modal) it
 		// produces a feedback loop with wrong dimensions. We handle resize via
 		// IntersectionObserver (visibility trigger) and explicit calls instead.
-		await this.app.init({
-			antialias: true,
-			backgroundAlpha: 0,
-			// Clamp renderer resolution to [2, 4].
-			// Minimum 2: on 1× displays, 2× oversampling gives PixiJS's 2D text canvas
-			// enough pixels to anti-alias cleanly (otherwise text has visible staircase aliasing).
-			// Maximum 4: above 4× the GPU fill-rate cost is extreme with negligible gain.
-			// autoDensity:true handles the CSS scaling so the canvas always fits its container.
-			resolution: Math.min(Math.max(window.devicePixelRatio ?? 2, 2), 4),
-			autoDensity: true,
-		} as PIXI.ApplicationOptions);
+		try {
+			await this.app.init({
+				antialias: true,
+				backgroundAlpha: 0,
+				// Clamp renderer resolution to [2, 4].
+				// Minimum 2: on 1× displays, 2× oversampling gives PixiJS's 2D text canvas
+				// enough pixels to anti-alias cleanly (otherwise text has visible staircase aliasing).
+				// Maximum 4: above 4× the GPU fill-rate cost is extreme with negligible gain.
+				// autoDensity:true handles the CSS scaling so the canvas always fits its container.
+				resolution: Math.min(Math.max(window.devicePixelRatio ?? 2, 2), 4),
+				autoDensity: true,
+			} as PIXI.ApplicationOptions);
+		} catch (e) {
+			// PixiJS needs a WebGL context. When hardware acceleration is disabled or
+			// the GPU is blocklisted (common on desktop browsers), init() rejects.
+			// Re-throw tagged so the GraphComponent can clear the loading skeleton
+			// instead of leaving a dark box pulsing forever.
+			throw new Error(
+				'PixiJS renderer init failed — WebGL unavailable (hardware acceleration disabled or GPU blocklisted): ' +
+				(e instanceof Error ? e.message : String(e)),
+			);
+		}
 		this.container.appendChild(this.app.canvas);
 
 		this.visibilityObserver = new IntersectionObserver((entries) => {
