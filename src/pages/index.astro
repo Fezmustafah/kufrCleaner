@@ -70,6 +70,20 @@ const hotTopics = [...sortedPosts]
   .sort((a, b) => b.words - a.words)
   .slice(0, 6);
 
+// Recently Updated: posts with `modified` field, sorted by modified date desc, top 10
+const getModifiedDate = (post: any): Date | null => {
+  const m = post.data.modified;
+  if (!m) return null;
+  return m instanceof Date ? m : new Date(m);
+};
+const recentlyUpdated = [...visiblePosts]
+  .filter(p => getModifiedDate(p) !== null)
+  .sort((a, b) => getModifiedDate(b)!.getTime() - getModifiedDate(a)!.getTime())
+  .slice(0, 10);
+
+// Newly Added: top 6 most recently published posts
+const newlyAdded = sortedPosts.slice(0, 6);
+
 // Stats for hero
 const postCount = visiblePosts.length;
 const categoryCount = allCategories.length;
@@ -282,6 +296,129 @@ const structuredData = {
                 </h2>
               </div>
               <PostCard post={featuredPost} featured={true} eager={true} context="featured" />
+            </section>
+          )}
+
+          <!-- Recently Updated -->
+          {recentlyUpdated.length > 0 && (
+            <section class="mb-12">
+              <div class="relative rounded-xl p-5 overflow-hidden
+                bg-gradient-to-br from-highlight-500/5 via-primary-50/0 to-primary-500/5
+                dark:from-highlight-600/8 dark:via-primary-950/0 dark:to-primary-800/10
+                border border-primary-200/40 dark:border-primary-700/30">
+                {/* top edge glow */}
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-highlight-500/50 to-transparent pointer-events-none" aria-hidden="true"></div>
+
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="section-heading">
+                    <span aria-hidden="true" class="section-heading-ornament">◆</span>
+                    Recently Updated
+                  </h2>
+                  <span class="text-xs text-primary-400 dark:text-primary-500 tabular-nums">{recentlyUpdated.length} articles</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {recentlyUpdated.map((post: any) => {
+                    const modDate = getModifiedDate(post)!;
+                    const cat: string = post.data.category ?? '';
+                    const modLabel = modDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                    return (
+                      <a
+                        href={`${import.meta.env.BASE_URL}posts/${post.id}`}
+                        class="group relative flex flex-col gap-1 p-3.5 rounded-lg
+                          bg-white/40 dark:bg-primary-950/40
+                          backdrop-blur-sm
+                          border border-primary-200/60 dark:border-primary-700/40
+                          hover:border-highlight-400/60 dark:hover:border-highlight-500/40
+                          hover:shadow-[0_0_16px_rgb(var(--color-highlight-500)/0.12)]
+                          transition-all duration-200"
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          {cat && (
+                            <span class="text-[0.65rem] font-bold tracking-widest uppercase text-highlight-600 dark:text-highlight-400 truncate">
+                              {cat}
+                            </span>
+                          )}
+                          <span class="text-[0.65rem] text-primary-400 dark:text-primary-500 tabular-nums shrink-0 ml-auto flex items-center gap-1">
+                            <span aria-hidden="true">↻</span>{modLabel}
+                          </span>
+                        </div>
+                        <span class="text-sm font-medium leading-snug text-primary-900 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors line-clamp-2">
+                          {post.data.title}
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
+          <!-- Newly Added -->
+          {newlyAdded.length > 0 && (
+            <section class="mb-12">
+              <div class="relative rounded-xl p-5 overflow-hidden
+                bg-gradient-to-br from-primary-500/4 via-transparent to-highlight-500/5
+                dark:from-primary-800/20 dark:via-transparent dark:to-highlight-700/8
+                border border-primary-200/40 dark:border-primary-700/30">
+                {/* top edge glow */}
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-primary-400/40 to-transparent pointer-events-none" aria-hidden="true"></div>
+
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="section-heading">
+                    <span aria-hidden="true" class="section-heading-ornament">◆</span>
+                    Newly Added
+                  </h2>
+                  <a href={`${import.meta.env.BASE_URL}posts`} class="text-base text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all">
+                    All articles →
+                  </a>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {newlyAdded.map((post: any) => {
+                    const cat: string = post.data.category ?? '';
+                    const pubLabel = post.data.date
+                      ? new Date(post.data.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : '';
+                    return (
+                      <a
+                        href={`${import.meta.env.BASE_URL}posts/${post.id}`}
+                        class="group relative flex flex-col gap-1.5 p-4 rounded-lg
+                          bg-white/40 dark:bg-primary-950/40
+                          backdrop-blur-sm
+                          border border-primary-200/60 dark:border-primary-700/40
+                          hover:border-highlight-400/60 dark:hover:border-highlight-500/40
+                          hover:shadow-[0_0_16px_rgb(var(--color-highlight-500)/0.12)]
+                          transition-all duration-200"
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          {cat && (
+                            <span class="text-[0.65rem] font-bold tracking-widest uppercase text-highlight-600 dark:text-highlight-400 truncate">
+                              {cat}
+                            </span>
+                          )}
+                          <span class="inline-flex items-center gap-0.5 text-[0.65rem] font-semibold tracking-wider uppercase text-primary-400 dark:text-primary-500 shrink-0 ml-auto">
+                            <span aria-hidden="true" class="text-highlight-500/70">✦</span> New
+                          </span>
+                        </div>
+                        <span class="text-sm font-semibold leading-snug text-primary-900 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors line-clamp-3">
+                          {post.data.title}
+                        </span>
+                        {post.data.description && (
+                          <span class="text-xs text-primary-500 dark:text-primary-400 line-clamp-2 leading-relaxed mt-auto">
+                            {post.data.description}
+                          </span>
+                        )}
+                        {pubLabel && (
+                          <span class="text-[0.65rem] text-primary-400 dark:text-primary-500 tabular-nums mt-0.5">
+                            {pubLabel}
+                          </span>
+                        )}
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
             </section>
           )}
 
