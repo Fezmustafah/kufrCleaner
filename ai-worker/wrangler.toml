@@ -1,0 +1,31 @@
+# OpenIslam Wiki — AI assistant Worker.
+# This is SEPARATE from the static site (the site ships from GitHub Pages).
+# Deploy with:  cd ai-worker && npx wrangler deploy
+name = "openislam-ai"
+main = "src/index.ts"
+compatibility_date = "2025-01-15"
+
+# Workers AI — embeddings + chat model (free tier).
+[ai]
+binding = "AI"
+
+# Vector store for article chunks. Create the index first (see README):
+#   npx wrangler vectorize create openislam-articles --dimensions=768 --metric=cosine
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "openislam-articles"
+
+# Per-IP rate limit for /ask (free, no resource to provision).
+# 20 requests per 60s window. namespace_id is an arbitrary integer string.
+[[ratelimits]]
+binding = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
+
+[vars]
+# Lock browser access to your site origin(s). Comma-separated. localhost is
+# always allowed for dev. Update to your real domain before going live.
+ALLOWED_ORIGINS = "https://www.openislam.wiki,https://openislam.wiki"
+
+# INGEST_SECRET is a SECRET, not a var. Set it once with:
+#   npx wrangler secret put INGEST_SECRET

@@ -76,7 +76,9 @@ export default defineConfig({
       resources: ["'self'", "data:", "https:"]
     },
     connectDirective: {
-      resources: ["'self'", "https://giscus.app"]
+      // *.workers.dev = AI assistant Worker (ai-worker). If you move the Worker
+      // to a custom domain, add that origin here too.
+      resources: ["'self'", "https://giscus.app", "https://*.workers.dev"]
     },
     frameDirective: {
       resources: [
@@ -210,7 +212,6 @@ export default defineConfig({
   '/posts/the-quran-borrowed-the-story-of-solomon-and-the-hoopoe-from-targum-esther-ii': '/posts/did-the-quran-borrow-solomons-hoopoe-story-from-targum-sheni',
   '/posts/contradiction-in-the-quran-in-its-mention-of-the-words-of-god-almighty-to-moses-peace-be-upon-him': '/posts/did-the-quran-contradict-itself-about-allah-speaking-to-moses',
   '/posts/story-of-abraham-and-his-father-in-the-quran-was-quoted-from-the-haggadah': '/posts/did-the-quran-copy-abrahams-story-from-the-haggadah-a-complete-refutation-with-historical-evidence',
-  '/posts/response-to-the-allegation-that-the-story-of-the-birth-of-christ-was-copied-from-the-apocryphal-go': '/posts/did-the-quran-copy-from-the-apocryphal-gospels-a-complete-refutation-with-academic-sources',
   '/posts/blowing-up-the-talmudic-traditions-in-the-quran': '/posts/did-the-quran-copy-the-talmud-a-complete-refutation-of-the-plagiarism-claim',
   '/posts/doubts-and-responses-to-allegations-of-distortion-of-the-holy-quran': '/posts/did-the-quran-get-distorted-scholarly-refutations-to-8-major-claims-al-hajjaj-ibn-masoud-surat-al-noorayn-more',
   '/posts/sunset': '/posts/did-the-quran-say-the-sun-literally-sets-in-a-muddy-spring-quran-18-86-explained',
@@ -259,6 +260,7 @@ export default defineConfig({
   '/posts/filth-is-the-hallmark-of-faith-in-christianity': '/posts/filth-as-holiness-the-christian-tradition-of-rejecting-cleanliness-and-its-contrast-with-islamic-purity',
   '/posts/deception-no-24-after-me-there-will-be-imams-who-will-not-be-guided-by-my-guidance-or-my-sunnah': '/posts/future-corrupt-rulers-in-sahih-muslim-hadith-explained',
   '/posts/galatians-1-8': '/posts/galatians-1-69-paul-was-fighting-christians-not-muslims',
+  '/posts/geckos-are-incapable-of-blowing': '/posts/gecko-blowing-on-fire-hadith-atheist-objection-refuted',
   '/posts/contradictions-in-the-story-of-the-rape-of-dinah-the-daughter-of-our-master-jacob-in-the-book-of-g': '/posts/genesis-34-and-the-rape-of-dinah-internal-contradictions-proving-later-insertion-into-the-biblical-text',
   '/posts/belief-in-god-almighty-between-islam-and-christianity': '/posts/god-in-islam-and-christianity-tawhid-the-deleted-trinity-verse-and-twenty-unworthy-biblical',
   '/posts/embroyoloy': '/posts/hadith-of-42-nights-embryology-sex-differentiation-and-organ-formation-explained',
@@ -350,6 +352,7 @@ export default defineConfig({
   '/posts/as-if-it-is-ascending-to-the-sky': '/posts/quran-6-125-refutes-the-doubt-does-ascending-into-the-sky-really-mean-rising-upward',
   '/posts/the-suspicion-of-bringing-the-plural-instead-of-the-dual': '/posts/quran-66-4-your-hearts-why-the-plural-replaces-the-dual',
   '/posts/quran-9-29': '/posts/quran-9-29-fight-those-who-believe-not-context-and-response',
+  '/posts/did-the-quran-copy-from-the-apocryphal-gospels-a-complete-refutation-with-academic-sources': '/posts/quran-and-the-apocryphal-gospels-plagiarism-claim-refuted',
   '/posts/31-common-contradiction-in-quran-refuted': '/posts/quran-contradictions-debunked-days-of-creation-intercession-alcohol-and-more',
   '/posts/quranic-miracle-of-deep-sea-darkness-waves-above-waves-in-surah-an-nur-40': '/posts/qurans-layered-darkness-in-deep-seas-scientific-miracle',
   '/posts/what-is-the-legal-ruling-on-the-crime-of-rape': '/posts/rape-in-islamic-law-punishment-evidence-and-protection',
@@ -372,8 +375,6 @@ export default defineConfig({
   '/posts/sahih-bhukari-146': '/posts/sawdah-and-the-veil-omars-jealousy-not-harassment',
   '/posts/scientific-errors': '/posts/scientific-errors-in-the-bible-a-comprehensive-examination',
   '/posts/inquiry-about-selling-the-mother-of-a-child-and-marrying-a-chaste-right-hand-slave-hadiths': '/posts/selling-umm-al-walad-sex-with-captives-and-khalid-ibn-al-walid-answering-three-major-misconceptions-about-islam',
-  '/posts/silencing-the-followers-of-satan-with-the-parsing-of-these-two-are-magicians': '/posts/silencing-the-objection-to-indeed-these-two-are-magicians-a-grammatical-refutation',
-  '/posts/the-claim-of-a-grammatical-error-in-quran-20-63-a-complete-refutation': '/posts/silencing-the-objection-to-indeed-these-two-are-magicians-a-grammatical-refutation',
   '/posts/common-15-claims': '/posts/sixteen-christian-arguments-for-the-divinity-of-christ-a-complete-refutation-from-the-bible-itself',
   '/posts/slavery-and-concubinage-endorsed-by-the-bible-1354004700260733043': '/posts/slavery-concubines-and-war-captives-in-the-bible-the-christian-double-standard',
   '/posts/slavery-quick-version': '/posts/slavery-in-islam-islamic-law-vs-western-systems-explained',
@@ -389,10 +390,10 @@ export default defineConfig({
   '/posts/the-problem-of-the-letter-alif-in-some-verses-of-the-quran': '/posts/the-alif-of-pause-in-quranic-recitation-linguistic-evidence-and-reader-positions',
   '/posts/pagan-origins-of-christianity-the-shape-of-the-ark-of-the-covenant-ark-of-the-lord': '/posts/the-ark-of-the-covenant-was-copied-from-egyptian-pharaonic-coffins',
   '/posts/responding-to-the-allegation-of-similarity-between-the-birth-of-mithras-and-the-prophet-isa-peace': '/posts/the-birth-of-mithras-vs-the-birth-of-jesus-in-the-quran-a-refutation-of-the-similarity-claim',
+  '/posts/the-dung-of-camel-smells-like-musk': '/posts/the-camel-dung-narration-a-hadith-criticism-response',
   '/posts/age-argument-omar': '/posts/the-covenant-of-umar-explained-refuting-christian-polemics-against-islam',
   '/posts/the-miracle-in-the-almightys-saying-he-said-your-appointment-is-the-day-of-adornment': '/posts/the-day-of-adornment-in-the-quran-the-pharaonic-festival-that-confirms-divine-revelation',
   '/posts/the-devil-urinates': '/posts/the-devil-urinates-in-the-ear-understanding-the-hadith-mocked-by-critics',
-  '/posts/where-is-the-rest-of-surat-al-ahzab': '/posts/the-doubt-about-the-missing-verses-of-surah-al-ahzab-a-full-response',
   '/posts/as-an-example-who-wrote-it-in-response-to-the-theological-defense-team': '/posts/the-epistle-to-the-hebrews-who-wrote-it',
   '/posts/talking-donkey': '/posts/the-fabricated-talking-donkey-hadith-and-the-bibles-speaking-animals',
   '/posts/20-evidences-that-lie-the-story': '/posts/the-false-attribution-of-the-story-of-david-and-uriahs-wife-to-the-quran',

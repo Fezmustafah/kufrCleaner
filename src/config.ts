@@ -169,6 +169,16 @@ export interface SiteConfig {
     };
   };
   
+  // AI Assistant
+  aiAssistant: {
+    enabled: boolean;
+    workerUrl: string;
+    title: string;
+    intro: string;
+    placeholder: string;
+    suggestions: string[];
+  };
+
   // Optional Content Types
   optionalContentTypes: {
   };
@@ -361,6 +371,28 @@ export const siteConfig: SiteConfig = {
         url: "https://discord.gg/29gmvhXRh8",
         icon: "discord",
       },
+    ],
+  },
+
+  // AI Assistant — homepage search assistant. The "brain" is the Cloudflare
+  // Worker in /ai-worker (Workers AI + Vectorize); it answers STRICTLY from
+  // indexed articles and links the source. See ai-worker/README.md to deploy.
+  aiAssistant: {
+    // [CONFIG:AI_ASSISTANT_ENABLED]
+    enabled: true,
+    // [CONFIG:AI_ASSISTANT_WORKER_URL] Deployed Worker base URL, no trailing slash
+    workerUrl: "https://openislam-ai.YOUR-SUBDOMAIN.workers.dev",
+    // [CONFIG:AI_ASSISTANT_TITLE]
+    title: "Ask OpenIslam",
+    // [CONFIG:AI_ASSISTANT_INTRO]
+    intro: "Ask a question — I'll answer from OpenIslam's articles and point you to the source.",
+    // [CONFIG:AI_ASSISTANT_PLACEHOLDER]
+    placeholder: "Ask about a hadith, objection, or topic…",
+    // [CONFIG:AI_ASSISTANT_SUGGESTIONS]
+    suggestions: [
+      "Was Aisha's age a real problem?",
+      "Does the Quran describe embryology?",
+      "Did Islam spread by the sword?",
     ],
   },
 

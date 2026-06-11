@@ -8,6 +8,7 @@ import PostCard from '@/components/PostCard.astro';
 import Icon from '@/components/Icon.astro';
 import { optimizePostImagePath } from '@/utils/images';
 import HomepageHero from '@/components/HomepageHero.astro';
+import AiAssistant from '@/components/AiAssistant.astro';
 
 // Get all posts and filter by visibility
 const allPosts = await getCollection('posts');
@@ -583,6 +584,9 @@ const structuredData = {
 
     </div>
   </div>
+
+  <!-- AI search assistant — homepage only -->
+  <AiAssistant />
 </BaseLayout>
 
 

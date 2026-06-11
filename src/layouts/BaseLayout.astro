@@ -1236,6 +1236,12 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     <script>
       try { await import('../scripts/toc-client.ts'); } catch (_) {}
     </script>
+    <script>
+      try { await import('../scripts/posts-sort-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/ai-assistant-client.ts'); } catch (_) {}
+    </script>
 
   <!-- Global scripts - Defer non-critical JavaScript -->
   <script define:vars={{ commentsEnabled: siteConfig.postOptions.comments.enabled }} defer>

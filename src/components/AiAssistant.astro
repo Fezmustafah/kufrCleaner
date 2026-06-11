@@ -1,0 +1,134 @@
+---
+// Floating AI search assistant — homepage only.
+//
+// Markup + styles live here; behaviour is in src/scripts/ai-assistant-client.ts
+// (loaded globally so it survives Swup navigation and activates wherever this
+// root is present). Answers come from the Cloudflare Worker in /ai-worker.
+import { siteConfig } from '@/config';
+
+const ai = siteConfig.aiAssistant;
+const enabled = ai?.enabled && !!ai.workerUrl && !ai.workerUrl.includes('YOUR-SUBDOMAIN');
+const suggestions = ai?.suggestions ?? [];
+---
+
+{enabled && (
+  <div
+    id="ai-assistant"
+    data-ai-assistant
+    data-worker-url={ai.workerUrl.replace(/\/$/, '')}
+    class="fixed bottom-5 right-5 z-[60] print:hidden"
+  >
+    {/* ── Panel ── */}
+    <div
+      data-ai-panel
+      role="dialog"
+      aria-modal="false"
+      aria-label={ai.title}
+      hidden
+      class="ai-panel absolute bottom-16 right-0 w-[min(92vw,380px)] max-h-[72vh] flex flex-col
+        rounded-xl border border-primary-200 dark:border-primary-700
+        bg-white dark:bg-primary-900 shadow-2xl overflow-hidden origin-bottom-right"
+    >
+      {/* Header */}
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/80">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="grid place-items-center w-7 h-7 rounded-full bg-highlight-500/15 text-highlight-600 dark:text-highlight-400 shrink-0">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 14l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-primary-900 dark:text-primary-50 truncate">{ai.title}</p>
+            <p class="text-[0.7rem] text-primary-400 dark:text-primary-500">Answers from this site's articles</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          data-ai-close
+          aria-label="Close"
+          class="grid place-items-center w-8 h-8 rounded-md text-primary-500 hover:text-primary-900 dark:hover:text-primary-100 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div data-ai-messages class="flex-1 overflow-y-auto px-4 py-3 space-y-3 text-sm">
+        <div class="ai-msg ai-msg--bot">
+          <p class="text-primary-700 dark:text-primary-300 leading-relaxed">{ai.intro}</p>
+        </div>
+        {suggestions.length > 0 && (
+          <div data-ai-suggestions class="flex flex-wrap gap-1.5 pt-1">
+            {suggestions.map((s) => (
+              <button
+                type="button"
+                data-ai-suggestion={s}
+                class="text-left text-[0.8rem] px-2.5 py-1 rounded-full border border-highlight-400/40 text-highlight-700 dark:text-highlight-300 bg-highlight-500/5 hover:bg-highlight-500/15 transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <form data-ai-form class="flex items-end gap-2 p-3 border-t border-primary-200 dark:border-primary-700 bg-primary-50/60 dark:bg-primary-900/60">
+        <textarea
+          data-ai-input
+          rows="1"
+          maxlength="600"
+          placeholder={ai.placeholder}
+          class="flex-1 resize-none max-h-28 rounded-lg border border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-950 px-3 py-2 text-sm text-primary-900 dark:text-primary-100 placeholder:text-primary-400 focus:outline-none focus:ring-2 focus:ring-highlight-500"
+        ></textarea>
+        <button
+          type="submit"
+          data-ai-send
+          aria-label="Send"
+          class="grid place-items-center w-9 h-9 shrink-0 rounded-lg bg-highlight-500 text-white hover:bg-highlight-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>
+        </button>
+      </form>
+    </div>
+
+    {/* ── Bubble ── */}
+    <button
+      type="button"
+      data-ai-toggle
+      aria-label={`Open ${ai.title}`}
+      aria-expanded="false"
+      class="ai-bubble grid place-items-center w-14 h-14 rounded-full bg-highlight-500 text-white shadow-lg hover:bg-highlight-400 hover:scale-105 active:scale-95 transition-all"
+    >
+      <svg data-ai-icon-open viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <svg data-ai-icon-close viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+)}
+
+<style>
+  .ai-panel {
+    animation: ai-pop 0.16s ease-out;
+  }
+  @keyframes ai-pop {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .ai-msg--user {
+    margin-left: auto;
+    max-width: 85%;
+    background: rgb(var(--color-highlight-500) / 0.12);
+    border-radius: 0.75rem 0.75rem 0.25rem 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .ai-msg--bot {
+    max-width: 92%;
+  }
+  .ai-sources a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ai-panel { animation: none; }
+    .ai-bubble { transition: none; }
+  }
+</style>
