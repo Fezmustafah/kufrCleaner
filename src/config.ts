@@ -33,7 +33,7 @@ export interface SiteConfig {
   twitterHandle?: string;
 
   // Global Settings
-  theme: "minimal" | "custom" | "al-andalus";
+  theme: "minimal" | "custom" | "al-andalus" | "ottoman-slate";
   customThemeFile?: string; // Filename in src/themes/custom/ (e.g., "my-cool-theme" for my-cool-theme.ts)
   availableThemes: "default" | Array<string>; // Control which themes users can select - "default" shows all built-in themes, array can include custom theme filenames
   fonts: {
@@ -675,7 +675,7 @@ function validateSiteConfig(config: SiteConfig): { isValid: boolean; errors: str
   }
 
   // Theme validation
-  const validThemes = ['minimal', 'oxygen', 'atom', 'ayu', 'catppuccin', 'charcoal', 'dracula', 'everforest', 'flexoki', 'gruvbox', 'macos', 'nord', 'obsidian', 'rose-pine', 'sky', 'solarized', 'things', 'custom', 'al-andalus'];
+  const validThemes = ['minimal', 'oxygen', 'atom', 'ayu', 'catppuccin', 'charcoal', 'dracula', 'everforest', 'flexoki', 'gruvbox', 'macos', 'nord', 'obsidian', 'rose-pine', 'sky', 'solarized', 'things', 'custom', 'al-andalus', 'ottoman-slate'];
   if (!validThemes.includes(config.theme)) {
     errors.push(`Invalid theme selected: "${config.theme}". Choose from: Minimal, Oxygen, Atom, Ayu, Catppuccin, Charcoal, Dracula, Everforest, Flexoki, Gruvbox, macOS, Nord, Obsidian, Rose Pine, Sky, Solarized, or Things. For custom themes, use "custom" and set customThemeFile.`);
   }

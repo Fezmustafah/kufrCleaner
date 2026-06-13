@@ -800,6 +800,28 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
             light: { underline: '#B04A32', box: '#2D6A6A', circle: '#8C2635', bracket: '#2C5282' },
             dark:  { underline: '#E1876F', box: '#5CAAAA', circle: '#CD5F69', bracket: '#5F94D2' }
           }
+        },
+        // Ottoman Slate — cool charcoal/slate + Ottoman crimson + muted gold
+        'ottoman-slate': {
+          primary: {
+            50: '#F6F7F8', 100: '#ECEEF1', 200: '#D5D9DF', 300: '#B3BAC4',
+            400: '#858E9C', 500: '#6B7280', 600: '#515761', 700: '#3C414A',
+            800: '#262A30', 900: '#161A1F', 950: '#0C0E11'
+          },
+          highlight: {
+            50: '#FCEFF1', 100: '#F9DCE0', 200: '#F1B3BC', 300: '#E88594',
+            400: '#D9485B', 500: '#C12B40', 600: '#A81F32', 700: '#851726',
+            800: '#5E1019', 900: '#3C0A10', 950: '#220509'
+          },
+          secondary: {
+            50: '#FBF6E8', 100: '#F5EBC9', 200: '#EBD78F', 300: '#DFC158',
+            400: '#CDA349', 500: '#B9882A', 600: '#9A7415', 700: '#785A10',
+            800: '#56400B', 900: '#382906', 950: '#1E1503'
+          },
+          annotations: {
+            light: { underline: '#A81F32', box: '#9A7415', circle: '#851726', bracket: '#515761' },
+            dark:  { underline: '#E88594', box: '#CDA349', circle: '#D9485B', bracket: '#B3BAC4' }
+          }
         }
       };
 
@@ -807,7 +829,7 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
       const builtInThemes = [
         'minimal', 'oxygen', 'atom', 'ayu', 'catppuccin', 'charcoal', 'dracula',
         'everforest', 'flexoki', 'gruvbox', 'macos', 'nord', 'obsidian',
-        'rose-pine', 'sky', 'solarized', 'things', 'custom', 'al-andalus'
+        'rose-pine', 'sky', 'solarized', 'things', 'custom', 'al-andalus', 'ottoman-slate'
       ];
 
       if (themeName === 'custom' || !builtInThemes.includes(themeName)) {
