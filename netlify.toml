@@ -31,6 +31,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/b"
+  to = "/posts/a-disbeliever-and-his-killer-will-never-meet-in-hell-explained"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/abdullah-bin-saad-bin-abi-sarh"
   to = "/posts/abdullah-bin-saad-bin-abi-sarh-apostasy-claim-refuted-through-hadith-chains-and-textual-criticism"
   status = 301
@@ -715,12 +721,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/response-to-the-allegation-that-the-story-of-the-birth-of-christ-was-copied-from-the-apocryphal-go"
-  to = "/posts/did-the-quran-copy-from-the-apocryphal-gospels-a-complete-refutation-with-academic-sources"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/blowing-up-the-talmudic-traditions-in-the-quran"
   to = "/posts/did-the-quran-copy-the-talmud-a-complete-refutation-of-the-plagiarism-claim"
   status = 301
@@ -753,6 +753,18 @@
 [[redirects]]
   from = "/posts/update-1369578720981155840"
   to = "/posts/do-muslims-worship-the-kaaba-the-qibla-accusation-refuted-with-christian-biblical-evidence"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/does-god-have-teeth-and-a-palate"
+  to = "/posts/does-allah-have-a-uvula-and-molars-hadith-chain-analysis"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/does-alllahhave-teeth-and-a-palate"
+  to = "/posts/does-allah-have-a-uvula-and-molars-hadith-chain-analysis"
   status = 301
   force = true
 
@@ -919,6 +931,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/proof-jesus-is-god-in-quran"
+  to = "/posts/does-the-quran-call-jesus-god-refuting-christian-proof-texts"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/27-linguistic-errors-in-the-holy-quran"
   to = "/posts/does-the-quran-have-arabic-grammar-mistakes-every-objection-answered"
   status = 301
@@ -1009,6 +1027,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/geckos-are-incapable-of-blowing"
+  to = "/posts/gecko-blowing-on-fire-hadith-atheist-objection-refuted"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/contradictions-in-the-story-of-the-rape-of-dinah-the-daughter-of-our-master-jacob-in-the-book-of-g"
   to = "/posts/genesis-34-and-the-rape-of-dinah-internal-contradictions-proving-later-insertion-into-the-biblical-text"
   status = 301
@@ -1047,6 +1071,12 @@
 [[redirects]]
   from = "/posts/the-response-to-the-doubt-about-how-god-created-every-animal-and-every-living-thing-from-water-whil"
   to = "/posts/how-can-allah-create-everything-from-water-if-jinn-were-created-from-fire-a-complete-response"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-spread-of-christianity-through-violence-in-egypt"
+  to = "/posts/how-christianity-was-forced-on-egypt-temple-destruction-and-religious-coercion"
   status = 301
   force = true
 
@@ -1549,8 +1579,8 @@
   force = true
 
 [[redirects]]
-  from = "/posts/quran-9-29"
-  to = "/posts/quran-9-29-fight-those-who-believe-not-context-and-response"
+  from = "/posts/did-the-quran-copy-from-the-apocryphal-gospels-a-complete-refutation-with-academic-sources"
+  to = "/posts/quran-and-the-apocryphal-gospels-plagiarism-claim-refuted"
   status = 301
   force = true
 
@@ -1669,6 +1699,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/satan-plays-with-the-private-parts-of-the-children-of-adam"
+  to = "/posts/satan-plays-with-the-private-parts-hadith-grading-and-refutation"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/sahih-bhukari-146"
   to = "/posts/sawdah-and-the-veil-omars-jealousy-not-harassment"
   status = 301
@@ -1683,18 +1719,6 @@
 [[redirects]]
   from = "/posts/inquiry-about-selling-the-mother-of-a-child-and-marrying-a-chaste-right-hand-slave-hadiths"
   to = "/posts/selling-umm-al-walad-sex-with-captives-and-khalid-ibn-al-walid-answering-three-major-misconceptions-about-islam"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/silencing-the-followers-of-satan-with-the-parsing-of-these-two-are-magicians"
-  to = "/posts/silencing-the-objection-to-indeed-these-two-are-magicians-a-grammatical-refutation"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/the-claim-of-a-grammatical-error-in-quran-20-63-a-complete-refutation"
-  to = "/posts/silencing-the-objection-to-indeed-these-two-are-magicians-a-grammatical-refutation"
   status = 301
   force = true
 
@@ -1753,6 +1777,12 @@
   force = true
 
 [[redirects]]
+  from = "/posts/figt-those-wo"
+  to = "/posts/surah-at-tawbah-29-explained-jizya-fighting-and-subjugation"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/so-today-we-will-save-you-with-your-body-that-you-may-be-a-sign-to-those-who-come-after-you"
   to = "/posts/surah-yunus-92-and-the-mummy-of-ramses-ii-marine-sand-broken-bones-and-the-sign-that-endures"
   status = 301
@@ -1783,8 +1813,20 @@
   force = true
 
 [[redirects]]
+  from = "/posts/18-the-holy-bible-teaches-the-christian-how-to-r-pe-his-sister-and-also-the-trap-that-he-sets-fo"
+  to = "/posts/the-bible-contains-explicit-sexual-narratives-and-morally-problematic-stories"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/posts/responding-to-the-allegation-of-similarity-between-the-birth-of-mithras-and-the-prophet-isa-peace"
   to = "/posts/the-birth-of-mithras-vs-the-birth-of-jesus-in-the-quran-a-refutation-of-the-similarity-claim"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/the-dung-of-camel-smells-like-musk"
+  to = "/posts/the-camel-dung-narration-a-hadith-criticism-response"
   status = 301
   force = true
 
@@ -1803,12 +1845,6 @@
 [[redirects]]
   from = "/posts/the-devil-urinates"
   to = "/posts/the-devil-urinates-in-the-ear-understanding-the-hadith-mocked-by-critics"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/posts/where-is-the-rest-of-surat-al-ahzab"
-  to = "/posts/the-doubt-about-the-missing-verses-of-surah-al-ahzab-a-full-response"
   status = 301
   force = true
 
@@ -2145,6 +2181,12 @@
 [[redirects]]
   from = "/posts/attributes-of-god-in-the-old-testament"
   to = "/posts/unworthy-attributes-of-god-in-the-old-testament-fatigue-weakness-ignorance-regret-and-forgetfulness"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/posts/sword-n-violent-verses-in-bible"
+  to = "/posts/violence-and-killing-in-the-bible-a-complete-verse-by-verse-record"
   status = 301
   force = true
 
