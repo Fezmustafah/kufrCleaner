@@ -80,8 +80,10 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
   <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href}>
 
   <!-- Robots meta tag -->
-  {seoData.noIndex && (
+  {seoData.noIndex ? (
     <meta name="robots" content="noindex, nofollow">
+  ) : (
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   )}
 
   <!-- Open Graph -->

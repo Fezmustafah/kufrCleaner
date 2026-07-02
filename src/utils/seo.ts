@@ -410,6 +410,28 @@ export function generateWebsiteSchema(description?: string): string {
   });
 }
 
+// Generate FAQPage structured data from frontmatter Q&A pairs. Eligible for
+// Google FAQ rich results / "People also ask" — high-value for apologetics
+// Q&A content. Emitted per-post from PostLayout only when `faq` is present.
+export function generateFAQSchema(
+  faq: Array<{ question: string; answer: string }>,
+  url: string
+): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "@id": `${url}#faq`,
+    mainEntity: faq.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  });
+}
+
 // Check if page should be excluded from sitemap
 export function shouldExcludeFromSitemap(slug: string): boolean {
   if (!slug) return false;

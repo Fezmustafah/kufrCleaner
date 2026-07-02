@@ -60,3 +60,12 @@ public/_headers
 # R2 missing image report
 r2-missing.json
 r2-pdfs-missing.json
+
+# SEO audit outputs — regenerable via `pnpm audit-links`; contain GSC ranking
+# data + working notes, kept out of version control (drop a GSC export at
+# seo/gsc-queries.csv locally to enable the priority report).
+/internal-link-audit.md
+/internal-link-audit.json
+/seo-priority.md
+/seo-priority.json
+/seo/

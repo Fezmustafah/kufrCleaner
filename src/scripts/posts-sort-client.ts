@@ -7,8 +7,53 @@
 // carry data-date / data-modified / data-length / data-title. We reorder those
 // wrappers and reveal them in batches of `data-batch` — keeping the initial
 // paint light (images on hidden cards lazy-load only when shown).
+//
+// Back-button restore: Swup destroys the /posts DOM when you open an article,
+// so returning re-renders /posts fresh and the reveal count + scroll position
+// would be lost. We persist { visible, sort, scrollY } in sessionStorage per
+// URL and restore it ONLY on back/forward navigation, so a fresh click on the
+// Posts link still starts at the top with the first batch.
 
 type SortMode = 'newest' | 'updated' | 'longest' | 'shortest' | 'az' | 'za';
+
+interface PostsState {
+  visible: number;
+  sort: SortMode;
+  scrollY: number;
+}
+
+const STATE_PREFIX = 'postsState:';
+const stateKey = () => STATE_PREFIX + location.pathname + location.search;
+
+// True when the current page view came from the browser back/forward button
+// (reload path) or a bfcache restore. Fresh navigations report 'navigate'.
+let cameFromBFCache = false;
+function isBackForward(): boolean {
+  if (cameFromBFCache) return true;
+  try {
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    return nav?.type === 'back_forward';
+  } catch {
+    return false;
+  }
+}
+
+function readState(): PostsState | null {
+  try {
+    const raw = sessionStorage.getItem(stateKey());
+    return raw ? (JSON.parse(raw) as PostsState) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeState(state: PostsState): void {
+  try {
+    sessionStorage.setItem(stateKey(), JSON.stringify(state));
+  } catch {
+    /* storage full / disabled — non-fatal */
+  }
+}
 
 function initPostsSort(): void {
   const root = document.querySelector<HTMLElement>('[data-posts-sort-root]');
@@ -25,6 +70,7 @@ function initPostsSort(): void {
   const loadMoreBtn = root.querySelector<HTMLButtonElement>('[data-load-more]');
   const batch = Math.max(1, parseInt(root.dataset.batch || '10', 10));
   const items = Array.from(grid.querySelectorAll<HTMLElement>('.post-item'));
+  const savedKey = stateKey(); // capture the /posts key; location changes on nav away
   let visible = batch;
 
   const num = (el: HTMLElement, key: string) => Number(el.dataset[key] || 0);
@@ -46,6 +92,7 @@ function initPostsSort(): void {
 
   function apply(mode: SortMode, resetVisible: boolean): void {
     if (resetVisible) visible = batch;
+    visible = Math.min(visible, items.length);
     const ordered = sortItems(mode);
     const frag = document.createDocumentFragment();
     ordered.forEach((el, i) => {
@@ -56,14 +103,64 @@ function initPostsSort(): void {
     if (loadMoreBtn) loadMoreBtn.style.display = visible >= ordered.length ? 'none' : '';
   }
 
-  select.addEventListener('change', () => apply(select.value as SortMode, true));
+  function persist(): void {
+    writeState({ visible, sort: select!.value as SortMode, scrollY: window.scrollY });
+  }
+
+  // Persist scroll continuously (throttled via rAF) so the latest position is
+  // saved before the user opens an article. Self-cleans once /posts leaves the
+  // DOM (Swup swap) to avoid clobbering the saved position from other pages.
+  let scrollQueued = false;
+  function onScroll(): void {
+    if (!root!.isConnected) {
+      window.removeEventListener('scroll', onScroll);
+      return;
+    }
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(() => {
+      scrollQueued = false;
+      if (root!.isConnected) persist();
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  select.addEventListener('change', () => {
+    apply(select.value as SortMode, true);
+    persist();
+  });
   loadMoreBtn?.addEventListener('click', () => {
     visible += batch;
     apply(select.value as SortMode, false);
+    persist();
   });
 
-  apply(select.value as SortMode, true);
+  // Restore prior reveal count + sort + scroll, but ONLY on back/forward so a
+  // fresh visit to /posts starts clean at the top.
+  const saved = isBackForward() ? readState() : null;
+  if (saved && sessionStorage.getItem(savedKey)) {
+    if (saved.sort) select.value = saved.sort;
+    visible = Math.max(batch, saved.visible || batch);
+    apply(select.value as SortMode, false);
+    // Cards reserve space via fixed aspect-ratio, so no layout shift from lazy
+    // images — restore scroll on the next frame, then re-assert once for safety.
+    const targetY = saved.scrollY || 0;
+    requestAnimationFrame(() => {
+      window.scrollTo(0, targetY);
+      setTimeout(() => window.scrollTo(0, targetY), 120);
+    });
+  } else {
+    apply(select.value as SortMode, true);
+  }
 }
+
+// Mark bfcache restores so we can distinguish them from fresh loads.
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    cameFromBFCache = true;
+    initPostsSort();
+  }
+});
 
 document.addEventListener('page:view', initPostsSort);
 document.addEventListener('astro:page-load', initPostsSort);

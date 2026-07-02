@@ -106,10 +106,11 @@ Live site: `https://www.openislam.wiki`
 Folder-based post at `posts/my-post/index.md` → `id = "my-post"` (not `"my-post/index"`).
 
 ### Posts frontmatter fields
-`title` · `description` · `date` · `tags` · `draft` · `image` · `imageOG` · `imageAlt` · `hideCoverImage` · `hideTOC` · `showTOC` · `targetKeyword` · `author` · `banner` · `modified` · `noIndex` · `category`
+`title` · `description` · `date` · `tags` · `draft` · `image` · `imageOG` · `imageAlt` · `hideCoverImage` · `hideTOC` · `showTOC` · `targetKeyword` · `author` · `banner` · `modified` · `noIndex` · `category` · `faq`
 
 > `banner` — dedicated OG image (overrides `image` for social cards).  
-> `category` — singular string (not array). Drives category pages + graph node color.
+> `category` — singular string (not array). Drives category pages + graph node color.  
+> `faq` — array of `{ question, answer }` → emitted as FAQPage JSON-LD in PostLayout (featured-snippet eligible).
 
 ---
 

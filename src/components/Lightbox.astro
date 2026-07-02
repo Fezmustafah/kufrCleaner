@@ -7,7 +7,7 @@ import Icon from './Icon.astro';
     <Icon name="x" class="w-6 h-6" />
   </button>
   <div id="img-lightbox-inner">
-    <img id="img-lightbox-img" src="" alt="" />
+    <img id="img-lightbox-img" src="" alt="" decoding="async" />
     <p id="img-lightbox-caption"></p>
   </div>
 </dialog>
@@ -27,9 +27,11 @@ import Icon from './Icon.astro';
     @apply bg-white dark:bg-primary-950 border border-primary-200 dark:border-primary-800;
   }
 
+  /* Solid backdrop — no backdrop-filter blur. A full-viewport blur forces the
+     GPU to recomposite the entire page behind the dialog every frame, which is
+     the source of the open/close lag (severe on mobile & long articles). */
   #img-lightbox::backdrop {
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.85);
   }
 
   #img-lightbox-close {

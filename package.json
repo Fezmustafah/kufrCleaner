@@ -17,6 +17,7 @@
     "generate-deployment-config:dry-run": "node scripts/generate-deployment-config.js --dry-run",
     "generate-deployment-config:validate": "node scripts/generate-deployment-config.js --validate",
     "generate-graph-data": "node scripts/generate-graph-data.js",
+    "audit-links": "node scripts/audit-internal-links.js",
     "check-images": "node scripts/check-missing-images.js",
     "r2:upload": "node scripts/upload-r2.mjs",
     "r2:upload:dry": "node scripts/upload-r2.mjs --dry-run",

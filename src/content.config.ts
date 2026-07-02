@@ -33,6 +33,11 @@ const postsCollection = defineCollection({
     modified: z.coerce.date().optional(),
     noIndex: z.boolean().optional(),
     category: z.string().nullable().optional(),
+    // Optional Q&A pairs → emitted as FAQPage JSON-LD (featured-snippet eligible).
+    faq: z.array(z.object({
+      question: z.string(),
+      answer: z.string(),
+    })).nullable().optional(),
   }),
 });
 

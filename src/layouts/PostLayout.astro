@@ -1,7 +1,7 @@
 ---
 import type { Post, Heading } from '@/types';
 import { siteConfig } from '@/config';
-import { generatePostSEO } from '@/utils/seo';
+import { generatePostSEO, generateBreadcrumbs, generateFAQSchema } from '@/utils/seo';
 import { processWikilinksInHTML } from '@/utils/internallinks';
 import { getCollection } from 'astro:content';
 import { shouldShowPost, processPost, calculateReadingTime, generateTOC, getAdjacentPosts, formatDate, formatDateMobile, getReadingTimeMobile } from '@/utils/markdown';
@@ -39,12 +39,20 @@ const structuredData = {
   "headline": post.data.title,
   "description": post.data.description,
   "url": Astro.url.href,
+  "inLanguage": siteConfig.language,
   ...(seoData.ogImage ? { "image": seoData.ogImage.url } : {}),
+  ...(post.data.category ? { "articleSection": post.data.category } : {}),
+  ...(post.data.targetKeyword || post.data.tags?.length
+    ? { "keywords": post.data.targetKeyword || (post.data.tags || []).join(", ") }
+    : {}),
   "author": {
     "@type": "Person",
     "name": post.data.author || siteConfig.author
   },
+  // Reference the site-wide Organization node (@id) so Google consolidates the
+  // publisher into one entity instead of a duplicate.
   "publisher": {
+    "@id": siteConfig.site + "/#organization",
     "@type": "Organization",
     "name": siteConfig.title,
     "logo": {
@@ -52,6 +60,7 @@ const structuredData = {
       "url": siteConfig.site + "/favicon.png"
     }
   },
+  "isPartOf": { "@id": siteConfig.site + "/#website" },
   "datePublished": post.data.date.toISOString(),
   "dateModified": (post.data.modified || post.data.date).toISOString(),
   "mainEntityOfPage": {
@@ -59,6 +68,18 @@ const structuredData = {
     "@id": Astro.url.href
   }
 };
+
+// BreadcrumbList: Home → Posts → this post. Enables breadcrumb rich results.
+const breadcrumbData = generateBreadcrumbs([
+  { name: "Home", url: `${siteConfig.site}/` },
+  { name: "Posts", url: `${siteConfig.site}/posts/` },
+  { name: post.data.title, url: Astro.url.href },
+]);
+
+// FAQPage: only when the post declares `faq` frontmatter (Q&A pairs).
+const faqSchema = post.data.faq?.length
+  ? generateFAQSchema(post.data.faq, Astro.url.href)
+  : null;
 
 // Get all posts for wikilink resolution
 const allPosts = await getCollection('posts');
@@ -100,6 +121,10 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
   <Fragment slot="head">
     <!-- Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbData)} />
+    {faqSchema && (
+      <script type="application/ld+json" set:html={faqSchema} />
+    )}
 
     <!-- Banner image is preloaded via fetchpriority="high" on the ImageWrapper -->
 
