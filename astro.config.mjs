@@ -3,6 +3,7 @@ import tailwind from '@astrojs/tailwind';
 import sitemap from '@astrojs/sitemap';
 import { remarkInternalLinks, remarkFolderImages, remarkImageCaptions } from './src/utils/internallinks.ts';
 import remarkCallouts from './src/utils/remark-callouts.ts';
+import remarkRescueCurrency from './src/utils/remark-rescue-currency.ts';
 import remarkImageGrids from './src/utils/remark-image-grids.ts';
 import remarkMermaid from './src/utils/remark-mermaid.ts';
 import { remarkObsidianEmbeds } from './src/utils/remark-obsidian-embeds.ts';
@@ -544,6 +545,7 @@ image: {
       remarkBases,
       remarkImageCaptions,
       remarkMath,
+      remarkRescueCurrency,
       remarkCallouts,
       remarkBreaks,
       remarkImageGrids,
