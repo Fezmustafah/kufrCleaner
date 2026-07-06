@@ -1,4 +1,4 @@
-name: Deploy GitHub Pages
+name: Deploy to Cloudflare
 
 on:
   push:
@@ -7,22 +7,20 @@ on:
   workflow_dispatch:
     inputs:
       trigger_build:
-        description: Build and deploy GitHub Pages
+        description: Build and deploy to Cloudflare Workers
         required: true
         type: boolean
         default: true
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: cloudflare-deploy
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     if: github.event_name != 'workflow_dispatch' || inputs.trigger_build
     runs-on: ubuntu-latest
     steps:
@@ -66,26 +64,13 @@ jobs:
       - name: Build
         run: pnpm run build
         env:
-          DEPLOYMENT_PLATFORM: github-pages
+          DEPLOYMENT_PLATFORM: cloudflare-workers
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to Cloudflare Workers
+        run: pnpm exec wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Ping Google sitemap
         run: curl "https://www.google.com/ping?sitemap=https://www.openislam.wiki/sitemap.xml"
