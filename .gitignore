@@ -57,6 +57,9 @@ obsidian_askpass.sh
 public/_redirects
 public/_headers
 
+# Temp dir used by scripts/cf-assets.js to stash _headers/_redirects during build
+.cf-assets-tmp/
+
 # R2 missing image report
 r2-missing.json
 r2-pdfs-missing.json
