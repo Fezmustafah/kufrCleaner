@@ -2,7 +2,6 @@
 import { siteConfig } from '@/config';
 import Icon from './Icon.astro';
 
-const currentYear = new Date().getFullYear();
 const socialLinks = (siteConfig.navigation.social || []).filter((social) => social && social.url && social.icon);
 const feedLinks = [
   { url: '/rss.xml', title: 'RSS Feed', icon: 'rss' },
@@ -12,161 +11,165 @@ const showSocialIcons = siteConfig.footer.showSocialIconsInFooter && socialLinks
 const showProfilePicture = siteConfig.profilePicture.enabled && siteConfig.profilePicture.placement === 'footer';
 const profilePicture = siteConfig.profilePicture;
 const footerEnabled = siteConfig.footer.enabled;
-
 const footerContent = siteConfig.footer.content.replace('{author}', siteConfig.author);
 
-// Size and style classes for profile picture
-const getProfilePictureClasses = (size: string, style: string) => {
-  let sizeClasses = '';
-  switch (size) {
-    case 'sm': sizeClasses = 'h-8'; break;
-    case 'lg': sizeClasses = 'h-16'; break;
-    default: sizeClasses = 'h-12'; // md
-  }
-  
-  let styleClasses = '';
-  switch (style) {
-    case 'circle': styleClasses = 'rounded-full object-cover border-2 border-primary-200 dark:border-primary-700'; break;
-    case 'square': styleClasses = 'rounded-lg object-cover border-2 border-primary-200 dark:border-primary-700'; break;
-    default: styleClasses = 'object-contain'; // none
-  }
-  
-  return `${sizeClasses} ${styleClasses}`;
+// A left cluster (brand/copy) only renders when there's something to show.
+const hasLeft = footerEnabled || showProfilePicture;
+
+// Profile-picture sizing (kept for config compatibility)
+const pfpClasses = (size: string, style: string) => {
+  const s = size === 'sm' ? 'h-7' : size === 'lg' ? 'h-11' : 'h-9';
+  const shape = style === 'circle'
+    ? 'rounded-full object-cover border border-primary-200 dark:border-primary-700'
+    : style === 'square'
+      ? 'rounded-md object-cover border border-primary-200 dark:border-primary-700'
+      : 'object-contain';
+  return `${s} ${shape}`;
 };
 ---
 
-<footer class="bg-white dark:bg-primary-950 mt-auto">
-  <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
-    <!-- Profile picture above footer content when footer is enabled -->
-    {showProfilePicture && footerEnabled && (
-      <div class="mb-4 flex justify-start">
-        {profilePicture.url ? (
-          <a 
-            href={profilePicture.url}
-            class="inline-block hover:opacity-80 transition-opacity"
-            target={profilePicture.url.startsWith('http') ? '_blank' : undefined}
-            rel={undefined}
-          >
-            <img
-              src={profilePicture.image}
-              alt={profilePicture.alt}
-              class={getProfilePictureClasses(profilePicture.size, profilePicture.style)}
-            />
-          </a>
-        ) : (
-          <img
-            src={profilePicture.image}
-            alt={profilePicture.alt}
-            class={getProfilePictureClasses(profilePicture.size, profilePicture.style)}
-          />
+<footer class="site-footer">
+  <div class:list={['site-footer-inner', { 'sf-centered': !hasLeft }]} style={`max-width: ${siteConfig.layout.contentWidth}`}>
+
+    {hasLeft && (
+      <div class="sf-left">
+        {showProfilePicture && (
+          profilePicture.url ? (
+            <a href={profilePicture.url} class="sf-pfp" target={profilePicture.url.startsWith('http') ? '_blank' : undefined}>
+              <img src={profilePicture.image} alt={profilePicture.alt} class={pfpClasses(profilePicture.size, profilePicture.style)} />
+            </a>
+          ) : (
+            <img src={profilePicture.image} alt={profilePicture.alt} class={pfpClasses(profilePicture.size, profilePicture.style)} />
+          )
         )}
+        {footerEnabled && <p class="sf-copy" set:html={footerContent}></p>}
       </div>
     )}
 
-    <!-- Mobile: Social icons + feed links above footer content, centered -->
-    <div class="flex justify-center md:hidden mb-4">
-      <div class="flex items-center space-x-4">
+    {(showSocialIcons || feedLinks.length > 0) && (
+      <nav class="sf-links" aria-label="Social and feeds">
         {showSocialIcons && socialLinks.map((social) => (
-          <a
-            href={social.url}
-            title={social.title}
-            class="text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
-            target="_blank"
-          >
-            <Icon name={social.icon} class="w-5 h-5" />
+          <a href={social.url} title={social.title} class="sf-ico" target="_blank" rel="noopener noreferrer">
+            <Icon name={social.icon} class="w-[18px] h-[18px]" />
             <span class="sr-only">{social.title}</span>
           </a>
         ))}
+        {(showSocialIcons && feedLinks.length > 0) && <span class="sf-sep" aria-hidden="true"></span>}
         {feedLinks.map((feed) => (
-          <a
-            href={feed.url}
-            title={feed.title}
-            class="text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
-          >
+          <a href={feed.url} title={feed.title} class="sf-ico">
             <Icon name={feed.icon} class="w-4 h-4" />
             <span class="sr-only">{feed.title}</span>
           </a>
         ))}
-      </div>
-    </div>
-    
-    <!-- Footer content and social icons on same line -->
-    {footerEnabled && (
-      <div class="md:flex md:justify-between md:items-center text-center">
-        <p class="text-xs text-primary-500 dark:text-primary-400" set:html={footerContent}>
-        </p>
-
-        <!-- Desktop: Social icons + feed links on same line as footer content -->
-        <div class="hidden md:flex items-center space-x-4">
-          {showSocialIcons && socialLinks.map((social) => (
-            <a
-              href={social.url}
-              title={social.title}
-              class="text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
-              target="_blank"
-            >
-              <Icon name={social.icon} class="w-5 h-5" />
-              <span class="sr-only">{social.title}</span>
-            </a>
-          ))}
-          {feedLinks.map((feed) => (
-            <a
-              href={feed.url}
-              title={feed.title}
-              class="text-xs font-medium text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
-            >
-              {feed.label}
-            </a>
-          ))}
-        </div>
-      </div>
+      </nav>
     )}
 
-    <!-- When footer is disabled: Profile picture aligned with social icons OR just centered social icons -->
-    {!footerEnabled && (
-      <div class={`text-center ${showProfilePicture && showSocialIcons ? 'md:flex md:justify-between md:items-center' : ''}`}>
-        {showProfilePicture ? (
-          <div class="flex justify-start">
-            {profilePicture.url ? (
-              <a 
-                href={profilePicture.url}
-                class="inline-block hover:opacity-80 transition-opacity"
-                target={profilePicture.url.startsWith('http') ? '_blank' : undefined}
-                rel={undefined}
-              >
-                <img
-                  src={profilePicture.image}
-                  alt={profilePicture.alt}
-                  class={getProfilePictureClasses(profilePicture.size, profilePicture.style)}
-                />
-              </a>
-            ) : (
-              <img
-                src={profilePicture.image}
-                alt={profilePicture.alt}
-                class={getProfilePictureClasses(profilePicture.size, profilePicture.style)}
-              />
-            )}
-          </div>
-        ) : null}
-        
-        <!-- Social icons: centered when no profile picture, or aligned when profile picture exists -->
-        {showSocialIcons && (
-          <div class={`flex items-center space-x-4 ${showProfilePicture ? 'hidden md:flex' : 'justify-center'}`}>
-            {socialLinks.map((social) => (
-              <a
-                href={social.url}
-                title={social.title}
-                class="text-primary-500 hover:text-highlight-600 dark:text-primary-400 dark:hover:text-highlight-400 transition-colors duration-200"
-                target="_blank"
-              >
-                <Icon name={social.icon} class="w-5 h-5" />
-                <span class="sr-only">{social.title}</span>
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
-    )}
   </div>
 </footer>
+
+<style>
+  .site-footer {
+    position: relative;
+    margin-top: auto;
+    border-top: 1px solid rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-50));
+  }
+  :global(html.dark) .site-footer {
+    border-top-color: rgb(var(--color-primary-800));
+    background: rgb(var(--color-primary-950));
+  }
+  /* The arabesque sign-off lives here now: a subtle rub-el-hizb field IS the footer's
+     backdrop, so the geometric strip flows straight through instead of a separate band.
+     ponytail: fixed al-andalus gold (#C8963E) — data-URI SVG can't read theme vars. */
+  .site-footer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cg fill='none' stroke='%23C8963E' stroke-width='0.9'%3E%3Crect x='10' y='10' width='16' height='16'/%3E%3Crect x='10' y='10' width='16' height='16' transform='rotate(45 18 18)'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 36px 36px;
+    background-repeat: repeat;
+    opacity: 0.32;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    animation: footer-sig-drift 44s linear infinite;
+  }
+  @keyframes footer-sig-drift { from { background-position: 0 0; } to { background-position: 72px 0; } }
+
+  .site-footer-inner {
+    position: relative;
+    z-index: 1;
+    margin-inline: auto;
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.25rem;
+    flex-wrap: wrap;
+  }
+  @media (min-width: 640px) { .site-footer-inner { padding-inline: 1.5rem; } }
+  .site-footer-inner.sf-centered { justify-content: center; }
+
+  .sf-left { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+  .sf-pfp { display: inline-flex; transition: opacity 0.2s; }
+  .sf-pfp:hover { opacity: 0.8; }
+
+  .sf-copy {
+    margin: 0;
+    font-family: var(--font-prose, serif);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: rgb(var(--color-primary-500));
+  }
+  :global(html.dark) .sf-copy { color: rgb(var(--color-primary-400)); }
+  .sf-copy :global(a) {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgb(var(--color-highlight-500) / 0.5);
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+  }
+  .sf-copy :global(a:hover) { color: rgb(var(--color-highlight-600)); }
+  :global(html.dark) .sf-copy :global(a:hover) { color: rgb(var(--color-highlight-400)); }
+
+  .sf-links { display: flex; align-items: center; gap: 0.15rem; }
+  .sf-sep {
+    width: 1px;
+    height: 1.1rem;
+    margin: 0 0.4rem;
+    background: rgb(var(--color-primary-200));
+  }
+  :global(html.dark) .sf-sep { background: rgb(var(--color-primary-800)); }
+
+  .sf-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.4rem;
+    color: rgb(var(--color-primary-500));
+    transition: color 0.15s, background 0.15s;
+  }
+  .sf-ico:hover {
+    color: rgb(var(--color-highlight-600));
+    background: rgb(var(--color-highlight-500) / 0.1);
+  }
+  :global(html.dark) .sf-ico { color: rgb(var(--color-primary-400)); }
+  :global(html.dark) .sf-ico:hover {
+    color: rgb(var(--color-highlight-400));
+    background: rgb(var(--color-highlight-500) / 0.14);
+  }
+
+  /* Mobile: stack, icons above the copyright line, centered */
+  @media (max-width: 559px) {
+    .site-footer-inner { flex-direction: column-reverse; justify-content: center; text-align: center; gap: 0.6rem; }
+    .sf-left { justify-content: center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sf-ico, .sf-pfp, .sf-copy :global(a) { transition: none; }
+    .site-footer::before { animation: none; }
+  }
+</style>

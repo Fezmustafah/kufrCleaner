@@ -6,7 +6,7 @@
 
 declare global {
   interface Window {
-    openLightbox?: (src: string, alt: string) => void;
+    openLightbox: (src: string, alt: string) => void;
     initializeMarginalia?: () => void;
     layoutMarginaliaFloats?: () => void;
     _marginaliaAC?: AbortController;
@@ -242,3 +242,5 @@ document.addEventListener('DOMContentLoaded', runMarginalia);
 document.addEventListener('astro:page-load', runMarginalia);
 if (document.readyState !== 'loading') requestAnimationFrame(runMarginalia);
 window.addEventListener('pageshow', e => { if (e.persisted) { _margLastPath = ''; runMarginalia(); } });
+
+export {};

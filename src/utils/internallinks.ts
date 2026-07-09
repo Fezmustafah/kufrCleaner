@@ -528,7 +528,7 @@ export function remarkWikilinks() {
           } else {
             // Handle simple slug format - ASSUMES POSTS COLLECTION
             const slugifiedLink = createSlugFromTitle(link);
-            url = `${BASE}posts/${slugifiedLink}`;
+            url = `${BASE}posts/${slugifiedLink}/`;
             wikilinkData = link.trim();
           }
 

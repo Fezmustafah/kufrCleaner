@@ -127,21 +127,22 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
                 Pages
               </div>
               {siteConfig.navigation.pages.map(page => {
-                const hasChildren = page.children && page.children.length > 0;
-                const hasUrl = page.url && page.url.trim() !== '';
+                const children = page.children ?? [];
+                const hasChildren = children.length > 0;
+                const pageUrl = page.url?.trim();
                 
                 if (hasChildren) {
                   return (
                     <div class="command-palette-nav-group">
-                      {hasUrl ? (
+                      {pageUrl ? (
                         <a
-                          href={wb(page.url)}
+                          href={wb(pageUrl)}
                           class="w-full flex items-center space-x-3 px-3 py-2 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors group"
-                          target={page.url.startsWith('http') ? '_blank' : undefined}
+                          target={pageUrl.startsWith('http') ? '_blank' : undefined}
                         >
                           <Icon name="file-text" class="w-4 h-4 text-primary-500 dark:text-primary-400 group-hover:text-highlight-500" />
                           <span class="text-primary-900 dark:text-primary-50 font-medium">{page.title}</span>
-                          {page.url.startsWith('http') && (
+                          {pageUrl.startsWith('http') && (
                             <Icon name="external-link" class="w-3 h-3 text-primary-400 dark:text-primary-500 ml-auto" />
                           )}
                         </a>
@@ -151,7 +152,7 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
                           <span class="text-primary-900 dark:text-primary-50 font-medium">{page.title}</span>
                         </div>
                       )}
-                      {page.children.map(child => (
+                      {children.map(child => (
                         <a
                           href={child.url ? wb(child.url) : '#'}
                           class="w-full flex items-center space-x-3 px-3 py-2 pl-8 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors group"
@@ -182,6 +183,14 @@ const wb = (u: string) => (u && !u.startsWith('http') ? `${base}${u.replace(/^\/
                   );
                 }
               })}
+              <!-- Tags index — a browse destination, not part of the header nav -->
+              <a
+                href={wb('posts/tag/')}
+                class="w-full flex items-center space-x-3 px-3 py-2 hover:bg-primary-50 dark:hover:bg-primary-800 rounded-lg transition-colors group"
+              >
+                <Icon name="tag" class="w-4 h-4 text-primary-500 dark:text-primary-400 group-hover:text-highlight-500" />
+                <span class="text-primary-900 dark:text-primary-50">Tags</span>
+              </a>
             </div>
           )}
 

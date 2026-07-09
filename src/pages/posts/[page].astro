@@ -1,8 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro';
-import { getCollection } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 import { siteConfig } from '@/config';
-import { generatePageSEO } from '@/utils/seo';
 import { shouldShowPost, sortPostsByDate } from '@/utils/markdown';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
@@ -42,13 +41,13 @@ export const getStaticPaths: GetStaticPaths = async () => {
 };
 
 export interface Props {
-  posts: any[];
+  posts: CollectionEntry<'posts'>[];
   currentPage: number;
   totalPages: number;
   postsPerPage: number;
 }
 
-const { posts, currentPage, totalPages, postsPerPage } = Astro.props;
+const { posts, currentPage, totalPages, postsPerPage } = Astro.props as Props;
 
 // Get query parameters
 const url = new URL(Astro.request.url);

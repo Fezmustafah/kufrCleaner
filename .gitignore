@@ -43,6 +43,9 @@ lerna-debug.log*
 .temp/
 .ref/
 
+# Local agent/tool artifacts (session transcripts — may contain keys/PII, never commit)
+.recall/
+
 # OS generated files
 Thumbs.db
 ehthumbs.db

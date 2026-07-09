@@ -1452,12 +1452,10 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
           document.documentElement.setAttribute('data-theme', theme);
           updateThemeCSSVariables(theme).catch(console.error);
         });
-        // No <ViewTransitions/>, so astro:page-load never fires natively.
-        // Dispatch synthetically on every Swup view so per-feature client modules
-        // (local-graph-client, marginalia-client, annotations-client, etc.) re-run init.
-        window.swup.hooks.on('page:view', function () {
-          document.dispatchEvent(new Event('astro:page-load'));
-        });
+        // @swup/astro's own client already bridges Swup's `page:view` hook to
+        // `astro:page-load` (and `content:replace` → `astro:after-swap`) on every
+        // navigation. Do NOT dispatch astro:page-load again here — a second dispatch
+        // double-fires every re-init handler, double-binding non-idempotent ones.
       } else if (swupRetryCount < maxSwupRetries) {
         swupRetryCount++;
         setTimeout(setupSwupHooks, 100);

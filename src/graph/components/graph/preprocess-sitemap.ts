@@ -142,7 +142,7 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 
 				if (context.config.tagRenderMode === 'node' || context.config.tagRenderMode === 'both') {
 					for (const tag of node.tags ?? []) {
-						const tagId = normalizeSlug(`posts/tag/${tag}`, context.trailingSlashes);
+						const tagId = normalizeSlug(`posts/tag/${tag}`);
 						neighbourhood.add(tagId);
 						tags.set(tag, tagId);
 						links.push({ source: current, target: tagId });
@@ -161,7 +161,7 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 
 			if (context.config.tagRenderMode === 'node' || context.config.tagRenderMode === 'both') {
 				for (const tag of details.tags ?? []) {
-					const tagId = normalizeSlug(`posts/tag/${tag}`, context.trailingSlashes);
+					const tagId = normalizeSlug(`posts/tag/${tag}`);
 					neighbourhood.add(tagId);
 					tags.set(tag, tagId);
 					links.push({ source: source, target: tagId });

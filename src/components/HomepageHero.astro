@@ -4,8 +4,9 @@ import { siteConfig } from '@/config';
 interface Props {
   postCount: number;
   categoryCount: number;
+  totalWords?: number;
 }
-const { postCount, categoryCount } = Astro.props;
+const { postCount, categoryCount, totalWords = 0 } = Astro.props;
 const baseUrl = import.meta.env.BASE_URL;
 
 const hero = siteConfig.hero ?? {};
@@ -32,36 +33,64 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
 
   <div class="hero-inner">
 
-    <!-- Site title -->
-    <h1 class="hero-title">OpenIslam</h1>
+    <p class="hero-kicker">A scholarly reference</p>
 
-    <!-- Subtitle -->
-    <p class="hero-subtitle">Evidence-Based Islamic Scholarship & Apologetics</p>
+    <h1 class="hero-title">
+      Reasoned responses to the <em>allegations against Islam</em>.
+    </h1>
 
-    <!-- Mission statement -->
-    <p class="hero-mission">
-      Scholarly refutations of doubts about Islam — drawing on manuscript evidence,
-      hadith authentication, Quranic linguistics, and Islamic history.
-      Built for Muslims and researchers who need answers that hold up to scrutiny.
+    <p class="hero-lede">
+      Point-by-point answers — sourced, cited, and written for clarity.
+      Search any claim to read the scholarly response.
     </p>
 
-    <!-- Live stats bar -->
-    <div class="hero-stats" aria-label={`${postCount} articles across ${categoryCount} topics`}>
-      <span>{postCount} articles</span>
-      <span class="hero-stats-sep" aria-hidden="true">·</span>
-      <span>{categoryCount} topics</span>
+    <!--
+      Answer-engine search — instant Pagefind results in a listbox below the input.
+      Falls back to submitting the form to the /search page (Enter with no selection,
+      the "Find the answer" button, or when the Pagefind index isn't built, e.g. dev).
+    -->
+    <div id="hero-search-wrap" class="hero-search-wrap">
+      <form class="hero-search" role="search" method="get" action={`${baseUrl}search/`}>
+        <span class="hero-search-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        </span>
+        <label for="hero-q" class="sr-only">Search allegations and refutations</label>
+        <input
+          id="hero-q"
+          name="q"
+          type="search"
+          autocomplete="off"
+          placeholder="Did Islam spread by the sword?"
+          role="combobox"
+          aria-expanded="false"
+          aria-controls="hero-results"
+          aria-autocomplete="list"
+        />
+        <button type="submit" class="hero-search-go">Find the answer</button>
+      </form>
+
+      <div id="hero-results" class="hero-results" role="listbox" aria-label="Instant search results" hidden></div>
     </div>
 
-    <!-- CTAs -->
-    <div class="hero-ctas">
-      <a href={`${baseUrl}posts/`} class="hero-btn-primary">
-        Browse All Articles
-      </a>
-      <a href={`${baseUrl}search/`} class="hero-btn-outline">
-        Search
-      </a>
+    <!-- Live stats — count up on load -->
+    <div class="hero-stats" role="group" aria-label={`${postCount} articles across ${categoryCount} topics`}>
+      <div class="hero-stat">
+        <span class="hero-stat-n" data-count={postCount}>{postCount}</span>
+        <span class="hero-stat-l">Articles</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-n" data-count={categoryCount}>{categoryCount}</span>
+        <span class="hero-stat-l">Topics covered</span>
+      </div>
+      {totalWords > 0 && (
+        <div class="hero-stat">
+          <span class="hero-stat-n" data-count={totalWords} data-format="compact">{totalWords}</span>
+          <span class="hero-stat-l">Words of research</span>
+        </div>
+      )}
     </div>
 
+    <a href={`${baseUrl}posts/`} class="hero-browse">or browse all {postCount} articles →</a>
 
   </div>
 
@@ -79,7 +108,7 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     margin-left: calc(50% - 50vw);
     overflow-x: clip;
     margin-top: -3.5rem;
-    height: 100dvh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -90,7 +119,6 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     background-repeat: no-repeat;
   }
 
-  /* ── Dark overlay — dims the hero image for text legibility ── */
   .hero-image-overlay {
     position: absolute;
     inset: 0;
@@ -99,194 +127,188 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     pointer-events: none;
   }
 
-  /* ── Inner content ── */
   .hero-inner {
     position: relative;
     z-index: 1;
     text-align: center;
-  }
-
-  /* ── Top ornament ── */
-  .hero-ornament-top {
+    max-width: 46rem;
+    margin: 0 auto;
     width: 100%;
-    height: 1px;
-    margin: 0 auto 2rem;
-    background:
-      linear-gradient(to right, transparent, rgb(var(--color-highlight-400) / 0.55)) 0 0 / 46% 1px no-repeat,
-      linear-gradient(to left,  transparent, rgb(var(--color-highlight-400) / 0.55)) 100% 0 / 46% 1px no-repeat;
-    position: relative;
-    overflow: visible;
   }
-  .hero-ornament-top::before {
-    content: '◈';
+
+  .sr-only {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    color: rgb(var(--color-highlight-400));
-    font-size: 0.9rem;
-    line-height: 1;
-    white-space: nowrap;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+    white-space: nowrap; border: 0;
   }
 
+  /* ── Kicker ── */
+  .hero-kicker {
+    font-family: var(--font-prose, serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-300));
+    margin: 0 0 1.1rem;
+  }
 
-  /* ── Title ── */
+  /* ── Title (mission-as-headline) ── */
   .hero-title {
     font-family: var(--font-heading, serif);
-    font-size: clamp(1.9rem, 7vw, 3.8rem);
+    font-size: clamp(2.1rem, 5.5vw, 3.9rem);
     font-weight: 600;
-    letter-spacing: clamp(0.06em, 2vw, 0.15em);
+    letter-spacing: -0.01em;
     color: rgb(var(--color-primary-50));
-    text-shadow: 0 0 60px rgb(var(--color-highlight-500) / 0.3);
-    line-height: 1.1;
-    margin: 0 0 0.85rem;
-    text-transform: uppercase;
+    text-shadow: 0 0 60px rgb(var(--color-highlight-500) / 0.25);
+    line-height: 1.08;
+    margin: 0 0 1.1rem;
+    text-wrap: balance;
   }
-
-  /* ── Subtitle ── */
-  .hero-subtitle {
-    font-family: var(--font-prose, serif);
+  .hero-title em {
     font-style: italic;
-    font-size: clamp(0.95rem, 2.5vw, 1.2rem);
+    font-weight: 500;
     color: rgb(var(--color-highlight-300));
-    letter-spacing: 0.02em;
-    margin: 0 0 1.5rem;
   }
 
-  /* ── Mission ── */
-  .hero-mission {
+  /* ── Lede ── */
+  .hero-lede {
     font-family: var(--font-prose, serif);
-    font-size: clamp(0.9rem, 2vw, 1.05rem);
-    line-height: 1.85;
+    font-size: clamp(0.95rem, 2vw, 1.15rem);
+    line-height: 1.75;
     color: rgb(var(--color-primary-200));
-    max-width: 36rem;
-    margin: 0 auto 1.75rem;
-  }
-
-  /* ── Stats bar ── */
-  .hero-stats {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    font-family: var(--font-prose, serif);
-    font-style: italic;
-    font-size: 0.9rem;
-    color: rgb(var(--color-primary-300));
-    border-top: 1px solid rgb(var(--color-highlight-500) / 0.35);
-    border-bottom: 1px solid rgb(var(--color-highlight-500) / 0.35);
-    padding: 0.45rem 1.25rem;
+    max-width: 40rem;
     margin: 0 auto 2rem;
-    letter-spacing: 0.04em;
+    text-wrap: pretty;
   }
-  .hero-stats-sep { color: rgb(var(--color-highlight-600) / 0.5); }
 
-  /* ── CTAs ── */
-  .hero-ctas {
+  /* ── Search ── */
+  .hero-search-wrap {
+    position: relative;
+    max-width: 38rem;
+    margin: 0 auto 2.25rem;
+    z-index: 5;
+  }
+  .hero-search {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-bottom: 2.75rem;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.2rem 0.3rem 0.2rem 1rem;
+    background: rgb(0 0 0 / 0.3);
+    border: 1px solid rgb(var(--color-highlight-500) / 0.35);
+    border-radius: 0.6rem;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   }
-
-  .hero-btn-primary {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.55rem 1.35rem;
-    min-height: 2.75rem;
-    background: rgb(var(--color-highlight-500));
-    color: #fff;
-    font-family: var(--font-prose, serif);
-    font-size: 0.95rem;
-    font-weight: 500;
-    letter-spacing: 0.03em;
-    border-radius: 0.2rem;
-    text-decoration: none;
-    border: 1px solid rgb(var(--color-highlight-500));
-    transition: background 0.18s, border-color 0.18s;
-    white-space: nowrap;
+  .hero-search:focus-within {
+    border-color: rgb(var(--color-highlight-400) / 0.9);
+    background: rgb(0 0 0 / 0.4);
+    box-shadow: 0 0 0 3px rgb(var(--color-highlight-500) / 0.16);
   }
-  .hero-btn-primary:hover {
-    background: rgb(var(--color-highlight-400));
-    border-color: rgb(var(--color-highlight-400));
-    text-decoration: none;
-  }
-
-  .hero-btn-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.55rem 1.1rem;
-    min-height: 2.75rem;
-    background: transparent;
+  .hero-search-icon {
     color: rgb(var(--color-highlight-300));
+    display: inline-flex;
+    flex: none;
+  }
+  .hero-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: rgb(var(--color-primary-50));
+    font-family: var(--font-prose, serif);
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    padding: 0.85rem 0;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .hero-search input::placeholder {
+    color: rgb(var(--color-primary-300) / 0.85);
+    font-style: italic;
+  }
+  /* Strip native type=search chrome — the chevron, the clear ✕, and the
+     saved-searches dropdown affordance Chrome paints inside the field. */
+  .hero-search input::-webkit-search-decoration,
+  .hero-search input::-webkit-search-cancel-button,
+  .hero-search input::-webkit-search-results-button,
+  .hero-search input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
+  /* Keep Chrome autofill from painting a light box over the dark glass. */
+  .hero-search input:-webkit-autofill,
+  .hero-search input:-webkit-autofill:hover,
+  .hero-search input:-webkit-autofill:focus {
+    -webkit-text-fill-color: rgb(var(--color-primary-50));
+    caret-color: rgb(var(--color-primary-50));
+    transition: background-color 9999s ease-out 0s;
+  }
+  .hero-search-go {
+    flex: none;
+    background: rgb(var(--color-highlight-600));
+    color: #fff;
+    border: 0;
+    border-radius: 0.4rem;
+    padding: 0.7rem 1.15rem;
     font-family: var(--font-prose, serif);
     font-size: 0.95rem;
-    font-weight: 500;
-    border: 1px solid rgb(var(--color-highlight-500) / 0.55);
-    border-radius: 0.2rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     cursor: pointer;
-    transition: border-color 0.18s, color 0.18s;
     white-space: nowrap;
+    transition: background 0.2s;
   }
-  .hero-btn-outline:hover {
-    border-color: rgb(var(--color-highlight-400));
-    color: rgb(var(--color-highlight-200));
+  .hero-search-go:hover { background: rgb(var(--color-highlight-700)); }
+  .hero-search-go:active { background: rgb(var(--color-highlight-800)); }
+
+  /* ── Stats (count-up) ── */
+  .hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2.25rem;
+    margin: 0 auto 1.75rem;
   }
-  .hero-btn-outline kbd {
-    font-family: var(--font-mono, monospace);
-    font-size: 0.7rem;
-    padding: 0.1em 0.35em;
-    background: rgb(var(--color-primary-800));
-    border: 1px solid rgb(var(--color-primary-600) / 0.6);
-    border-bottom-width: 2px;
-    border-radius: 0.15rem;
+  .hero-stat { text-align: center; }
+  .hero-stat-n {
+    display: block;
+    font-family: var(--font-heading, serif);
+    font-size: clamp(1.7rem, 4vw, 2.3rem);
+    font-weight: 600;
+    line-height: 1;
+    color: rgb(var(--color-highlight-300));
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-stat-l {
+    display: block;
+    font-family: var(--font-prose, serif);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     color: rgb(var(--color-primary-300));
-  }
-  @media (hover: none) and (pointer: coarse) {
-    .hero-btn-outline kbd { display: none; }
+    margin-top: 0.4rem;
   }
 
-  .hero-btn-ghost {
-    display: inline-flex;
-    align-items: center;
+  /* ── Browse fallback link ── */
+  .hero-browse {
     font-family: var(--font-prose, serif);
     font-size: 0.9rem;
-    color: rgb(var(--color-primary-400));
+    color: rgb(var(--color-primary-300));
     text-decoration: none;
-    border-bottom: 1px dotted rgb(var(--color-primary-600));
-    padding: 0.6rem 0.25rem 0.05em;
-    min-height: 2.75rem;
+    border-bottom: 1px dotted rgb(var(--color-highlight-500) / 0.5);
+    padding-bottom: 1px;
     transition: color 0.15s, border-color 0.15s;
-    white-space: nowrap;
   }
-  .hero-btn-ghost:hover {
-    color: rgb(var(--color-highlight-400));
-    border-bottom-color: rgb(var(--color-highlight-500));
-    text-decoration: none;
-  }
-
-  /* ── Bottom divider ── */
-  .hero-divider {
-    width: 100%;
-    height: 1px;
-    margin: 0 auto;
-    background:
-      linear-gradient(to right, transparent, rgb(var(--color-highlight-500) / 0.5)) 0 0 / 46% 1px no-repeat,
-      linear-gradient(to left,  transparent, rgb(var(--color-highlight-500) / 0.5)) 100% 0 / 46% 1px no-repeat;
-    position: relative;
-    overflow: visible;
-  }
-  .hero-divider-ornament {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    color: rgb(var(--color-highlight-400));
-    font-size: 0.65em;
-    letter-spacing: 0.35em;
-    white-space: nowrap;
+  .hero-browse:hover {
+    color: rgb(var(--color-highlight-300));
+    border-bottom-color: rgb(var(--color-highlight-400));
   }
 
   /* ── Scroll hint ── */
@@ -306,20 +328,323 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     50%       { transform: translateX(-50%) translateY(6px); }
   }
 
-  /* ── Tablet (481px–768px) ── */
-  @media (max-width: 768px) {
-    .hero-inner { max-width: 38rem; margin: 0 auto; }
-    .hero-mission { font-size: clamp(0.9rem, 3vw, 1.1rem); }
-  }
-
-  /* ── Mobile (≤480px) ── */
   @media (max-width: 480px) {
     .hero-section { padding: calc(3.5rem + 3rem) 1rem 2rem; }
-    .hero-ornament-top { margin-bottom: 1.25rem; }
-    .hero-ctas { gap: 0.6rem; flex-direction: column; align-items: stretch; }
-    .hero-btn-primary,
-    .hero-btn-outline { width: 100%; justify-content: center; }
-    .hero-btn-ghost { margin-top: 0.25rem; justify-content: center; }
-    .hero-stats { font-size: 0.82rem; padding: 0.4rem 0.9rem; }
+    .hero-search { flex-wrap: wrap; padding: 0.5rem; gap: 0.5rem; }
+    .hero-search input { flex-basis: 100%; padding: 0.5rem 0.25rem; }
+    .hero-search-go { width: 100%; }
+    .hero-stats { gap: 1.5rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-scroll-hint { animation: none; }
   }
 </style>
+
+<!--
+  Dropdown styling lives in a global block: the option rows are injected via innerHTML,
+  so Astro's scoped-style attributes never reach them. Class names are hero-specific.
+-->
+<style is:global>
+  .hero-results {
+    position: absolute;
+    top: calc(100% + 0.55rem);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    max-height: min(58vh, 26rem);
+    overflow-y: auto;
+    padding: 0.3rem;
+    text-align: left;
+    background: rgb(13 10 5 / 0.98);
+    border: 1px solid rgb(var(--color-highlight-500) / 0.3);
+    border-radius: 0.6rem;
+    box-shadow: 0 24px 55px -15px rgb(0 0 0 / 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    overscroll-behavior: contain;
+  }
+  .hero-results[hidden] { display: none; }
+
+  .hero-result {
+    display: block;
+    padding: 0.65rem 0.8rem;
+    border-radius: 0.45rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .hero-result:hover,
+  .hero-result.is-active {
+    background: rgb(var(--color-highlight-500) / 0.14);
+  }
+  .hero-result:focus-visible {
+    outline: 2px solid rgb(var(--color-highlight-400));
+    outline-offset: -2px;
+  }
+
+  .hero-result-cat {
+    display: block;
+    font-family: var(--font-prose, serif);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-300));
+    margin-bottom: 0.2rem;
+  }
+  .hero-result-title {
+    display: block;
+    font-family: var(--font-heading, serif);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: rgb(var(--color-primary-50));
+  }
+  .hero-result-excerpt {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.25rem;
+    font-family: var(--font-prose, serif);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: rgb(var(--color-primary-300));
+  }
+  .hero-results mark {
+    background: rgb(var(--color-highlight-500) / 0.3);
+    color: rgb(var(--color-primary-50));
+    border-radius: 0.15rem;
+    padding: 0 0.12em;
+    font-style: normal;
+  }
+
+  /* Footer "see all" option — visually distinct from result rows */
+  .hero-result-all {
+    display: block;
+    padding: 0.6rem 0.75rem;
+    margin-top: 0.15rem;
+    border-top: 1px solid rgb(var(--color-highlight-500) / 0.25);
+    border-radius: 0 0 0.35rem 0.35rem;
+    font-family: var(--font-prose, serif);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgb(var(--color-highlight-300));
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .hero-result-all:hover,
+  .hero-result-all.is-active {
+    background: rgb(var(--color-highlight-500) / 0.14);
+    color: rgb(var(--color-highlight-200, var(--color-highlight-300)));
+  }
+  .hero-result-all .hero-result-q { color: rgb(var(--color-primary-100)); font-style: italic; }
+</style>
+
+<script>
+  import { escapeHtml } from '@/utils/search';
+
+  // Pagefind singleton — module scope survives Swup navigation; readiness is reset
+  // per page view because the WASM worker may be killed between navigations.
+  let heroPf: any = null;
+  let heroPfReady = false;
+  let heroOutsideBound = false;
+
+  async function initHeroPagefind(): Promise<boolean> {
+    if (heroPfReady) return true;
+    try {
+      const _pf = '/pagefind/pagefind.js';
+      heroPf = await import(/* @vite-ignore */ _pf);
+      await heroPf.init();
+      heroPfReady = true;
+      return true;
+    } catch {
+      return false; // index not built (e.g. dev) — caller falls back to the search page
+    }
+  }
+
+  function initHero() {
+    const input = document.getElementById('hero-q') as HTMLInputElement | null;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Cycling placeholder — real claim-shaped titles
+    if (input) {
+      const claims = [
+        'Did Islam spread by the sword?',
+        'Does the Quran call Jesus God?',
+        'Is there a contradiction in Quran 4:82?',
+        'Was the Bible corrupted?',
+        'What are the Satanic Verses?',
+      ];
+      let ci = 0;
+      if (!reduce) {
+        const id = window.setInterval(() => {
+          if (document.activeElement === input || input.value) return;
+          ci = (ci + 1) % claims.length;
+          input.setAttribute('placeholder', claims[ci]);
+        }, 2600);
+        // Stop cycling when the hero leaves the DOM on Swup navigation
+        document.addEventListener('swup:page:view', () => window.clearInterval(id), { once: true });
+      }
+    }
+
+    // Count-up stats
+    const compact = (n: number) =>
+      n >= 1_000_000 ? (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M'
+      : n >= 1_000 ? Math.round(n / 1_000) + 'k'
+      : String(n);
+
+    const nums = Array.from(document.querySelectorAll<HTMLElement>('.hero-stat-n'));
+    nums.forEach((el) => {
+      const target = Number(el.dataset.count || '0');
+      const isCompact = el.dataset.format === 'compact';
+      const final = isCompact ? compact(target) : target.toLocaleString();
+      if (reduce || target <= 0) { el.textContent = final; return; }
+      const dur = 1100, start = performance.now();
+      const step = (now: number) => {
+        const p = Math.min((now - start) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const val = Math.floor(eased * target);
+        el.textContent = p < 1 ? (isCompact ? compact(val) : val.toLocaleString()) : final;
+        if (p < 1) requestAnimationFrame(step);
+      };
+      el.textContent = isCompact ? compact(0) : '0';
+      requestAnimationFrame(step);
+    });
+
+    // ── Inline instant search ───────────────────────────────────────────────
+    const results = document.getElementById('hero-results');
+    const wrap = document.getElementById('hero-search-wrap');
+    const form = input?.closest('form') as HTMLFormElement | null;
+    heroPfReady = false; // force re-init on this page view
+
+    if (input && results && form) {
+      const searchBase = form.getAttribute('action') || '/search/';
+      const searchUrl = (q: string) => `${searchBase}?q=${encodeURIComponent(q)}`;
+      let debTimer = 0;
+
+      const optionEls = () => Array.from(results.querySelectorAll<HTMLElement>('[role="option"]'));
+
+      const close = () => {
+        results.hidden = true;
+        results.innerHTML = '';
+        input.setAttribute('aria-expanded', 'false');
+        input.removeAttribute('aria-activedescendant');
+      };
+
+      const setSel = (i: number) => {
+        const opts = optionEls();
+        opts.forEach((el, j) => {
+          const on = j === i;
+          el.classList.toggle('is-active', on);
+          el.setAttribute('aria-selected', on ? 'true' : 'false');
+          if (on) {
+            input.setAttribute('aria-activedescendant', el.id);
+            el.scrollIntoView({ block: 'nearest' });
+          }
+        });
+        if (i < 0) input.removeAttribute('aria-activedescendant');
+      };
+
+      // Local highlighter emitting bare <mark> so .hero-results mark governs styling uniformly
+      const mark = (text: string, q: string) => {
+        const esc = escapeHtml(text || '');
+        const query = q.trim();
+        if (!query) return esc;
+        const toks = query.split(/\s+/).filter(Boolean)
+          .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        if (!toks.length) return esc;
+        return esc.replace(new RegExp(`(${toks.join('|')})`, 'gi'), '<mark>$1</mark>');
+      };
+
+      const render = (items: any[], q: string) => {
+        const rows = items.map((it, i) => `
+          <a href="${escapeHtml(it.url)}" role="option" id="hero-opt-${i}" class="hero-result" aria-selected="false">
+            ${it.category ? `<span class="hero-result-cat">${escapeHtml(it.category)}</span>` : ''}
+            <span class="hero-result-title">${mark(it.title, q)}</span>
+            ${it.excerpt ? `<span class="hero-result-excerpt">${it.excerpt}</span>` : ''}
+          </a>`).join('');
+
+        const allLabel = items.length
+          ? `See all results for <span class="hero-result-q">“${escapeHtml(q)}”</span> →`
+          : `No quick matches — search everything for <span class="hero-result-q">“${escapeHtml(q)}”</span> →`;
+
+        results.innerHTML = rows +
+          `<a href="${escapeHtml(searchUrl(q))}" role="option" id="hero-opt-${items.length}" class="hero-result-all" aria-selected="false">${allLabel}</a>`;
+
+        optionEls().forEach((el, i) => el.addEventListener('mouseenter', () => setSel(i)));
+        results.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+      };
+
+      // Pagefind's top-of-page excerpt usually leads with the title + the
+      // "Date · N min read · N words" byline the layout renders. Drop everything
+      // through that word-count marker so the snippet starts at the article body.
+      // ponytail: byline-format heuristic; falls back to the raw excerpt if absent.
+      const cleanExcerpt = (html: string) => {
+        const stripped = html.replace(/^[\s\S]*?\d[\d,]*\s+words\s+/i, '');
+        return stripped.length > 20 ? stripped : html;
+      };
+
+      const run = async (q: string) => {
+        const ok = await initHeroPagefind();
+        if (!ok) { close(); return; }           // no index → silent fallback to the search page
+        if (input.value.trim() !== q) return;   // stale query
+        const res = await heroPf.search(q);
+        const data = await Promise.all((res.results as any[]).slice(0, 6).map((r: any) => r.data()));
+        if (input.value.trim() !== q) return;   // stale after awaiting hydration
+        render(data.map((d: any) => ({
+          title:    d.meta.title || d.url,
+          url:      d.url,
+          category: d.meta.category || '',
+          excerpt:  cleanExcerpt(d.excerpt || ''),
+        })), q);
+      };
+
+      input.addEventListener('input', () => {
+        const q = input.value.trim();
+        window.clearTimeout(debTimer);
+        if (q.length < 2) { close(); return; }
+        debTimer = window.setTimeout(() => run(q), 200);
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (results.hidden) return;             // closed → let the form submit to /search
+        const opts = optionEls();
+        const cur = opts.findIndex(o => o.classList.contains('is-active'));
+        if (e.key === 'ArrowDown') { e.preventDefault(); setSel(Math.min(cur + 1, opts.length - 1)); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); setSel(cur < 0 ? opts.length - 1 : Math.max(cur - 1, 0)); }
+        else if (e.key === 'Enter') {
+          if (cur >= 0 && opts[cur]) {
+            e.preventDefault();
+            const href = opts[cur].getAttribute('href');
+            if (href) (window as any).swup ? (window as any).swup.navigate(href) : (window.location.href = href);
+          }
+          // no active option → fall through to native submit
+        } else if (e.key === 'Escape') { close(); }
+      });
+
+      // Close when a click lands outside the search area (bound once for the session)
+      if (!heroOutsideBound) {
+        heroOutsideBound = true;
+        document.addEventListener('click', (e) => {
+          const r = document.getElementById('hero-results') as HTMLElement | null;
+          const w = document.getElementById('hero-search-wrap');
+          if (r && !r.hidden && w && !w.contains(e.target as Node)) {
+            r.hidden = true;
+            r.innerHTML = '';
+            document.getElementById('hero-q')?.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+    }
+  }
+
+  // Direct call for initial load (only DOMContentLoaded fires then); swup:page:view
+  // (fires once per navigation) re-wires the hero after each swap.
+  initHero();
+  document.addEventListener('swup:page:view', initHero);
+</script>

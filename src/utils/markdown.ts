@@ -145,7 +145,7 @@ export async function generateTOC(headings: Heading[]): Promise<Heading[]> {
   );
 }
 
-// Process content data for display (posts, projects, docs, etc.)
+// Process post data for display.
 export async function processPost(post: any) {
   const { Content, headings, remarkPluginFrontmatter } = await render(post);
   const { excerpt, wordCount, hasMore } = processMarkdown(post.body || "");
@@ -228,6 +228,13 @@ export function formatDateISO(date: Date): string {
   return date.toISOString();
 }
 
+// Short en-GB date ("8 Jul 2026"). Tolerant of raw string/Date/nullish input so
+// listing pages can pass frontmatter values straight through.
+export function formatDateShort(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 // Helper to check if we're in development mode (not preview or production)
 // import.meta.env.DEV is true only for 'astro dev', false for 'astro build' and 'astro preview'
 function isDevelopmentMode(): boolean {
@@ -302,57 +309,6 @@ export function getAdjacentPosts(posts: Post[], currentSlug: string) {
     next:
       currentIndex < sortedPosts.length - 1
         ? sortedPosts[currentIndex + 1]
-        : null,
-  };
-}
-
-// Get next and previous documentation items within the same category, sorted by order
-export function getAdjacentDocs<T extends { id: string; data: { category?: string | null; order: number; title: string } }>(
-  docs: T[],
-  currentSlug: string,
-  currentCategory: string | null
-) {
-  // Filter docs by the same category
-  const categoryDocs = docs.filter((doc) => {
-    const docCategory = doc.data.category && 
-      doc.data.category.trim() !== '' && 
-      doc.data.category !== 'General'
-      ? doc.data.category
-      : null;
-    
-    // If current doc has no category, match docs with no category
-    if (!currentCategory) {
-      return !docCategory;
-    }
-    
-    // Match exact category
-    return docCategory === currentCategory;
-  });
-
-  // Sort by order (ascending), then by title (alphabetical)
-  const sortedDocs = categoryDocs.sort((a, b) => {
-    if (a.data.order !== b.data.order) {
-      return a.data.order - b.data.order;
-    }
-    return a.data.title.localeCompare(b.data.title);
-  });
-
-  // Find current doc index
-  const currentIndex = sortedDocs.findIndex((doc) => doc.id === currentSlug);
-
-  // Only return navigation if there are other docs in the category
-  if (sortedDocs.length <= 1) {
-    return {
-      prev: null,
-      next: null,
-    };
-  }
-
-  return {
-    prev: currentIndex > 0 ? sortedDocs[currentIndex - 1] : null,
-    next:
-      currentIndex < sortedDocs.length - 1
-        ? sortedDocs[currentIndex + 1]
         : null,
   };
 }

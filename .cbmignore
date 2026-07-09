@@ -1,0 +1,7 @@
+# Exclude the Obsidian content vault from code indexing — it's prose, not code,
+# and its 378 markdown files bloat the knowledge graph (makes the 3D UI OOM).
+src/content/
+
+# Vendored PixiJS bundle (~66k lines) — not our code, and it alone produces
+# nearly all graph nodes, which OOMs the 3D UI layout. Never edited (see CLAUDE.md).
+src/graph/components/graph/pixi/

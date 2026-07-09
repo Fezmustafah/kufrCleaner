@@ -244,7 +244,7 @@ export const GET: APIRoute = async ({ props }) => {
     description: description ?? null,
     bannerDataUrl,
     siteTitle: siteConfig.title,
-    tags,
+    tags: tags ?? undefined,
   });
 
   const svg = await satori(element as Parameters<typeof satori>[0], {
@@ -260,7 +260,7 @@ export const GET: APIRoute = async ({ props }) => {
     .png({ compressionLevel: 8 })
     .toBuffer();
 
-  return new Response(png, {
+  return new Response(new Uint8Array(png), {
     headers: {
       'Content-Type': 'image/png',
       'Cache-Control': 'public, max-age=31536000, immutable',

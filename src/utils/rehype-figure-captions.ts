@@ -59,7 +59,7 @@ function parseInlineMarkdown(text: string): ElementContent[] {
 
 export function rehypeFigureCaptions() {
   return (tree: Root) => {
-    visit(tree, 'element', (node: Element, index: number | null, parent: any) => {
+    visit(tree, 'element', (node: Element, index: number | undefined, parent: any) => {
       if (node.tagName !== 'img') return;
       if (index === null || index === undefined) return;
       if (!parent || parent.type !== 'element') return;

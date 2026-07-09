@@ -1,0 +1,115 @@
+---
+/**
+ * Topic banner background — shared visual for category/tag tiles and single-topic heroes.
+ * Renders the entry's cover image when present; otherwise a tiled rub-el-hizb (eight-point
+ * star) arabesque over a per-topic dark tint, so a topic with no image still reads as
+ * intentional al-andalus, not a gap.
+ *
+ * Absolutely positioned (inset:0) — the parent sets the box/aspect and overlays text.
+ */
+interface Props {
+  name: string;
+  image?: string | null;
+  imageAlt?: string;
+  eager?: boolean;
+}
+const { name, image, imageAlt = name, eager = false } = Astro.props;
+
+// Curated dark jewel tints that all pair with the gold arabesque; picked deterministically.
+const TINTS = [
+  '24 15 6',   // espresso
+  '10 28 26',  // deep teal
+  '32 18 8',   // warm sienna
+  '20 16 36',  // deep indigo
+  '14 26 18',  // deep forest
+  '34 16 12',  // deep wine
+];
+let h = 0;
+for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+const tint = TINTS[h % TINTS.length];
+const initial = (name.trim().replace(/^#/, '')[0] || '?').toUpperCase();
+const patId = `arab-${h.toString(36)}`;
+---
+
+<div class="topic-banner" style={`--topic-tint: ${tint};`}>
+  {image ? (
+    <img
+      src={image}
+      alt={imageAlt}
+      class="topic-banner-img"
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+    />
+  ) : (
+    <>
+      <svg class="topic-banner-arab" width="100%" height="100%" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id={patId} width="66" height="66" patternUnits="userSpaceOnUse">
+            <g class="arab-lines">
+              <rect x="17" y="17" width="32" height="32" />
+              <rect x="17" y="17" width="32" height="32" transform="rotate(45 33 33)" />
+              <circle cx="33" cy="33" r="2.4" />
+            </g>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill={`url(#${patId})`} />
+      </svg>
+      <span class="topic-banner-initial" aria-hidden="true">{initial}</span>
+    </>
+  )}
+  <div class="topic-banner-veil" aria-hidden="true"></div>
+</div>
+
+<style>
+  .topic-banner {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(130% 120% at 25% -10%, rgb(var(--topic-tint) / 0.85) 0%, transparent 60%),
+      linear-gradient(155deg, rgb(var(--topic-tint)) 0%, #0C0A05 100%);
+  }
+
+  .topic-banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  .topic-banner-arab {
+    position: absolute;
+    inset: 0;
+  }
+  .topic-banner-arab .arab-lines {
+    fill: none;
+    stroke: rgb(var(--color-highlight-400) / 0.16);
+    stroke-width: 1.25;
+  }
+  .topic-banner-arab .arab-lines circle {
+    fill: rgb(var(--color-highlight-400) / 0.14);
+    stroke: none;
+  }
+
+  /* Oversized faded serif initial in the corner — quiet per-topic identity */
+  .topic-banner-initial {
+    position: absolute;
+    right: 0.02em;
+    bottom: -0.26em;
+    font-family: var(--font-heading, serif);
+    font-weight: 600;
+    font-size: clamp(6rem, 20vw, 15rem);
+    line-height: 1;
+    color: rgb(var(--color-highlight-400) / 0.09);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Bottom-up scrim so overlaid title/description stays legible on image or arabesque */
+  .topic-banner-veil {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.62) 0%, rgb(0 0 0 / 0.15) 45%, transparent 70%);
+  }
+</style>

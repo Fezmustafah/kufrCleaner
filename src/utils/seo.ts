@@ -1,8 +1,6 @@
 import type {
   Post,
   Page,
-  Project,
-  Docs,
   SEOData,
   OpenGraphImage,
 } from "@/types";
@@ -110,117 +108,6 @@ export function generatePageSEO(page: Page, url: string): SEOData {
     ogImage,
     ogType: "website",
     noIndex: page.data.noIndex || false, // Add this line
-  };
-}
-
-// Generate SEO data for projects
-export function generateProjectSEO(project: Project, url: string): SEOData {
-  const { title, description, image, date } = project.data;
-
-  let ogImage: OpenGraphImage | undefined;
-
-  if (image) {
-    // Extract image path from Obsidian bracket syntax if needed
-    const imagePath = extractImagePath(image);
-
-    // Handle both local and external image paths
-    let imageUrl: string;
-    if (imagePath.startsWith("http")) {
-      // External URL
-      imageUrl = imagePath;
-    } else {
-      // Use optimizeImagePath for proper path resolution
-      const optimizedPath = optimizeContentImagePath(
-        imagePath,
-        "projects",
-        project.id,
-        project.id
-      );
-      imageUrl = `${siteConfig.site}${optimizedPath}`;
-    }
-    ogImage = {
-      url: imageUrl,
-      alt: project.data.imageAlt || `Featured image for project: ${title}`,
-      width: 1200,
-      height: 630,
-    };
-  } else {
-    // Use default OG image
-    ogImage = getDefaultOGImage();
-    ogImage = {
-      ...ogImage,
-      url: `${siteConfig.site}${ogImage.url}`,
-    };
-  }
-
-  return {
-    title: `${title} | ${siteConfig.title}`,
-    description: description || '',
-    canonical: url,
-    ogImage,
-    ogType: "article",
-    publishedTime: date.toISOString(),
-    modifiedTime: date.toISOString(),
-    tags: project.data.categories?.filter((cat) => cat !== null) || undefined,
-    noIndex: project.data.noIndex || false,
-  };
-}
-
-// Generate SEO data for documentation
-export function generateDocumentationSEO(
-  documentation: Docs,
-  url: string
-): SEOData {
-  const { title, description, image, category, version } = documentation.data;
-
-  let ogImage: OpenGraphImage | undefined;
-
-  if (image) {
-    // Extract image path from Obsidian bracket syntax if needed
-    const imagePath = extractImagePath(image);
-
-    let imageUrl: string;
-    if (imagePath.startsWith("http")) {
-      // External URL
-      imageUrl = imagePath;
-    } else {
-      // Use optimizeImagePath for proper path resolution
-      const optimizedPath = optimizeContentImagePath(
-        imagePath,
-        "documentation",
-        documentation.id,
-        documentation.id
-      );
-      imageUrl = `${siteConfig.site}${optimizedPath}`;
-    }
-    ogImage = {
-      url: imageUrl,
-      alt:
-        documentation.data.imageAlt ||
-        `Featured image for documentation: ${title}`,
-      width: 1200,
-      height: 630,
-    };
-  } else {
-    // Use default OG image
-    ogImage = getDefaultOGImage();
-    ogImage = {
-      ...ogImage,
-      url: `${siteConfig.site}${ogImage.url}`,
-    };
-  }
-
-  return {
-    title: `${title} | ${siteConfig.title}`,
-    description: description || '',
-    canonical: url,
-    ogImage,
-    ogType: "article",
-    articleSection: category || undefined,
-    keywords: version
-      ? [`${category || "Documentation"}`, `version ${version}`]
-      : [category || "Documentation"],
-    noIndex: documentation.data.noIndex || false,
   };
 }
 
@@ -403,7 +290,7 @@ export function generateWebsiteSchema(description?: string): string {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${siteConfig.site}/search?q={search_term_string}`,
+        urlTemplate: `${siteConfig.site}/search/?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },
@@ -458,4 +345,3 @@ export function generateBreadcrumbs(
     itemListElement: items,
   };
 }
-

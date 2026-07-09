@@ -2,156 +2,176 @@
 import { getCollection } from 'astro:content';
 import { siteConfig } from '@/config';
 import { shouldShowPost, sortPostsByDate } from '@/utils/markdown';
+import { topicSlug, categoryDisplayName } from '@/utils/topics';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Icon from '@/components/Icon.astro';
+import TopicTile from '@/components/TopicTile.astro';
 
 const isDev = import.meta.env.DEV;
+const baseUrl = import.meta.env.BASE_URL;
 
 const allPosts = await getCollection('posts');
-const visiblePosts = allPosts.filter(post => shouldShowPost(post, isDev));
-const sortedPosts = sortPostsByDate(visiblePosts);
+const visiblePosts = sortPostsByDate(allPosts.filter(post => shouldShowPost(post, isDev)));
 
-// Build category data with post counts
-const categoryMap = new Map<string, number>();
-for (const post of sortedPosts) {
+// Post counts per category (skip empties + the "Test" placeholder)
+const counts = new Map<string, number>();
+for (const post of visiblePosts) {
   const cat = (post.data as any).category;
-  if (cat && typeof cat === 'string' && cat.trim()) {
-    categoryMap.set(cat.trim(), (categoryMap.get(cat.trim()) || 0) + 1);
+  if (typeof cat === 'string' && cat.trim() && cat.trim().toLowerCase() !== 'test') {
+    const key = cat.trim();
+    counts.set(key, (counts.get(key) || 0) + 1);
   }
 }
 
-const categoryData = Array.from(categoryMap.entries())
-  .map(([category, postCount]) => ({ category, postCount }))
-  .sort((a, b) => a.category.localeCompare(b.category));
+// Merge in each category's description/image entry (keyed by slug id)
+const catEntries = await getCollection('categories');
+const entryBySlug = new Map(catEntries.map(e => [e.id, e.data]));
+
+const categories = Array.from(counts.entries())
+  .map(([raw, count]) => {
+    const entry = entryBySlug.get(topicSlug(raw));
+    return {
+      raw,
+      count,
+      title: entry?.title || categoryDisplayName(raw),
+      description: entry?.description || '',
+      image: entry?.image || null,
+      imageAlt: entry?.imageAlt || entry?.title || raw,
+      url: `${baseUrl}posts/category/${encodeURIComponent(raw)}/`,
+    };
+  })
+  .sort((a, b) => b.count - a.count);
+
+const featured = categories.slice(0, 2);
+const rest = categories.slice(2);
+const totalPosts = categories.reduce((n, c) => n + c.count, 0);
 
 const seoData = {
-  title: `Categories | ${siteConfig.title}`,
-  description: `Browse ${categoryData.length} categories across ${visiblePosts.length} posts.`,
+  title: `Topics | ${siteConfig.title}`,
+  description: `Browse ${categories.length} topics across ${totalPosts.toLocaleString()} articles.`,
   canonical: Astro.url.href,
-  ogType: 'website' as const
+  ogType: 'website' as const,
 };
 ---
 
 <BaseLayout seoData={seoData}>
-  <div class="py-8">
-    <div class="cat-moc-grid" style={`--contentWidth: ${siteConfig.layout.contentWidth}`}>
+  <div class="cat-index">
 
-      <article class="moc-article bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm overflow-hidden">
+    <header class="cat-head">
+      <p class="cat-kicker">Browse the library</p>
+      <h1 class="cat-title">Topics</h1>
+      <p class="cat-sub">{categories.length} areas of study · {totalPosts.toLocaleString()} articles</p>
+    </header>
 
-        <!-- Header -->
-        <div class="px-6 py-6 border-b border-primary-200 dark:border-primary-700">
-          <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50 mb-1 leading-tight">
-            Categories
-          </h1>
-          <p class="text-base text-primary-500 dark:text-primary-400">
-            {categoryData.length} categories · {visiblePosts.length} posts
-          </p>
-        </div>
+    {categories.length > 0 ? (
+      <>
+        {featured.length > 0 && (
+          <div class="cat-featured">
+            {featured.map((c) => (
+              <TopicTile
+                href={c.url}
+                name={c.title}
+                label={c.title}
+                count={c.count}
+                description={c.description}
+                image={c.image}
+                imageAlt={c.imageAlt}
+                large={true}
+                eager={true}
+              />
+            ))}
+          </div>
+        )}
 
-        <!-- Category list -->
-        <div class="p-6">
-          {categoryData.length > 0 ? (
-            <div class="cat-card-grid">
-              {categoryData.map(({ category, postCount }) => (
-                <a
-                  href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`}
-                  class="cat-card group"
-                >
-                  <div class="cat-card-icon">
-                    <Icon name="book-open" class="w-7 h-7 text-primary-400 dark:text-primary-500" />
-                  </div>
-                  <div class="cat-card-body">
-                    <div class="flex items-start justify-between gap-2">
-                      <h2 class="text-base font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors leading-snug">
-                        {category}
-                      </h2>
-                      <span class="shrink-0 text-sm font-medium px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-700 text-primary-500 dark:text-primary-400 tabular-nums">
-                        {postCount}
-                      </span>
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          ) : (
-            <div class="text-center py-16">
-              <Icon name="book-open" class="w-10 h-10 text-primary-300 dark:text-primary-600 mx-auto mb-3" />
-              <p class="text-base text-primary-500 dark:text-primary-400">No categories found.</p>
-            </div>
-          )}
-        </div>
-      </article>
-    </div>
+        {rest.length > 0 && (
+          <div class="cat-rest">
+            {rest.map((c) => (
+              <TopicTile
+                href={c.url}
+                name={c.title}
+                label={c.title}
+                count={c.count}
+                description={c.description}
+                image={c.image}
+                imageAlt={c.imageAlt}
+              />
+            ))}
+          </div>
+        )}
+      </>
+    ) : (
+      <p class="cat-empty">No topics found.</p>
+    )}
+
   </div>
 </BaseLayout>
 
 <style>
-  .cat-moc-grid {
-    display: grid;
-    grid-template-columns: minmax(0, var(--contentWidth));
-    justify-content: center;
-    padding: 0 1rem;
+  /* Full-bleed: break out of <main>'s contentWidth cap to span the viewport.
+     Safe because body has overflow-x: clip (global.css). */
+  .cat-index {
+    position: relative;
+    left: 50%;
+    right: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    padding: 2.5rem clamp(1rem, 4vw, 3.5rem) 3.5rem;
   }
 
-  .moc-breadcrumb { grid-column: 1 / -1; }
-  .moc-article { min-width: 0; }
+  /* ── Header ── */
+  .cat-head { margin-bottom: 1.75rem; }
+  .cat-kicker {
+    font-family: var(--font-prose, serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-600));
+    margin: 0 0 0.5rem;
+  }
+  :global(.dark) .cat-kicker { color: rgb(var(--color-highlight-400)); }
+  .cat-title {
+    font-family: var(--font-heading, serif);
+    font-size: clamp(2rem, 5vw, 2.9rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    color: rgb(var(--color-primary-900));
+    margin: 0 0 0.4rem;
+  }
+  :global(.dark) .cat-title { color: rgb(var(--color-primary-50)); }
+  .cat-sub {
+    font-family: var(--font-prose, serif);
+    font-size: 0.95rem;
+    color: rgb(var(--color-primary-500));
+    margin: 0;
+  }
+  :global(.dark) .cat-sub { color: rgb(var(--color-primary-400)); }
 
-  .cat-card-grid {
+  /* ── Grids (tiles size themselves via TopicTile) ── */
+  .cat-featured {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  @media (min-width: 720px) { .cat-featured { grid-template-columns: 1.9fr 1fr; } }
+
+  .cat-rest {
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 1rem;
   }
+  @media (min-width: 520px) { .cat-rest { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 900px) { .cat-rest { grid-template-columns: repeat(3, 1fr); } }
+  /* keep tiles a sane size once the grid bleeds full-width */
+  @media (min-width: 1400px) { .cat-rest { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 1900px) { .cat-rest { grid-template-columns: repeat(5, 1fr); } }
 
-  @media (min-width: 480px) {
-    .cat-card-grid { grid-template-columns: repeat(3, 1fr); }
-  }
-
-  @media (min-width: 768px) {
-    .cat-card-grid { grid-template-columns: repeat(4, 1fr); }
-  }
-
-  .cat-card {
-    display: block;
-    text-decoration: none;
-    border-radius: 0.5rem;
-    border: 1px solid rgb(var(--color-primary-200, 229 231 235));
-    background: white;
-    overflow: hidden;
-    transition: border-color 150ms, box-shadow 150ms;
-  }
-
-  :global(.dark) .cat-card {
-    border-color: rgb(var(--color-primary-700, 55 65 81));
-    background: rgb(var(--color-primary-800, 31 41 55) / 0.5);
-  }
-
-  .cat-card:hover {
-    border-color: rgb(var(--color-highlight-300, 134 239 172));
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  }
-
-  :global(.dark) .cat-card:hover {
-    border-color: rgb(var(--color-highlight-600, 22 163 74));
-  }
-
-  .cat-card-icon {
-    width: 100%;
-    aspect-ratio: 3/2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%);
-  }
-
-  :global(.dark) .cat-card-icon {
-    background: linear-gradient(135deg, #1e2939 0%, #273549 100%);
-  }
-
-  .cat-card-body {
-    padding: 0.625rem 0.75rem 0.75rem;
-  }
-
-  @media (min-width: 1280px) {
-    .cat-moc-grid { padding: 0 1.5rem; }
+  .cat-empty {
+    font-family: var(--font-prose, serif);
+    text-align: center;
+    color: rgb(var(--color-primary-500));
+    padding: 4rem 0;
   }
 </style>

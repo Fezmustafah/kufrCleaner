@@ -347,6 +347,7 @@ export const siteConfig: SiteConfig = {
       { title: "Home", url: "/" },
       { title: "Posts", url: "/posts/" },
       { title: "Categories", url: "/posts/category/" },
+      { title: "Tags", url: "/posts/tag/" },
       { title: "Search", url: "/search/" },
       { title: "About", url: "/about/",
         children: [
@@ -504,7 +505,7 @@ export function getContentWidth(): string {
   return siteConfig.layout.contentWidth;
 }
 
-export function getTheme(): "minimal" | "oxygen" | "atom" | "ayu" | "catppuccin" | "charcoal" | "dracula" | "everforest" | "flexoki" | "gruvbox" | "macos" | "nord" | "obsidian" | "rose-pine" | "sky" | "solarized" | "things" | "custom" {
+export function getTheme(): SiteConfig["theme"] {
   return siteConfig.theme;
 }
 

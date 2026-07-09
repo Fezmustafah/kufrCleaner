@@ -1,6 +1,5 @@
 ---
 import type { ImageInfo } from '@/types';
-import { processImageLayout } from '@/utils/images';
 import Icon from './Icon.astro';
 import ImageWrapper from './ImageWrapper.astro';
 
@@ -11,14 +10,22 @@ export interface Props {
 
 const { images, layout = 'auto' } = Astro.props;
 
-// Process layout if auto
-const processedLayout = layout === 'auto' ? processImageLayout(images) : { layout, images };
-const { layout: finalLayout, images: finalImages } = processedLayout;
+type ResolvedLayout = Exclude<Props['layout'], 'auto' | undefined>;
+
+const resolveLayout = (count: number): ResolvedLayout => {
+  if (count <= 1) return 'single';
+  if (count === 2) return 'grid-2';
+  if (count === 3) return 'grid-3';
+  return 'grid-4';
+};
+
+const finalLayout: ResolvedLayout = layout === 'auto' ? resolveLayout(images.length) : layout;
+const finalImages: ImageInfo[] = images;
 ---
 
 {finalImages.length > 0 && (
   <div class={`image-gallery ${finalLayout} my-8`}>
-    {finalImages.map((image, index) => (
+    {finalImages.map((image: ImageInfo, index: number) => (
       <div class="image-item">
         <button 
           class="image-button w-full h-full group cursor-pointer"

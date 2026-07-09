@@ -134,8 +134,13 @@ function extractWikilinks(content) {
 
       // Parse anchor if present
       const anchorIndex = link.indexOf("#");
-      const baseLink =
+      let baseLink =
         anchorIndex === -1 ? link : link.substring(0, anchorIndex);
+
+      // Strip a leading posts/ or /posts/ so [[posts/slug]] resolves the same as
+      // [[slug]] — otherwise generateNodeId turns the "/" into "-" ("posts-slug")
+      // and the edge never matches a post id. (mirrors extractLinkTextFromUrl)
+      baseLink = baseLink.replace(/^\/?posts\//, "");
 
       // Generate target ID from the link
       const targetId = generateNodeId(baseLink, "posts");

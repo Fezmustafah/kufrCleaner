@@ -2,11 +2,12 @@
 // Init no-ops when no .rough-ann elements are in the DOM.
 
 import { annotate } from 'rough-notation';
+import type { RoughAnnotation, RoughAnnotationConfig, RoughAnnotationType } from 'rough-notation/lib/model.js';
 
 declare global {
   interface Window {
     initializeAnnotations?: (opts?: { animate?: boolean }) => void;
-    _roughAnnotations?: any[];
+    _roughAnnotations?: RoughAnnotation[];
     _annRun?: () => void;
   }
 }
@@ -25,12 +26,12 @@ function initAnnotations({ animate = true }: { animate?: boolean } = {}) {
     cs.getPropertyValue(`--ann-${type}`).trim() ||
     cs.getPropertyValue('--ann-highlight').trim();
 
-  const annotations: any[] = [];
+  const annotations: RoughAnnotation[] = [];
 
   spans.forEach(span => {
-    const type = span.dataset.annType ?? 'highlight';
+    const type = (span.dataset.annType ?? 'highlight') as RoughAnnotationType;
     const color = annColor(type);
-    const opts: Record<string, any> = {
+    const opts: RoughAnnotationConfig = {
       type,
       color,
       iterations: 2,

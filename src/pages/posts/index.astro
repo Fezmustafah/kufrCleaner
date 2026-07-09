@@ -1,58 +1,64 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 import { siteConfig } from '@/config';
-import { generatePageSEO } from '@/utils/seo';
-import { shouldShowPost, sortPostsByDate } from '@/utils/markdown';
-import { optimizePostImagePath } from '@/utils/images';
+import { shouldShowPost, sortPostsByDate, extractCategories, formatDateShort } from '@/utils/markdown';
+import { categoryDisplayName } from '@/utils/topics';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import PostCard from '@/components/PostCard.astro';
 import Icon from '@/components/Icon.astro';
 
-// Get special content for posts page
-let postsPageContent;
+const baseUrl = import.meta.env.BASE_URL;
+
+// Special "posts" page meta (title/description)
+let postsPageContent: CollectionEntry<'special'>[] = [];
 try {
-  postsPageContent = await getCollection('special', ({ slug }) => slug === 'posts');
+  postsPageContent = await getCollection('special', ({ id }) => id === 'posts');
 } catch (error) {
-  // Fallback if special collection doesn't exist or posts.md doesn't exist
   postsPageContent = [];
 }
-
 const postsPageData = postsPageContent.length > 0 ? postsPageContent[0] : null;
 
-// Get query parameters
 const url = new URL(Astro.request.url);
 const selectedTag = url.searchParams.get('tag');
 
-// Get all posts
 const allPosts = await getCollection('posts');
-
-// Filter posts based on environment
 const isDev = import.meta.env.DEV;
 const visiblePosts = allPosts.filter(post => shouldShowPost(post, isDev));
-
-// Sort posts by date (newest first)
 const sortedPosts = sortPostsByDate(visiblePosts);
 
-// Filter by tag if specified
+// Tag filter is applied server-side (links in from tag pages); the topic chips
+// are hidden in that mode and the client handles search/sort/view on the subset.
 const filteredPosts = selectedTag
   ? sortedPosts.filter(post => post.data.tags?.includes(selectedTag))
   : sortedPosts;
 
-// Sorting + client-side "load more": render ALL posts, reveal in batches via JS
-// (posts-sort-client.ts). Default order = newest first (already sorted above).
 const postsPerPage = siteConfig.postOptions.postsPerPage;
 const totalPosts = filteredPosts.length;
-const totalPages = Math.ceil(totalPosts / postsPerPage);
-const nextPageUrl = `${import.meta.env.BASE_URL}posts/2`;
+const nextPageUrl = `${baseUrl}posts/2/`;
 
+// Topic chips — same normalization as the homepage (drop noise, relabel ﷺ).
+const TOPIC_NOISE = new Set(['', 'test', 'quranic refutations', 'islamic refutations']);
+const allCategories = extractCategories(sortedPosts);
+const categoryCounts = allCategories.reduce((acc: Record<string, number>, c: string) => {
+  acc[c] = sortedPosts.filter((p: any) => p.data.category === c).length;
+  return acc;
+}, {} as Record<string, number>);
+const categories = allCategories
+  .filter((c: string) => c && !TOPIC_NOISE.has(c.toLowerCase().trim()))
+  .map((c: string) => ({ name: c, display: categoryDisplayName(c), count: categoryCounts[c] }))
+  .sort((a, b) => b.count - a.count);
 
-// Generate SEO data
+const getTs = (d: any): number => {
+  if (!d) return 0;
+  const x = d instanceof Date ? d : new Date(d);
+  return isNaN(x.getTime()) ? 0 : x.getTime();
+};
+
 const pageTitle = selectedTag
   ? `Posts tagged "${selectedTag}"`
-  : (postsPageData?.data.title || 'All Posts');
+  : (postsPageData?.data.title || 'All articles');
 const pageDescription = selectedTag
   ? `All posts tagged with "${selectedTag}"`
-  : (postsPageData?.data.description || `Browse all ${totalPosts} posts on ${siteConfig.title}`);
+  : (postsPageData?.data.description || `Browse all ${totalPosts} articles on ${siteConfig.title}`);
 
 const seoData = {
   title: `${pageTitle} | ${siteConfig.title}`,
@@ -60,103 +66,122 @@ const seoData = {
   canonical: Astro.url.href,
   ogType: 'website' as const
 };
-
 ---
 
 <BaseLayout seoData={seoData}>
-  <Fragment slot="head">
-    {filteredPosts.length > 0 && (() => {
-      const firstPost = filteredPosts[0];
-      if (!firstPost.data.image || typeof firstPost.data.image === 'string' && firstPost.data.image.startsWith('http')) return null;
-      const showCoverImages = siteConfig.postOptions.showPostCardCoverImages;
-      const shouldShowCoverImage = ['all', 'posts', 'featured-and-posts'].includes(showCoverImages);
-      return shouldShowCoverImage ? (
-        <link rel="preload" as="image" href={optimizePostImagePath(firstPost.data.image, undefined, firstPost.id)} fetchpriority="high" />
-      ) : null;
-    })()}
-  </Fragment>
-
-  <div class="py-8">
+  <div class="pb py-8">
     <div class="mx-auto px-4 sm:px-6" style={`max-width: ${siteConfig.layout.contentWidth}`}>
 
-      <header class="mb-6">
-        <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50 mb-1">
-          {pageTitle}
-        </h1>
-        <p class="text-base text-primary-500 dark:text-primary-400">
-          {selectedTag ? (
-            <>Showing <strong>{filteredPosts.length}</strong> posts tagged <span class="inline-flex items-center px-2 py-0.5 bg-highlight-100 dark:bg-highlight-900/30 text-highlight-800 dark:text-highlight-200 rounded text-sm font-medium ml-1">#{selectedTag}</span></>
-          ) : (
-            <>Explore all <strong>{totalPosts}</strong> posts</>
-          )}
+      <header class="pb-header">
+        <p class="pb-eyebrow"><span aria-hidden="true">◆</span> {selectedTag ? 'Tag' : 'The archive'}</p>
+        <h1 class="pb-h1">{pageTitle}</h1>
+        <p class="pb-sub">
+          {selectedTag
+            ? (<>Showing articles tagged <b>#{selectedTag}</b>.</>)
+            : (<>Every refutation and study on OpenIslam, in one place — search, filter by topic, or sort.</>)}
         </p>
         {selectedTag && (
-          <a href={`${import.meta.env.BASE_URL}posts`} class="inline-flex items-center mt-3 text-sm text-primary-500 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">
-            <Icon name="arrow-left" class="w-4 h-4 mr-1" />Show all posts
+          <a href={`${baseUrl}posts/`} class="pb-backlink">
+            <Icon name="arrow-left" class="w-4 h-4" /> All articles
           </a>
         )}
       </header>
 
       {filteredPosts.length > 0 ? (
-        <div data-posts-sort-root data-batch={postsPerPage}>
-          {/* Sort control */}
-          <div class="flex items-center justify-end gap-2 mb-4">
-            <label for="posts-sort" class="text-sm text-primary-500 dark:text-primary-400">Sort</label>
-            <select
-              id="posts-sort"
-              data-sort-select
-              class="text-sm rounded-md border border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-900 text-primary-800 dark:text-primary-100 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-highlight-500 cursor-pointer"
-            >
-              <option value="newest">Newest</option>
-              <option value="updated">Newly updated</option>
-              <option value="longest">Longest → shortest</option>
-              <option value="shortest">Shortest → longest</option>
-              <option value="az">Title A–Z</option>
-              <option value="za">Title Z–A</option>
-            </select>
+        <div data-posts-browser data-batch={postsPerPage}>
+
+          <!-- Filter bar -->
+          <div class="pb-bar">
+            <div class="pb-search">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+              <input type="search" data-pb-search autocomplete="off" placeholder="Filter by title…" aria-label="Filter articles by title" />
+            </div>
+            <div class="pb-bar-right">
+              <div class="pb-sortwrap">
+                <label for="pb-sort" class="pb-sortlabel">Sort</label>
+                <select id="pb-sort" data-pb-sort class="pb-select">
+                  <option value="newest">Newest</option>
+                  <option value="updated">Newly updated</option>
+                  <option value="longest">Longest → shortest</option>
+                  <option value="shortest">Shortest → longest</option>
+                  <option value="az">Title A–Z</option>
+                  <option value="za">Title Z–A</option>
+                </select>
+              </div>
+              <div class="pb-view" role="group" aria-label="View layout">
+                <button type="button" data-pb-view data-view="list" aria-pressed="true" aria-label="List view">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                </button>
+                <button type="button" data-pb-view data-view="grid" aria-pressed="false" aria-label="Grid view">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div class="posts-cards-grid mb-8">
+          {!selectedTag && categories.length > 0 && (
+            <div class="pb-chips" role="group" aria-label="Filter by topic">
+              <button type="button" data-pb-chip data-cat="" aria-pressed="true">
+                All <span class="pb-chip-n">{totalPosts}</span>
+              </button>
+              {categories.map((c) => (
+                <button type="button" data-pb-chip data-cat={c.name} aria-pressed="false">
+                  {c.display} <span class="pb-chip-n">{c.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div class="pb-resultline">
+            <span aria-live="polite"><b data-pb-count>{totalPosts}</b> {totalPosts === 1 ? 'article' : 'articles'}</span>
+            <button type="button" data-pb-clear hidden class="pb-clear">Clear filters ✕</button>
+          </div>
+
+          <h2 class="pb-sronly">Articles</h2>
+          <div class="pb-results view-list" data-pb-results>
             {filteredPosts.map((post, index) => {
-              const _d = post.data.date instanceof Date ? post.data.date : new Date(post.data.date);
-              const _m = post.data.modified ? new Date(post.data.modified) : _d;
+              const cat: string = (post.data as any).category ?? '';
               return (
-                <div
-                  class={`post-item${index >= postsPerPage ? ' is-hidden' : ''}`}
-                  data-date={_d.getTime()}
-                  data-modified={_m.getTime()}
+                <a
+                  href={`${baseUrl}posts/${post.id}/`}
+                  class={`pb-item${index >= postsPerPage ? ' is-hidden' : ''}`}
+                  data-date={getTs(post.data.date)}
+                  data-modified={getTs(post.data.modified || post.data.date)}
                   data-length={(post.body || '').length}
                   data-title={(post.data.title || '').toLowerCase()}
+                  data-category={cat}
                 >
-                  <PostCard post={post} eager={index < 2} context="posts" />
-                </div>
+                  {cat && <span class="pb-cat">{categoryDisplayName(cat)}</span>}
+                  <h3 class="pb-title">{post.data.title}</h3>
+                  {post.data.description && <p class="pb-desc">{post.data.description}</p>}
+                  {post.data.tags && post.data.tags.length > 0 && siteConfig.postOptions.tags && (
+                    <span class="pb-tags">
+                      {post.data.tags.slice(0, 4).map((t: string) => <span class="pb-tag">#{t}</span>)}
+                    </span>
+                  )}
+                  <span class="pb-date">{formatDateShort(post.data.date)}</span>
+                </a>
               );
             })}
           </div>
 
           {totalPosts > postsPerPage && (
-            <div class="flex justify-center mb-8">
-              <button type="button" data-load-more class="btn-primary px-5 py-2 rounded-md text-sm font-medium">
-                Load more
-              </button>
+            <div class="pb-more-wrap">
+              <button type="button" data-pb-more class="pb-more">Load more</button>
+              <noscript><a href={nextPageUrl} class="pb-more-link">More articles →</a></noscript>
             </div>
           )}
 
-          <noscript>
-            <div class="flex justify-center mb-8">
-              <a href={nextPageUrl} class="text-highlight-600 dark:text-highlight-400 hover:underline">More posts →</a>
-            </div>
-          </noscript>
         </div>
       ) : selectedTag ? (
-        <div class="text-center py-16">
-          <Icon name="tag" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
-          <p class="text-primary-500 dark:text-primary-400">No posts tagged "{selectedTag}". <a href={`${import.meta.env.BASE_URL}posts`} class="hover:underline">View all posts</a>.</p>
+        <div class="pb-empty">
+          <Icon name="tag" class="w-12 h-12" />
+          <p>No articles tagged "{selectedTag}". <a href={`${baseUrl}posts/`}>View all articles</a>.</p>
         </div>
       ) : (
-        <div class="text-center py-16">
-          <Icon name="file-text" class="w-12 h-12 text-primary-300 dark:text-primary-600 mx-auto mb-4" />
-          <p class="text-primary-500 dark:text-primary-400">No posts yet.</p>
+        <div class="pb-empty">
+          <Icon name="file-text" class="w-12 h-12" />
+          <p>No articles yet.</p>
         </div>
       )}
 
@@ -164,9 +189,115 @@ const seoData = {
   </div>
 
   <style>
-    /* Wrappers carry sort-key data attributes but stay out of layout so the
-       PostCard <article> remains the real grid item. */
-    .post-item { display: contents; }
-    .post-item.is-hidden { display: none; }
+    /* ══════════ Posts browser — al-andalus tokens (AA-stepped, matches homepage) ══════════ */
+    .pb {
+      --pb-bg-inset: rgb(var(--color-primary-100));
+      --pb-bg-raise: rgb(var(--color-primary-50));
+      --pb-text: rgb(var(--color-primary-900));
+      --pb-muted: rgb(var(--color-primary-600));
+      --pb-meta: rgb(var(--color-primary-600));
+      --pb-border: rgb(var(--color-primary-200));
+      --pb-border-strong: rgb(var(--color-primary-300));
+      --pb-accent: rgb(var(--color-highlight-700));
+      --pb-accent-soft: rgb(var(--color-highlight-400));
+    }
+    :global(html.dark) .pb {
+      --pb-bg-inset: rgb(var(--color-primary-800));
+      --pb-bg-raise: rgb(var(--color-primary-900));
+      --pb-text: rgb(var(--color-primary-100));
+      --pb-muted: rgb(var(--color-primary-300));
+      --pb-meta: rgb(var(--color-primary-300));
+      --pb-border: rgb(var(--color-primary-700));
+      --pb-border-strong: rgb(var(--color-primary-600));
+      --pb-accent: rgb(var(--color-highlight-400));
+      --pb-accent-soft: rgb(var(--color-highlight-500));
+    }
+
+    /* Header */
+    .pb-header { margin-bottom: 2rem; }
+    .pb-sronly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    .pb-eyebrow { font-family: var(--font-prose, serif); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--pb-accent); display: inline-flex; align-items: center; gap: 0.5rem; margin: 0 0 0.5rem; }
+    .pb-eyebrow span { color: var(--pb-accent-soft); font-size: 0.6em; opacity: 0.8; }
+    .pb-h1 { font-family: var(--font-heading, serif); font-size: clamp(2rem, 5vw, 2.75rem); font-weight: 600; color: var(--pb-text); margin: 0; line-height: 1.1; }
+    .pb-sub { font-family: var(--font-prose, serif); color: var(--pb-muted); margin: 0.5rem 0 0; font-size: 1.05rem; text-wrap: pretty; }
+    .pb-sub b { color: var(--pb-accent); font-weight: 600; }
+    .pb-backlink { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.75rem; font-size: 0.9rem; color: var(--pb-muted); text-decoration: none; }
+    .pb-backlink:hover { color: var(--pb-accent); }
+
+    /* Filter bar */
+    .pb-bar { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+    .pb-search { flex: 1 1 16rem; display: flex; align-items: center; gap: 0.6rem; padding: 0 0.9rem; background: var(--pb-bg-raise); border: 1px solid var(--pb-border-strong); border-radius: 0.5rem; color: var(--pb-muted); transition: border-color 0.2s, box-shadow 0.2s; }
+    .pb-search:focus-within { border-color: var(--pb-accent); box-shadow: 0 0 0 3px rgb(var(--color-highlight-500) / 0.14); }
+    .pb-search svg { flex: none; color: var(--pb-accent); }
+    .pb-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--pb-text); font-family: var(--font-prose, serif); font-size: 0.95rem; padding: 0.6rem 0; outline: none; }
+    .pb-search input::placeholder { color: var(--pb-meta); font-style: italic; }
+    .pb-bar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .pb-sortwrap { display: flex; align-items: center; gap: 0.4rem; }
+    .pb-sortlabel { font-size: 0.8rem; color: var(--pb-meta); font-family: var(--font-prose, serif); }
+    .pb-select { font-family: var(--font-prose, serif); font-size: 0.85rem; color: var(--pb-text); background: var(--pb-bg-raise); border: 1px solid var(--pb-border); border-radius: 0.4rem; padding: 0.45rem 0.6rem; cursor: pointer; }
+    .pb-select:focus-visible { outline: 2px solid var(--pb-accent); outline-offset: 2px; }
+    .pb-view { display: inline-flex; background: var(--pb-bg-inset); border: 1px solid var(--pb-border); border-radius: 0.5rem; padding: 3px; gap: 2px; }
+    .pb-view button { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border: 0; background: transparent; color: var(--pb-muted); border-radius: 0.35rem; cursor: pointer; transition: color 0.2s, background 0.2s; }
+    .pb-view button:hover { color: var(--pb-accent); }
+    .pb-view button[aria-pressed="true"] { background: var(--pb-bg-raise); color: var(--pb-accent); box-shadow: inset 0 0 0 1px var(--pb-border); }
+
+    /* Topic chips */
+    .pb-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .pb-chips button { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-prose, serif); font-size: 0.85rem; font-weight: 500; color: var(--pb-muted); background: var(--pb-bg-inset); border: 1px solid var(--pb-border); border-radius: 999px; padding: 0.35rem 0.85rem; cursor: pointer; transition: border-color 0.18s, color 0.18s, background 0.18s; }
+    .pb-chips button:hover { border-color: var(--pb-accent-soft); color: var(--pb-accent); }
+    .pb-chips button[aria-pressed="true"] { background: var(--pb-accent); border-color: var(--pb-accent); color: rgb(var(--color-primary-50)); }
+    :global(html.dark) .pb-chips button[aria-pressed="true"] { color: rgb(var(--color-primary-900)); }
+    .pb-chip-n { font-size: 0.72rem; opacity: 0.7; font-variant-numeric: tabular-nums; }
+    .pb-chips button[aria-pressed="true"] .pb-chip-n { opacity: 0.9; }
+
+    /* Result line */
+    .pb-resultline { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; font-family: var(--font-prose, serif); font-size: 0.85rem; color: var(--pb-meta); }
+    .pb-resultline b { color: var(--pb-text); font-weight: 600; }
+    .pb-clear { border: 0; background: transparent; color: var(--pb-accent); font-family: var(--font-prose, serif); font-size: 0.85rem; cursor: pointer; padding: 0.35rem 0.5rem; min-height: 32px; }
+    .pb-clear:hover { text-decoration: underline; }
+    .pb-clear[hidden] { display: none; }
+
+    /* Items — shared */
+    .pb-item { display: block; text-decoration: none; border-left: 2px solid transparent; }
+    .pb-item.is-hidden { display: none !important; }
+    .pb-cat { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pb-accent); }
+    .pb-title { font-family: var(--font-heading, serif); font-weight: 500; color: var(--pb-text); margin: 0; line-height: 1.2; transition: color 0.2s; overflow-wrap: anywhere; }
+    .pb-item:hover .pb-title { color: var(--pb-accent); }
+    .pb-desc { font-family: var(--font-prose, serif); color: var(--pb-muted); font-size: 0.92rem; line-height: 1.5; margin: 0.35rem 0 0; overflow-wrap: anywhere; }
+    .pb-date { font-family: var(--font-mono, monospace); font-size: 0.75rem; color: var(--pb-meta); white-space: nowrap; }
+    .pb-tags { display: none; }
+    .pb-tag { font-size: 0.7rem; color: var(--pb-accent); background: rgb(var(--color-highlight-500) / 0.1); border: 1px solid rgb(var(--color-highlight-400) / 0.3); border-radius: 0.35rem; padding: 0.1rem 0.5rem; overflow-wrap: anywhere; }
+
+    /* LIST view — full-width rows */
+    .pb-results.view-list { border-top: 1px solid var(--pb-border); }
+    .pb-results.view-list .pb-item { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 1.5rem; align-items: baseline; padding: 0.9rem 1rem; border-bottom: 1px solid var(--pb-border); transition: border-color 0.2s, background 0.2s; }
+    .pb-results.view-list .pb-item:hover { border-left-color: var(--pb-accent-soft); background: var(--pb-bg-inset); }
+    .pb-results.view-list .pb-cat { grid-column: 1; }
+    .pb-results.view-list .pb-title { grid-column: 1; font-size: 1.25rem; }
+    .pb-results.view-list .pb-desc { display: none; }
+    .pb-results.view-list .pb-date { grid-column: 2; grid-row: 1 / 3; align-self: center; text-align: right; }
+
+    /* GRID view — masonry cards */
+    .pb-results.view-grid { columns: 1; column-gap: 1rem; }
+    @media (min-width: 640px) { .pb-results.view-grid { columns: 2; } }
+    .pb-results.view-grid .pb-item { break-inside: avoid; margin-bottom: 1rem; padding: 1.1rem 1.25rem; background: var(--pb-bg-inset); border: 1px solid var(--pb-border); border-left: 2px solid transparent; border-radius: 0.5rem; transition: border-color 0.2s; }
+    .pb-results.view-grid .pb-item:hover { border-left-color: var(--pb-accent-soft); }
+    .pb-results.view-grid .pb-title { font-size: 1.2rem; margin: 0.4rem 0 0; }
+    .pb-results.view-grid .pb-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.7rem; }
+    .pb-results.view-grid .pb-date { display: block; margin-top: 0.6rem; }
+
+    /* Load more + empty */
+    .pb-more-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; margin: 2rem 0; }
+    .pb-more { font-family: var(--font-prose, serif); font-size: 0.9rem; font-weight: 600; color: var(--pb-text); background: var(--pb-bg-inset); border: 1px solid var(--pb-border-strong); border-radius: 0.5rem; padding: 0.65rem 1.5rem; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+    .pb-more:hover { border-color: var(--pb-accent-soft); color: var(--pb-accent); }
+    .pb-more[hidden] { display: none; }
+    .pb-more-link { color: var(--pb-accent); }
+    .pb-empty { text-align: center; padding: 4rem 0; color: var(--pb-muted); }
+    .pb-empty svg { margin: 0 auto 1rem; color: var(--pb-border-strong); }
+    .pb-empty a { color: var(--pb-accent); text-decoration: underline; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pb-item, .pb-chips button, .pb-view button, .pb-more { transition: none; }
+    }
   </style>
 </BaseLayout>

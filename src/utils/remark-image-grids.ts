@@ -41,7 +41,13 @@ export function remarkImageGrids() {
 
         // Skip grid processing if any image has manual sizing (Obsidian syntax)
         const hasObsidianSizedImage = images.some((img) => {
-          return img.data?.hProperties?.class?.includes('obsidian-sized');
+          const classValue = img.data?.hProperties?.class;
+          const classes = Array.isArray(classValue)
+            ? classValue
+            : typeof classValue === "string"
+              ? classValue.split(" ")
+              : [];
+          return classes.includes("obsidian-sized");
         });
 
         // Only process paragraphs with 2+ images and no other meaningful content

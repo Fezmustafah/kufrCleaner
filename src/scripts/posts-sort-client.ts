@@ -1,32 +1,29 @@
-// Posts sort + client-side "load more" for the all-posts page.
+// Posts browser for the /posts page: category filter + title search + sort +
+// list/grid view + client-side "load more", over all rendered `.pb-item` nodes.
 //
-// Loaded globally from BaseLayout (like toc-client / annotations-client) so it
-// survives Swup navigation. It no-ops on every page that has no sort root.
+// Loaded globally from BaseLayout (like toc-client) so it survives Swup
+// navigation; no-ops on any page without the browser root.
 //
-// The /posts page renders ALL visible posts wrapped in `.post-item` divs that
-// carry data-date / data-modified / data-length / data-title. We reorder those
-// wrappers and reveal them in batches of `data-batch` — keeping the initial
-// paint light (images on hidden cards lazy-load only when shown).
-//
-// Back-button restore: Swup destroys the /posts DOM when you open an article,
-// so returning re-renders /posts fresh and the reveal count + scroll position
-// would be lost. We persist { visible, sort, scrollY } in sessionStorage per
-// URL and restore it ONLY on back/forward navigation, so a fresh click on the
-// Posts link still starts at the top with the first batch.
+// All posts render up-front; we filter/sort/reveal in the DOM (no network).
+// Back/forward restores { visible, sort, category, search, scrollY } from
+// sessionStorage; the list/grid view preference persists in localStorage across
+// fresh visits.
 
 type SortMode = 'newest' | 'updated' | 'longest' | 'shortest' | 'az' | 'za';
+type ViewMode = 'list' | 'grid';
 
 interface PostsState {
   visible: number;
   sort: SortMode;
+  category: string;
+  search: string;
   scrollY: number;
 }
 
 const STATE_PREFIX = 'postsState:';
+const VIEW_KEY = 'postsView';
 const stateKey = () => STATE_PREFIX + location.pathname + location.search;
 
-// True when the current page view came from the browser back/forward button
-// (reload path) or a bfcache restore. Fresh navigations report 'navigate'.
 let cameFromBFCache = false;
 function isBackForward(): boolean {
   if (cameFromBFCache) return true;
@@ -46,123 +43,180 @@ function readState(): PostsState | null {
     return null;
   }
 }
-
 function writeState(state: PostsState): void {
-  try {
-    sessionStorage.setItem(stateKey(), JSON.stringify(state));
-  } catch {
-    /* storage full / disabled — non-fatal */
-  }
+  try { sessionStorage.setItem(stateKey(), JSON.stringify(state)); } catch { /* non-fatal */ }
 }
 
-function initPostsSort(): void {
-  const root = document.querySelector<HTMLElement>('[data-posts-sort-root]');
-  // `data-sort-ready` is per-DOM-instance; Swup replaces the DOM on nav so a
-  // fresh /posts render starts un-initialised again.
-  if (!root || root.dataset.sortReady === '1') return;
+function initPostsBrowser(): void {
+  const root = document.querySelector<HTMLElement>('[data-posts-browser]');
+  // `data-pb-ready` is per-DOM-instance; Swup replaces the DOM on nav so a fresh
+  // /posts render starts un-initialised again.
+  if (!root || root.dataset.pbReady === '1') return;
 
-  const grid = root.querySelector<HTMLElement>('.posts-cards-grid');
-  const select = root.querySelector<HTMLSelectElement>('[data-sort-select]');
-  if (!grid || !select) return;
+  const results = root.querySelector<HTMLElement>('[data-pb-results]');
+  const sortSel = root.querySelector<HTMLSelectElement>('[data-pb-sort]');
+  if (!results || !sortSel) return;
+  root.dataset.pbReady = '1';
 
-  root.dataset.sortReady = '1';
+  const searchInput = root.querySelector<HTMLInputElement>('[data-pb-search]');
+  const countEl = root.querySelector<HTMLElement>('[data-pb-count]');
+  const clearBtn = root.querySelector<HTMLButtonElement>('[data-pb-clear]');
+  const moreBtn = root.querySelector<HTMLButtonElement>('[data-pb-more]');
+  const chips = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-pb-chip]'));
+  const viewBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-pb-view]'));
+  const batch = Math.max(1, parseInt(root.dataset.batch || '12', 10));
+  const items = Array.from(results.querySelectorAll<HTMLElement>('.pb-item'));
+  const savedKey = stateKey();
 
-  const loadMoreBtn = root.querySelector<HTMLButtonElement>('[data-load-more]');
-  const batch = Math.max(1, parseInt(root.dataset.batch || '10', 10));
-  const items = Array.from(grid.querySelectorAll<HTMLElement>('.post-item'));
-  const savedKey = stateKey(); // capture the /posts key; location changes on nav away
+  let category = '';
+  let search = '';
   let visible = batch;
 
-  const num = (el: HTMLElement, key: string) => Number(el.dataset[key] || 0);
-  const str = (el: HTMLElement, key: string) => el.dataset[key] || '';
+  const num = (el: HTMLElement, k: string) => Number(el.dataset[k] || 0);
+  const str = (el: HTMLElement, k: string) => el.dataset[k] || '';
+  const comparators: Record<SortMode, (a: HTMLElement, b: HTMLElement) => number> = {
+    newest:   (a, b) => num(b, 'date') - num(a, 'date'),
+    updated:  (a, b) => num(b, 'modified') - num(a, 'modified'),
+    longest:  (a, b) => num(b, 'length') - num(a, 'length'),
+    shortest: (a, b) => num(a, 'length') - num(b, 'length'),
+    az:       (a, b) => str(a, 'title').localeCompare(str(b, 'title')),
+    za:       (a, b) => str(b, 'title').localeCompare(str(a, 'title')),
+  };
 
-  function sortItems(mode: SortMode): HTMLElement[] {
-    const copy = items.slice();
-    switch (mode) {
-      case 'updated':  copy.sort((a, b) => num(b, 'modified') - num(a, 'modified')); break;
-      case 'longest':  copy.sort((a, b) => num(b, 'length') - num(a, 'length')); break;
-      case 'shortest': copy.sort((a, b) => num(a, 'length') - num(b, 'length')); break;
-      case 'az':       copy.sort((a, b) => str(a, 'title').localeCompare(str(b, 'title'))); break;
-      case 'za':       copy.sort((a, b) => str(b, 'title').localeCompare(str(a, 'title'))); break;
-      case 'newest':
-      default:         copy.sort((a, b) => num(b, 'date') - num(a, 'date')); break;
-    }
-    return copy;
+  function setView(v: ViewMode, persistPref = true): void {
+    results!.classList.toggle('view-grid', v === 'grid');
+    results!.classList.toggle('view-list', v === 'list');
+    viewBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    if (persistPref) { try { localStorage.setItem(VIEW_KEY, v); } catch { /* non-fatal */ } }
   }
 
-  function apply(mode: SortMode, resetVisible: boolean): void {
-    if (resetVisible) visible = batch;
-    visible = Math.min(visible, items.length);
-    const ordered = sortItems(mode);
+  function render(): void {
+    const q = search.trim().toLowerCase();
+    const matched = items.filter(el =>
+      (category === '' || str(el, 'category') === category) &&
+      (q === '' || str(el, 'title').includes(q))
+    );
+    matched.sort(comparators[(sortSel!.value as SortMode)] || comparators.newest);
+    visible = Math.min(Math.max(visible, batch), Math.max(matched.length, 1));
+
+    // Hide everything, then move the matched set (in sorted order) to the front
+    // and reveal the first `visible`. Unmatched nodes stay hidden in place.
+    // Preserve keyboard focus across the reorder — moving a focused row through a
+    // detached fragment would otherwise blur it to <body>.
+    const active = document.activeElement as HTMLElement | null;
+    items.forEach(el => el.classList.add('is-hidden'));
     const frag = document.createDocumentFragment();
-    ordered.forEach((el, i) => {
-      el.classList.toggle('is-hidden', i >= visible);
+    matched.forEach((el, i) => {
+      if (i < visible) el.classList.remove('is-hidden');
       frag.appendChild(el);
     });
-    grid!.appendChild(frag);
-    if (loadMoreBtn) loadMoreBtn.style.display = visible >= ordered.length ? 'none' : '';
+    results!.appendChild(frag);
+    if (active && results!.contains(active) && document.activeElement !== active) {
+      active.focus({ preventScroll: true });
+    }
+
+    if (countEl) countEl.textContent = String(matched.length);
+    if (moreBtn) moreBtn.hidden = visible >= matched.length;
+    if (clearBtn) clearBtn.hidden = category === '' && q === '';
+    chips.forEach(c => c.setAttribute('aria-pressed', String((c.dataset.cat || '') === category)));
   }
+
+  function resetAndRender(): void { visible = batch; render(); }
 
   function persist(): void {
-    writeState({ visible, sort: select!.value as SortMode, scrollY: window.scrollY });
+    writeState({ visible, sort: sortSel!.value as SortMode, category, search, scrollY: window.scrollY });
   }
 
-  // Persist scroll continuously (throttled via rAF) so the latest position is
-  // saved before the user opens an article. Self-cleans once /posts leaves the
-  // DOM (Swup swap) to avoid clobbering the saved position from other pages.
+  // Events
+  sortSel.addEventListener('change', () => { resetAndRender(); persist(); });
+
+  let searchTimer: number | undefined;
+  searchInput?.addEventListener('input', () => {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(() => {
+      search = searchInput.value;
+      resetAndRender();
+      persist();
+    }, 130);
+  });
+
+  chips.forEach(c => c.addEventListener('click', () => {
+    const val = c.dataset.cat || '';
+    category = category === val ? '' : val; // click active chip again → clear
+    resetAndRender();
+    persist();
+  }));
+
+  clearBtn?.addEventListener('click', () => {
+    category = '';
+    search = '';
+    if (searchInput) searchInput.value = '';
+    resetAndRender();
+    persist();
+    searchInput?.focus(); // the Clear button hides itself — keep focus in the toolbar
+  });
+
+  viewBtns.forEach(b => b.addEventListener('click', () => setView((b.dataset.view as ViewMode) || 'list')));
+
+  moreBtn?.addEventListener('click', () => {
+    const prev = visible;
+    visible += batch;
+    render();
+    persist();
+    // If the button hid itself (results exhausted), move focus to the first
+    // newly-revealed row so keyboard users don't get dropped to <body>.
+    if (moreBtn.hidden) {
+      const shown = results!.querySelectorAll<HTMLElement>('.pb-item:not(.is-hidden)');
+      (shown[prev] || shown[shown.length - 1])?.focus();
+    }
+  });
+
+  // Persist scroll continuously (rAF-throttled) for back/forward restore.
+  // Self-cleans once /posts leaves the DOM (Swup swap).
   let scrollQueued = false;
   function onScroll(): void {
-    if (!root!.isConnected) {
-      window.removeEventListener('scroll', onScroll);
-      return;
-    }
+    if (!root!.isConnected) { window.removeEventListener('scroll', onScroll); return; }
     if (scrollQueued) return;
     scrollQueued = true;
-    requestAnimationFrame(() => {
-      scrollQueued = false;
-      if (root!.isConnected) persist();
-    });
+    requestAnimationFrame(() => { scrollQueued = false; if (root!.isConnected) persist(); });
   }
   window.addEventListener('scroll', onScroll, { passive: true });
 
-  select.addEventListener('change', () => {
-    apply(select.value as SortMode, true);
-    persist();
-  });
-  loadMoreBtn?.addEventListener('click', () => {
-    visible += batch;
-    apply(select.value as SortMode, false);
-    persist();
-  });
+  // Initial view from saved preference
+  let initView: ViewMode = 'list';
+  try { const v = localStorage.getItem(VIEW_KEY); if (v === 'grid' || v === 'list') initView = v; } catch { /* ignore */ }
+  setView(initView, false);
 
-  // Restore prior reveal count + sort + scroll, but ONLY on back/forward so a
-  // fresh visit to /posts starts clean at the top.
+  // Restore filters + reveal count + scroll, but ONLY on back/forward so a fresh
+  // visit starts clean at the top.
   const saved = isBackForward() ? readState() : null;
   if (saved && sessionStorage.getItem(savedKey)) {
-    if (saved.sort) select.value = saved.sort;
+    if (saved.sort) sortSel.value = saved.sort;
+    category = saved.category || '';
+    search = saved.search || '';
+    if (searchInput) searchInput.value = search;
     visible = Math.max(batch, saved.visible || batch);
-    apply(select.value as SortMode, false);
-    // Cards reserve space via fixed aspect-ratio, so no layout shift from lazy
-    // images — restore scroll on the next frame, then re-assert once for safety.
+    render();
     const targetY = saved.scrollY || 0;
     requestAnimationFrame(() => {
       window.scrollTo(0, targetY);
       setTimeout(() => window.scrollTo(0, targetY), 120);
     });
   } else {
-    apply(select.value as SortMode, true);
+    resetAndRender();
   }
 }
 
 // Mark bfcache restores so we can distinguish them from fresh loads.
 window.addEventListener('pageshow', (e) => {
-  if (e.persisted) {
+  if ((e as PageTransitionEvent).persisted) {
     cameFromBFCache = true;
-    initPostsSort();
+    initPostsBrowser();
   }
 });
 
-document.addEventListener('page:view', initPostsSort);
-document.addEventListener('astro:page-load', initPostsSort);
-if (document.readyState !== 'loading') initPostsSort();
-else document.addEventListener('DOMContentLoaded', initPostsSort);
+document.addEventListener('astro:page-load', initPostsBrowser);
+if (document.readyState !== 'loading') initPostsBrowser();
+else document.addEventListener('DOMContentLoaded', initPostsBrowser);
+
+export {};

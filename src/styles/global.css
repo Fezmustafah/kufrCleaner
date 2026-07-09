@@ -361,18 +361,17 @@ code ::-moz-selection,
 }
 
 
-/* ── Post cards grid — shared by all listing pages ─────────────────────── */
+/* ── Post cards grid — uniform equal-height, shared by all listing pages ──
+   CSS grid (not columns) so every card in a row is the same height, matching
+   the archive look. Cards stretch to fill their cell via align-items: stretch. */
 .posts-cards-grid {
-  columns: 1;
-  column-gap: 1rem;
-}
-.posts-cards-grid > * {
-  break-inside: avoid;
-  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 @media (min-width: 640px) {
   .posts-cards-grid {
-    columns: 2;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -1693,16 +1692,8 @@ body::before {
   background-size: 200px 200px;
 }
 
-/* ── Andalusian footer ornament ─────────────────────────────────────────── */
-footer::before {
-  content: '◇ ✦ ◇';
-  display: block;
-  text-align: center;
-  color: rgb(var(--color-highlight-400) / 0.4);
-  letter-spacing: 0.4em;
-  font-size: 0.65em;
-  margin-bottom: 0.75rem;
-}
+/* Footer ornament removed — the redesigned slim footer (Footer.astro) is a clean
+   single row; the ◇ ✦ ◇ flourish added height and clashed with the modern layout. */
 
 /* Print Styles */
 @media print {

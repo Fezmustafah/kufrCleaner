@@ -1,0 +1,128 @@
+---
+/**
+ * Topic tile — a linked card for the category/tag index grids.
+ * Image (or arabesque) banner with an overlaid count, title, and optional description.
+ * `name` seeds the banner (tint + initial); `label` is what's shown (e.g. "#tag").
+ */
+import TopicBanner from '@/components/TopicBanner.astro';
+
+interface Props {
+  href: string;
+  name: string;
+  label: string;
+  count: number;
+  description?: string | null;
+  image?: string | null;
+  imageAlt?: string;
+  large?: boolean;
+  eager?: boolean;
+}
+const { href, name, label, count, description = null, image = null, imageAlt, large = false, eager = false } = Astro.props;
+---
+
+<a href={href} class:list={['topic-tile', { 'topic-tile--lg': large }]}>
+  <TopicBanner name={name} image={image} imageAlt={imageAlt ?? label} eager={eager} />
+  <div class="topic-tile-content">
+    <span class="topic-tile-count">{count.toLocaleString()} {count === 1 ? 'post' : 'posts'}</span>
+    <h2 class="topic-tile-title">{label}</h2>
+    {description && (
+      <p class:list={['topic-tile-desc', { 'topic-tile-desc--sm': !large }]}>{description}</p>
+    )}
+  </div>
+</a>
+
+<style>
+  .topic-tile {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: 0.6rem;
+    min-height: clamp(168px, 22vw, 208px);
+    text-decoration: none;
+    border: 1px solid rgb(var(--color-highlight-500) / 0.18);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .topic-tile--lg { min-height: clamp(240px, 33vw, 356px); }
+
+  .topic-tile:hover {
+    transform: translateY(-3px);
+    border-color: rgb(var(--color-highlight-500) / 0.55);
+    box-shadow: 0 16px 34px -14px rgb(0 0 0 / 0.55);
+  }
+  .topic-tile:focus-visible {
+    outline: 2px solid rgb(var(--color-highlight-400));
+    outline-offset: 2px;
+  }
+
+  .topic-tile-content {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1.1rem 1.15rem;
+  }
+  .topic-tile--lg .topic-tile-content { padding: 1.5rem 1.6rem; }
+
+  .topic-tile-count {
+    font-family: var(--font-prose, serif);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-300));
+    margin-bottom: 0.3rem;
+  }
+  .topic-tile-title {
+    font-family: var(--font-heading, serif);
+    font-weight: 600;
+    font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+    line-height: 1.1;
+    color: rgb(var(--color-primary-50));
+    margin: 0;
+    overflow-wrap: anywhere;
+    transition: color 0.2s ease;
+  }
+  .topic-tile--lg .topic-tile-title { font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
+  .topic-tile:hover .topic-tile-title { color: rgb(var(--color-highlight-200, var(--color-highlight-300))); }
+
+  .topic-tile-desc {
+    font-family: var(--font-prose, serif);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: rgb(var(--color-primary-200));
+    margin: 0.5rem 0 0;
+    max-width: 42ch;
+    text-wrap: pretty;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .topic-tile-desc--sm {
+    font-size: 0.8rem;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    margin-top: 0.35rem;
+  }
+  /* Reveal small-tile descriptions on hover/focus to keep the grid calm */
+  @media (min-width: 900px) {
+    .topic-tile:not(.topic-tile--lg) .topic-tile-desc {
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .topic-tile:not(.topic-tile--lg):hover .topic-tile-desc,
+    .topic-tile:not(.topic-tile--lg):focus-visible .topic-tile-desc {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .topic-tile, .topic-tile-title, .topic-tile-desc { transition: none; }
+    .topic-tile:hover { transform: none; }
+  }
+</style>

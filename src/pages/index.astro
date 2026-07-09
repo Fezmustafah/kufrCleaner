@@ -1,14 +1,16 @@
 ---
-import { getCollection, getEntry, render, type CollectionEntry } from 'astro:content';
+import { getCollection, getEntry, render } from 'astro:content';
 import { siteConfig } from '@/config';
 import { generateHomeSEO } from '@/utils/seo';
-import { shouldShowPost, sortPostsByDate, processPost, extractCategories } from '@/utils/markdown';
+import { shouldShowPost, sortPostsByDate, processPost, extractCategories, formatDateShort } from '@/utils/markdown';
+import { categoryDisplayName } from '@/utils/topics';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import PostCard from '@/components/PostCard.astro';
 import Icon from '@/components/Icon.astro';
 import { optimizePostImagePath } from '@/utils/images';
 import HomepageHero from '@/components/HomepageHero.astro';
-import AiAssistant from '@/components/AiAssistant.astro';
+import TopicTile from '@/components/TopicTile.astro';
+
+const baseUrl = import.meta.env.BASE_URL;
 
 // Get all posts and filter by visibility
 const allPosts = await getCollection('posts');
@@ -21,26 +23,19 @@ const processedPosts = await Promise.all(
   sortedPosts.map(async (post) => await processPost(post))
 ) as any[];
 
-// Get featured post based on configuration
+// Featured post — kept only for the <head> image preload
 let featuredPost = null;
 if (siteConfig.homeOptions.featuredPost.enabled) {
   if (siteConfig.homeOptions.featuredPost.type === "latest") {
     featuredPost = processedPosts[0];
   } else if (siteConfig.homeOptions.featuredPost.type === "featured" && siteConfig.homeOptions.featuredPost.slug) {
-    // Find the specific post by id (slug config value maps to post.id in v6)
     featuredPost = processedPosts.find(post => post.id === siteConfig.homeOptions.featuredPost.slug) || null;
   }
 }
 
-// Get preview posts based on whether featured post is shown
-const previewPosts = featuredPost
-  ? processedPosts.slice(1, siteConfig.homeOptions.recentPosts.count + 1)
-  : processedPosts.slice(0, siteConfig.homeOptions.recentPosts.count);
-
 // Get home blurb content from special collection
 let homeBlurbContent = null;
 let HomeBlurbContent = null;
-
 if (siteConfig.homeOptions.blurb.placement !== 'none') {
   try {
     homeBlurbContent = await getEntry('special', 'home');
@@ -49,29 +44,54 @@ if (siteConfig.homeOptions.blurb.placement !== 'none') {
       HomeBlurbContent = Content;
     }
   } catch (error) {
+    // no blurb entry — fine
   }
 }
 
-// Extract categories and post counts for hero section
+// Categories + post counts
 const allCategories = extractCategories(sortedPosts);
 const categoryPostCounts = allCategories.reduce((acc: Record<string, number>, cat: string) => {
   acc[cat] = sortedPosts.filter((p: any) => p.data.category === cat).length;
   return acc;
 }, {} as Record<string, number>);
 
-// Hot Topics: posts with 20+ R2 images, sorted by word count
-const hotTopics = [...sortedPosts]
-  .filter(p => p.body && p.body.length > 500)
-  .map(p => {
-    const words = (p.body || '').split(/\s+/).filter(Boolean).length;
-    const r2Images = ((p.body || '').match(/r2\.dev/g) || []).length;
-    return { post: p, words, r2Images };
-  })
-  .filter(({ r2Images }) => r2Images >= 20)
-  .sort((a, b) => b.words - a.words)
-  .slice(0, 6);
+// One-line topic descriptions (auto-config, code-maintained — no per-article curation).
+// Keyed by normalized category name; missing categories simply render name + count.
+const TOPIC_DESCRIPTIONS: Record<string, string> = {
+  'refutations': 'Point-by-point responses to the most frequently circulated polemics and criticisms of Islam.',
+  'christianity': 'Answering biblical criticism and missionary arguments.',
+  'atheism': 'Responding to secular and New-Atheist objections.',
+  'science and islam': 'The Quran, hadith, and modern science.',
+  'qadyanis': 'Responses to Ahmadiyya claims.',
+  'history': 'Setting the historical record straight.',
+  'hadiths science': 'Authenticity, isnād, and hadith criticism.',
+  'refuting shias': 'Responses to Shia theological claims.',
+  'islam': 'Foundational clarifications and first principles.',
+  'ﷺ': 'The life, character, and honour of the Prophet Muhammad ﷺ.',
+};
 
-// Recently Updated: posts with `modified` field, sorted by modified date desc, top 10
+// Bento topics — drop noise buckets, sort by count desc. First tile renders large.
+// (display name comes from the shared categoryDisplayName; URL keeps the raw value.)
+const TOPIC_NOISE = new Set(['', 'test', 'quranic refutations', 'islamic refutations']);
+const topics = allCategories
+  .filter((c: string) => c && !TOPIC_NOISE.has(c.toLowerCase().trim()))
+  .map((c: string) => ({
+    name: c,
+    display: categoryDisplayName(c),
+    count: categoryPostCounts[c],
+    desc: TOPIC_DESCRIPTIONS[c.toLowerCase().trim()] || '',
+  }))
+  .sort((a, b) => b.count - a.count);
+// Same bento shape as the /posts/category/ index: top 2 render large, rest fill a 3-col grid.
+const featuredTopics = topics.slice(0, 2);
+const restTopics = topics.slice(2);
+
+// Common objections — question-titled posts that carry a rebuttal summary, most recent 5.
+const objections = sortedPosts
+  .filter((p: any) => (p.data.title || '').trim().endsWith('?') && p.data.description)
+  .slice(0, 5);
+
+// Latest — newly added (by date) and recently updated (by `modified`).
 const getModifiedDate = (post: any): Date | null => {
   const m = post.data.modified;
   if (!m) return null;
@@ -80,30 +100,21 @@ const getModifiedDate = (post: any): Date | null => {
 const recentlyUpdated = [...visiblePosts]
   .filter(p => getModifiedDate(p) !== null)
   .sort((a, b) => getModifiedDate(b)!.getTime() - getModifiedDate(a)!.getTime())
-  .slice(0, 10);
-
-// Newly Added: top 6 most recently published posts
+  .slice(0, 6);
 const newlyAdded = sortedPosts.slice(0, 6);
 
-// Stats for hero
+// Hero stats
 const postCount = visiblePosts.length;
-const categoryCount = allCategories.length;
+const categoryCount = topics.length;
+const totalWords = processedPosts.reduce((sum: number, p: any) => sum + (p.wordCount || 0), 0);
 
-// Determine which content types are being displayed
-const hasFeaturedPost = siteConfig.homeOptions.featuredPost.enabled && featuredPost;
-const hasRecentPosts = siteConfig.homeOptions.recentPosts.enabled && previewPosts.length > 0;
+// Only-blurb fallback (no posts at all)
+const onlyBlurbContent = processedPosts.length === 0 && siteConfig.homeOptions.blurb.placement !== 'none' && HomeBlurbContent;
 
-// Count how many content types are being displayed
-const contentTypesCount = [hasFeaturedPost, hasRecentPosts].filter(Boolean).length;
-
-// Determine if only blurb content should be shown (no posts)
-const onlyBlurbContent = contentTypesCount === 0 && siteConfig.homeOptions.blurb.placement !== 'none' && HomeBlurbContent;
-
-// Generate SEO data for homepage
+// SEO
 const seoData = generateHomeSEO(Astro.url.href);
 if (siteConfig.homepageTitle) seoData.title = siteConfig.homepageTitle;
 
-// Structured data for the website
 const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -139,11 +150,11 @@ const structuredData = {
       '@id': `${siteConfig.site}/#topics`,
       name: 'Topics',
       description: 'Islamic apologetics topics covered on OpenIslam',
-      itemListElement: allCategories.map((cat: string, i: number) => ({
+      itemListElement: topics.map((t, i: number) => ({
         '@type': 'ListItem',
         position: i + 1,
-        name: cat,
-        url: `${siteConfig.site}/posts/category/${encodeURIComponent(cat)}`
+        name: t.display,
+        url: `${siteConfig.site}/posts/category/${encodeURIComponent(t.name)}/`
       }))
     },
     {
@@ -153,13 +164,8 @@ const structuredData = {
       description: siteConfig.description,
       url: siteConfig.site,
       inLanguage: siteConfig.language,
-      author: {
-        '@type': 'Person',
-        name: siteConfig.author
-      },
-      publisher: {
-        '@id': `${siteConfig.site}/#organization`
-      }
+      author: { '@type': 'Person', name: siteConfig.author },
+      publisher: { '@id': `${siteConfig.site}/#organization` }
     }
   ]
 };
@@ -167,10 +173,8 @@ const structuredData = {
 
 <BaseLayout seoData={seoData}>
   <Fragment slot="head">
-    <!-- Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
-    <!-- Preload critical images - use same URL as actual img tags for caching -->
     {featuredPost && featuredPost.data.image && siteConfig.postOptions.showPostCardCoverImages === 'all' && !featuredPost.data.hideCoverImage && typeof featuredPost.data.image === 'string' && !featuredPost.data.image.startsWith('http') && (
       <link
         rel="preload"
@@ -181,91 +185,13 @@ const structuredData = {
     )}
   </Fragment>
 
-  <HomepageHero postCount={postCount} categoryCount={categoryCount} />
+  <HomepageHero postCount={postCount} categoryCount={categoryCount} totalWords={totalWords} />
 
   <div class="py-8 relative">
-    <div class="mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+    <div class="hp mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
 
-      <!-- ═══════════════════ BROWSE BY CATEGORY ═══════════════════ -->
-      {siteConfig.postOptions.categories && allCategories.length > 0 && (
-        <section class="mb-12 mt-10">
-          <div class="flex items-center justify-between mb-5">
-            <h2 class="section-heading">
-              <span aria-hidden="true" class="section-heading-ornament">◆</span>
-              Browse by Topic
-            </h2>
-            <a href={`${import.meta.env.BASE_URL}posts`} class="text-base text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all">
-              All articles →
-            </a>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {allCategories.map((cat: string) => (
-              <a
-                href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(cat)}`}
-                class="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/60 hover:bg-primary-100 dark:hover:bg-primary-800/60 hover:border-highlight-400/60 dark:hover:border-highlight-600/40 transition-all duration-150"
-              >
-                <Icon name="book-open" class="w-3.5 h-3.5 text-secondary-500 dark:text-secondary-400 shrink-0" />
-                <span class="font-medium text-sm text-primary-800 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors truncate flex-1">
-                  {cat}
-                </span>
-                <span class="text-xs text-primary-400 dark:text-primary-500 tabular-nums shrink-0">
-                  {categoryPostCounts[cat]}
-                </span>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <!-- ═══════════════════ HOT TOPICS ═══════════════════ -->
-      {hotTopics.length > 0 && (
-        <section class="mb-12">
-          <div class="flex items-center justify-between mb-5">
-            <h2 class="section-heading">
-              <span aria-hidden="true" class="section-heading-ornament">◆</span>
-              In-Depth Articles
-            </h2>
-            <a href={`${import.meta.env.BASE_URL}posts`} class="text-base text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all">
-              All articles →
-            </a>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {hotTopics.map(({ post, words }) => {
-              const category: string = (post.data as any).category ?? '';
-              const wordLabel = words >= 1000 ? `${Math.round(words / 100) / 10}k words` : `${words} words`;
-              return (
-                <a
-                  href={`${import.meta.env.BASE_URL}posts/${post.id}`}
-                  class="group flex flex-col gap-2 p-4 rounded-lg border border-primary-200 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/40 hover:border-highlight-300 dark:hover:border-highlight-600 hover:bg-primary-50 dark:hover:bg-primary-900/70 transition-all duration-200 hover:shadow-md"
-                >
-                  <div class="flex items-center justify-between gap-2">
-                    {category && (
-                      <span class="text-xs font-semibold tracking-widest uppercase text-highlight-600 dark:text-highlight-400 truncate">
-                        {category}
-                      </span>
-                    )}
-                    <span class="text-xs text-primary-400 dark:text-primary-500 tabular-nums shrink-0 ml-auto">
-                      {wordLabel}
-                    </span>
-                  </div>
-                  <span class="text-sm font-semibold leading-snug text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors line-clamp-3">
-                    {post.data.title}
-                  </span>
-                  {post.data.description && (
-                    <span class="text-xs text-primary-500 dark:text-primary-400 line-clamp-2 leading-relaxed mt-auto">
-                      {post.data.description}
-                    </span>
-                  )}
-                </a>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
       {onlyBlurbContent ? (
-        <article class="bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm">
+        <article class="bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm mt-10">
           <div class="p-6 rounded-lg">
             {homeBlurbContent?.data.title && (
               <header class="mb-4">
@@ -282,205 +208,165 @@ const structuredData = {
       ) : processedPosts.length > 0 ? (
         <>
           {siteConfig.homeOptions.blurb.placement === 'above' && HomeBlurbContent && (
-            <section class="prose prose-sm dark:prose-dark max-w-none mb-12">
+            <section class="prose prose-sm dark:prose-dark max-w-none mb-12 mt-10">
               <HomeBlurbContent />
             </section>
           )}
 
-          <!-- Featured post -->
-          {siteConfig.homeOptions.featuredPost.enabled && featuredPost && (
-            <section class="mb-12">
-              <div class="flex items-center justify-between mb-5">
-                <h2 class="section-heading">
-                  <span aria-hidden="true" class="section-heading-ornament">◆</span>
-                  {siteConfig.homeOptions.featuredPost.type === "latest" ? "Latest" : "Featured"}
-                </h2>
-              </div>
-              <PostCard post={featuredPost} featured={true} eager={true} context="featured" />
-            </section>
-          )}
-
-          <!-- Recently Updated -->
-          {recentlyUpdated.length > 0 && (
-            <section class="mb-12">
-              <div class="relative rounded-xl p-5 overflow-hidden
-                bg-gradient-to-br from-highlight-500/5 via-primary-50/0 to-primary-500/5
-                dark:from-highlight-600/8 dark:via-primary-950/0 dark:to-primary-800/10
-                border border-primary-200/40 dark:border-primary-700/30">
-                {/* Islamic 8-point star tile */}
-                <svg class="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <pattern id="pat-updated" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-                      <g fill="none" style="stroke: rgb(var(--color-highlight-500)); stroke-width: 0.9;" class="pattern-lines">
-                        <polygon transform="translate(40,40)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                        <polygon transform="translate(0,0)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                        <polygon transform="translate(80,0)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                        <polygon transform="translate(0,80)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                        <polygon transform="translate(80,80)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                      </g>
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#pat-updated)"/>
-                </svg>
-                {/* top edge glow */}
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-highlight-500/50 to-transparent pointer-events-none" aria-hidden="true"></div>
-
-                <div class="flex items-center justify-between mb-4">
-                  <h2 class="section-heading">
-                    <span aria-hidden="true" class="section-heading-ornament">◆</span>
-                    Recently Updated
-                  </h2>
-                  <span class="text-xs text-primary-400 dark:text-primary-500 tabular-nums">{recentlyUpdated.length} articles</span>
+          <!-- ═══════════════════ 1 · LATEST (segmented) ═══════════════════ -->
+          {(newlyAdded.length > 0 || recentlyUpdated.length > 0) && (
+            <section class="hp-sec hp-sec--first">
+              <div class="hp-sechead">
+                <div>
+                  <span class="hp-eyebrow"><span aria-hidden="true">◆</span> Fresh from the desk</span>
+                  <h2 class="hp-h2">Latest</h2>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {recentlyUpdated.map((post: any) => {
-                    const modDate = getModifiedDate(post)!;
-                    const cat: string = post.data.category ?? '';
-                    const modLabel = modDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                    return (
-                      <a
-                        href={`${import.meta.env.BASE_URL}posts/${post.id}`}
-                        class="group relative flex flex-col gap-1 p-3.5 rounded-lg
-                          bg-white/40 dark:bg-primary-950/40
-                          backdrop-blur-sm
-                          border border-primary-200/60 dark:border-primary-700/40
-                          hover:border-highlight-400/60 dark:hover:border-highlight-500/40
-                          hover:shadow-[0_0_16px_rgb(var(--color-highlight-500)/0.12)]
-                          transition-all duration-200"
-                      >
-                        <div class="flex items-center justify-between gap-2">
-                          {cat && (
-                            <span class="text-[0.65rem] font-bold tracking-widest uppercase text-highlight-600 dark:text-highlight-400 truncate">
-                              {cat}
-                            </span>
-                          )}
-                          <span class="text-[0.65rem] text-primary-400 dark:text-primary-500 tabular-nums shrink-0 ml-auto flex items-center gap-1">
-                            <span aria-hidden="true">↻</span>{modLabel}
-                          </span>
-                        </div>
-                        <span class="text-sm font-medium leading-snug text-primary-900 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors line-clamp-2">
-                          {post.data.title}
-                        </span>
-                      </a>
-                    );
-                  })}
+                <div class="hp-seg" role="group" aria-label="Filter latest articles">
+                  <button type="button" aria-pressed="true" data-tab="new" aria-controls="hp-latest-new">Newly added</button>
+                  {recentlyUpdated.length > 0 && (
+                    <button type="button" aria-pressed="false" data-tab="upd" aria-controls="hp-latest-upd">Recently updated</button>
+                  )}
                 </div>
               </div>
-            </section>
-          )}
 
-          <!-- Newly Added -->
-          {newlyAdded.length > 0 && (
-            <section class="mb-12">
-              <div class="relative rounded-xl p-5 overflow-hidden
-                bg-gradient-to-br from-primary-500/4 via-transparent to-highlight-500/5
-                dark:from-primary-800/20 dark:via-transparent dark:to-highlight-700/8
-                border border-primary-200/40 dark:border-primary-700/30">
-                {/* Islamic 8-point star tile */}
-                <svg class="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <pattern id="pat-added" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-                      <g fill="none" style="stroke: rgb(var(--color-highlight-500)); stroke-width: 0.9;" class="pattern-lines">
-                        <polygon transform="translate(40,40)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                        <polygon transform="translate(0,0)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                        <polygon transform="translate(80,0)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                        <polygon transform="translate(0,80)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                        <polygon transform="translate(80,80)" points="0,-18 2.87,-6.93 12.73,-12.73 6.93,-2.87 18,0 6.93,2.87 12.73,12.73 2.87,6.93 0,18 -6.93,6.93 -12.73,12.73 -6.93,2.87 -18,0 -6.93,-2.87 -12.73,-12.73 -2.87,-6.93"/>
-                      </g>
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#pat-added)"/>
-                </svg>
-                {/* top edge glow */}
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px bg-gradient-to-r from-transparent via-primary-400/40 to-transparent pointer-events-none" aria-hidden="true"></div>
-
-                <div class="flex items-center justify-between mb-4">
-                  <h2 class="section-heading">
-                    <span aria-hidden="true" class="section-heading-ornament">◆</span>
-                    Newly Added
-                  </h2>
-                  <a href={`${import.meta.env.BASE_URL}posts`} class="text-base text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all">
-                    All articles →
+              <div class="hp-latest" id="hp-latest-new">
+                {newlyAdded.map((p: any) => (
+                  <a href={`${baseUrl}posts/${p.id}/`}>
+                    {p.data.category && <span class="hp-lt-cat">{p.data.category}</span>}
+                    <h3 class="hp-lt-title">{p.data.title}</h3>
+                    <span class="hp-lt-meta">{formatDateShort(p.data.date)}<br />+ new</span>
                   </a>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {newlyAdded.map((post: any) => {
-                    const cat: string = post.data.category ?? '';
-                    const pubLabel = post.data.date
-                      ? new Date(post.data.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : '';
-                    return (
-                      <a
-                        href={`${import.meta.env.BASE_URL}posts/${post.id}`}
-                        class="group relative flex flex-col gap-1.5 p-4 rounded-lg
-                          bg-white/40 dark:bg-primary-950/40
-                          backdrop-blur-sm
-                          border border-primary-200/60 dark:border-primary-700/40
-                          hover:border-highlight-400/60 dark:hover:border-highlight-500/40
-                          hover:shadow-[0_0_16px_rgb(var(--color-highlight-500)/0.12)]
-                          transition-all duration-200"
-                      >
-                        <div class="flex items-center justify-between gap-2">
-                          {cat && (
-                            <span class="text-[0.65rem] font-bold tracking-widest uppercase text-highlight-600 dark:text-highlight-400 truncate">
-                              {cat}
-                            </span>
-                          )}
-                          <span class="inline-flex items-center gap-0.5 text-[0.65rem] font-semibold tracking-wider uppercase text-primary-400 dark:text-primary-500 shrink-0 ml-auto">
-                            <span aria-hidden="true" class="text-highlight-500/70">✦</span> New
-                          </span>
-                        </div>
-                        <span class="text-sm font-semibold leading-snug text-primary-900 dark:text-primary-100 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors line-clamp-3">
-                          {post.data.title}
-                        </span>
-                        {post.data.description && (
-                          <span class="text-xs text-primary-500 dark:text-primary-400 line-clamp-2 leading-relaxed mt-auto">
-                            {post.data.description}
-                          </span>
-                        )}
-                        {pubLabel && (
-                          <span class="text-[0.65rem] text-primary-400 dark:text-primary-500 tabular-nums mt-0.5">
-                            {pubLabel}
-                          </span>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
+                ))}
               </div>
+
+              {recentlyUpdated.length > 0 && (
+                <div class="hp-latest" id="hp-latest-upd" hidden>
+                  {recentlyUpdated.map((p: any) => (
+                    <a href={`${baseUrl}posts/${p.id}/`}>
+                      {p.data.category && <span class="hp-lt-cat">{p.data.category}</span>}
+                      <h3 class="hp-lt-title">{p.data.title}</h3>
+                      <span class="hp-lt-meta"><span class="hp-upd"><span aria-hidden="true">↻</span> {formatDateShort(getModifiedDate(p))}</span></span>
+                    </a>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
-          <!-- Recent posts -->
-          {siteConfig.homeOptions.recentPosts.enabled && previewPosts.length > 0 && (
-            <section class="mb-12">
-              <div class="flex items-center justify-between mb-5">
-                <h2 class="section-heading">
-                  <span aria-hidden="true" class="section-heading-ornament">◆</span>
-                  Recent Articles
-                </h2>
-                <a
-                  href={`${import.meta.env.BASE_URL}posts`}
-                  class="text-base text-highlight-600 dark:text-highlight-400 border-b border-dotted border-highlight-400/50 hover:border-solid pb-0.5 transition-all"
-                >
-                  View all {postCount} →
-                </a>
+          <!-- ═══════════════════ 2 · EXPLORE BY TOPIC (bento) ═══════════════════ -->
+          {siteConfig.postOptions.categories && topics.length > 0 && (
+            <section class="hp-sec">
+              <div class="hp-sechead">
+                <div>
+                  <span class="hp-eyebrow"><span aria-hidden="true">◆</span> By subject area</span>
+                  <h2 class="hp-h2">Explore by topic</h2>
+                </div>
+                <a class="hp-more" href={`${baseUrl}posts/category/`}>All topics →</a>
               </div>
-              <div class="space-y-4">
-                {previewPosts.map((post: any, index: number) => (
-                  <PostCard post={post} eager={featuredPost ? index === 0 : index < 2} context="recent" />
+              {featuredTopics.length > 0 && (
+                <div class="hp-topic-feat">
+                  {featuredTopics.map((t) => (
+                    <TopicTile
+                      href={`${baseUrl}posts/category/${encodeURIComponent(t.name)}/`}
+                      name={t.display}
+                      label={t.display}
+                      count={t.count}
+                      description={t.desc || null}
+                      large={true}
+                    />
+                  ))}
+                </div>
+              )}
+              {restTopics.length > 0 && (
+                <div class="hp-topic-rest">
+                  {restTopics.map((t) => (
+                    <TopicTile
+                      href={`${baseUrl}posts/category/${encodeURIComponent(t.name)}/`}
+                      name={t.display}
+                      label={t.display}
+                      count={t.count}
+                      description={t.desc || null}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          <!-- ═══════════════════ 2 · COMMON OBJECTIONS (accordion) ═══════════════════ -->
+          {objections.length > 0 && (
+            <section class="hp-sec">
+              <div class="hp-sechead">
+                <div>
+                  <span class="hp-eyebrow"><span aria-hidden="true">◆</span> Frequently raised objections</span>
+                  <h2 class="hp-h2">Common objections, answered</h2>
+                </div>
+                <a class="hp-more" href={`${baseUrl}posts/`}>All answers →</a>
+              </div>
+              <div class="hp-alleg">
+                {objections.map((p: any, i: number) => (
+                  <details open={i === 0}>
+                    <summary>
+                      <span class="hp-q-quote" aria-hidden="true">“</span>
+                      <h3 class="hp-q">{p.data.title}</h3>
+                      <span class="hp-chev" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                      </span>
+                    </summary>
+                    <div class="hp-ans">
+                      <p>{p.data.description}</p>
+                      <a href={`${baseUrl}posts/${p.id}/`}>Read the full response →</a>
+                    </div>
+                  </details>
                 ))}
               </div>
             </section>
           )}
 
-          {siteConfig.homeOptions.blurb.placement === 'below' && HomeBlurbContent && (
-            <section class="prose prose-sm dark:prose-dark max-w-none mt-12">
-              <HomeBlurbContent />
-            </section>
-          )}
+          <!-- ═══════════ 3 · FINDING YOUR WAY AROUND (guide, full-bleed band) ═══════════ -->
+          <section class="hp-band hp-guide">
+            <div class="hp-band-inner" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+              <div class="hp-sechead">
+                <div>
+                  <span class="hp-eyebrow"><span aria-hidden="true">◆</span> New here?</span>
+                  <h2 class="hp-h2">Finding your way around</h2>
+                </div>
+              </div>
+              <div class="hp-guide-grid">
+                <a class="hp-guide-card" href={`${baseUrl}search/`}>
+                  <span class="hp-guide-ic"><Icon name="search" size={20} /></span>
+                  <h3>Search the library</h3>
+                  <p>Hit a specific claim? Search the exact allegation and jump straight to the response.</p>
+                  <span class="hp-guide-go" aria-hidden="true">→</span>
+                </a>
+                <a class="hp-guide-card" href={`${baseUrl}posts/category/`}>
+                  <span class="hp-guide-ic"><Icon name="grid-3x3" size={20} /></span>
+                  <h3>Browse by topic</h3>
+                  <p>Work through a subject area — Refutations, Christianity, Atheism, and more.</p>
+                  <span class="hp-guide-go" aria-hidden="true">→</span>
+                </a>
+                <a class="hp-guide-card" href={`${baseUrl}posts/tag/`}>
+                  <span class="hp-guide-ic"><Icon name="tag" size={20} /></span>
+                  <h3>Browse by tag</h3>
+                  <p>Zero in on a specific person, scripture, or concept across every article.</p>
+                  <span class="hp-guide-go" aria-hidden="true">→</span>
+                </a>
+                <a class="hp-guide-card" href={`${baseUrl}graph-view/`}>
+                  <span class="hp-guide-ic"><Icon name="share-2" size={20} /></span>
+                  <h3>See the graph</h3>
+                  <p>Explore how every topic and article connects across the wiki.</p>
+                  <span class="hp-guide-go" aria-hidden="true">→</span>
+                </a>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══════════ CLOSING PULL-QUOTE ═══════════ -->
+          <section class="hp-closer">
+            <p class="hp-closer-line">Every allegation, answered.</p>
+            <div class="hp-closer-rule" aria-hidden="true">◇ ✦ ◇</div>
+            <p class="hp-closer-sub">No slogans, no hand-waving — just sourced, scholarly responses to the claims raised against Islam.</p>
+          </section>
         </>
       ) : (
         <section class="text-center py-16">
@@ -490,114 +376,351 @@ const structuredData = {
             <p class="text-primary-600 dark:text-primary-300 mb-8">
               This blog is just getting started. Check back soon for new content!
             </p>
-            {isDev && (
-              <div class="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p class="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Dev Mode:</strong> Add some posts to the <code>content/posts/</code> directory to see them here.
-                </p>
-              </div>
-            )}
           </div>
         </section>
       )}
 
-      <!-- ═══════════════════ SUPPORT & SOCIALS ═══════════════════ -->
-      <section class="support-section mt-16 mb-8">
-        <div class="support-inner">
-
-          <!-- Ornament -->
-          <div class="support-ornament" aria-hidden="true">
-            <span class="support-ornament-line"></span>
-            <span class="support-ornament-glyph">◈</span>
-            <span class="support-ornament-line"></span>
-          </div>
-
-          <h2 class="support-heading">Support This Work</h2>
-
-          <p class="support-body">
-            OpenIslam is a free, independent resource — no paywalls, no ads, no institutional
-            funding. Every article you read, every refutation published, and every manuscript
-            authenticated is sustained by readers who believe the truth deserves a permanent home.
-            If this knowledge has benefited you, consider helping us keep it alive and growing.
+      <!-- ═══════════════════ SUPPORT (full-bleed band) ═══════════════════ -->
+      <section class="hp-band hp-support-band">
+        <div class="hp-support">
+          <h2>Support this work</h2>
+          <p>
+            OpenIslam is a free, independent resource — no paywalls, no ads.
+            Your support keeps the research going and the answers accessible.
           </p>
-
-          <p class="support-body support-body--secondary">
-            Your contribution covers hosting, research access, translation costs, and the time
-            needed to verify sources properly — because getting it right matters more than
-            getting it fast.
+          <div class="hp-support-actions">
+            <a class="hp-btn primary" href="https://www.paypal.com/invoice/p/#GRZNFXRSGNM52F5B" target="_blank" rel="noopener noreferrer" aria-label="Donate via PayPal">
+              <Icon name="paypal" size={17} /><span>Donate via PayPal</span>
+            </a>
+            <div class="hp-support-socials">
+              <a class="hp-btn" href="https://x.com/kufrcleaner1" target="_blank" rel="noopener noreferrer">
+                <Icon name="x-twitter" size={16} /><span>X / Twitter</span>
+              </a>
+              <a class="hp-btn" href="https://www.instagram.com/kufrcleaner/?hl=en" target="_blank" rel="noopener noreferrer">
+                <Icon name="instagram" size={16} /><span>Instagram</span>
+              </a>
+              <a class="hp-btn" href="https://discord.gg/29gmvhXRh8" target="_blank" rel="noopener noreferrer">
+                <Icon name="discord" size={16} /><span>Discord</span>
+              </a>
+            </div>
+          </div>
+          <p class="hp-support-contact">
+            Spotted an error, or want a topic covered? <a href={`${baseUrl}contact/`}>Get in touch →</a>
           </p>
-
-          <!-- Donate button -->
-          <a
-            href="https://www.paypal.com/invoice/p/#GRZNFXRSGNM52F5B"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="support-donate-btn"
-            aria-label="Donate via PayPal"
-          >
-            <Icon name="paypal" size={17} class="support-donate-icon" />
-            <span>Donate via PayPal</span>
-          </a>
-
-          <!-- Divider -->
-          <div class="support-divider" aria-hidden="true">
-            <span class="support-divider-ornament">◇ ✦ ◇</span>
-          </div>
-
-          <!-- Socials -->
-          <p class="support-follow-label">Follow &amp; Join the Conversation</p>
-          <div class="support-socials">
-            <a
-              href="https://x.com/kufrcleaner1"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="support-social-link"
-              aria-label="X / Twitter"
-            >
-              <Icon name="x-twitter" size={18} />
-              <span>X / Twitter</span>
-            </a>
-            <a
-              href="https://www.instagram.com/kufrcleaner/?hl=en"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="support-social-link"
-              aria-label="Instagram"
-            >
-              <Icon name="instagram" size={18} />
-              <span>Instagram</span>
-            </a>
-            <a
-              href="https://discord.gg/29gmvhXRh8"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="support-social-link"
-              aria-label="Discord"
-            >
-              <Icon name="discord" size={18} />
-              <span>Discord</span>
-            </a>
-          </div>
-
         </div>
       </section>
 
     </div>
   </div>
-
-  <!-- AI search assistant — homepage only -->
-  <AiAssistant />
 </BaseLayout>
 
 
 <style>
-  .pattern-lines {
-    opacity: 0.07;
+  /* ══════════════ Redesigned homepage — al-andalus tokens ══════════════ */
+  /* Semantic roles sourced from the runtime theme vars. Light-mode accent/meta/teal
+     are stepped for WCAG AA on small text (accent h-700, meta p-600, teal s-600). */
+  .hp {
+    --hp-bg-inset: rgb(var(--color-primary-100));
+    --hp-bg-raise: rgb(var(--color-primary-50));
+    --hp-text: rgb(var(--color-primary-900));
+    --hp-muted: rgb(var(--color-primary-600));
+    --hp-meta: rgb(var(--color-primary-600));
+    --hp-border: rgb(var(--color-primary-200));
+    --hp-border-strong: rgb(var(--color-primary-300));
+    --hp-accent: rgb(var(--color-highlight-700));
+    --hp-accent-soft: rgb(var(--color-highlight-400));
+    --hp-teal: rgb(var(--color-secondary-600));
   }
-  :global(.dark) .pattern-lines {
-    opacity: 0.18;
+  :global(html.dark) .hp {
+    --hp-bg-inset: rgb(var(--color-primary-800));
+    --hp-bg-raise: rgb(var(--color-primary-900));
+    --hp-text: rgb(var(--color-primary-100));
+    --hp-muted: rgb(var(--color-primary-300));
+    --hp-meta: rgb(var(--color-primary-300));
+    --hp-border: rgb(var(--color-primary-700));
+    --hp-border-strong: rgb(var(--color-primary-600));
+    --hp-accent: rgb(var(--color-highlight-400));
+    --hp-accent-soft: rgb(var(--color-highlight-500));
+    --hp-teal: rgb(var(--color-secondary-400));
   }
 
+  /* ── shared section head ── */
+  .hp-sec { margin-bottom: 3.5rem; }
+  .hp-sec--first { margin-top: 2.5rem; }
+  .hp-sechead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .hp-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-prose, serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--hp-accent);
+  }
+  .hp-eyebrow span { color: var(--hp-accent-soft); font-size: 0.6em; opacity: 0.8; }
+  .hp-h2 {
+    font-family: var(--font-heading, serif);
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--hp-text);
+    margin: 0.35rem 0 0;
+    line-height: 1.15;
+  }
+  .hp-more {
+    font-family: var(--font-prose, serif);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    color: var(--hp-accent);
+    text-decoration: none;
+    border-bottom: 1px dotted currentColor;
+    padding-bottom: 1px;
+    transition: color 0.15s;
+  }
+  .hp-more:hover { color: var(--hp-text); }
+
+  /* ── 1 · topic bento (shared TopicTile — matches /posts/category/ index) ── */
+  .hp-topic-feat { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
+  @media (min-width: 720px) { .hp-topic-feat { grid-template-columns: 1.9fr 1fr; } }
+  .hp-topic-rest { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 520px) { .hp-topic-rest { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 900px) { .hp-topic-rest { grid-template-columns: repeat(3, 1fr); } }
+
+  /* ── 2 · accordion ── */
+  .hp-alleg { border-top: 1px solid var(--hp-border); }
+  .hp-alleg details { border-bottom: 1px solid var(--hp-border); }
+  .hp-alleg summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem 0;
+  }
+  .hp-alleg summary::-webkit-details-marker { display: none; }
+  .hp-q-quote {
+    font-family: var(--font-heading, serif);
+    font-size: 2rem;
+    line-height: 0;
+    color: var(--hp-accent-soft);
+    position: relative;
+    top: 0.75rem;
+    flex: none;
+  }
+  .hp-q {
+    flex: 1;
+    font-family: var(--font-heading, serif);
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--hp-text);
+    margin: 0;
+    transition: color 0.2s;
+  }
+  .hp-alleg summary:hover .hp-q { color: var(--hp-accent); }
+  .hp-chev { flex: none; color: var(--hp-accent); transition: transform 0.25s; margin-top: 0.35rem; }
+  .hp-alleg details[open] summary .hp-chev { transform: rotate(45deg); }
+  .hp-ans { padding: 0 0 1.5rem 2.4rem; max-width: 70ch; }
+  .hp-ans p { font-family: var(--font-prose, serif); margin: 0 0 0.75rem; color: var(--hp-muted); line-height: 1.7; }
+  .hp-ans a {
+    font-family: var(--font-prose, serif);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--hp-accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .hp-ans a:hover { border-bottom-color: currentColor; }
+
+  /* ── full-bleed bands — break out of the constrained <main> (body has overflow-x: clip) ── */
+  .hp-band {
+    position: relative;
+    left: 50%;
+    right: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+  .hp-band-inner { margin-inline: auto; padding-inline: 1rem; }
+  @media (min-width: 640px) { .hp-band-inner { padding-inline: 1.5rem; } }
+
+  /* ── 3 · navigation guide (full-bleed shelf) ── */
+  .hp-guide {
+    padding-block: 3.25rem;
+    background: var(--hp-bg-inset);
+    border-block: 1px solid var(--hp-border);
+  }
+  .hp-guide-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  @media (max-width: 900px) { .hp-guide-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .hp-guide-grid { grid-template-columns: 1fr; } }
+  .hp-guide-card {
+    position: relative;
+    display: block;
+    padding: 1.4rem;
+    background: var(--hp-bg-raise);
+    border: 1px solid var(--hp-border);
+    border-radius: 0.6rem;
+    text-decoration: none;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .hp-guide-card:hover { border-color: var(--hp-accent-soft); transform: translateY(-2px); }
+  .hp-guide-ic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    color: var(--hp-accent);
+    background: rgb(var(--color-highlight-500) / 0.12);
+    border: 1px solid rgb(var(--color-highlight-500) / 0.3);
+    margin-bottom: 0.9rem;
+  }
+  .hp-guide-card h3 {
+    font-family: var(--font-heading, serif);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--hp-text);
+    margin: 0 0 0.35rem;
+    transition: color 0.2s;
+  }
+  .hp-guide-card:hover h3 { color: var(--hp-accent); }
+  .hp-guide-card p {
+    font-family: var(--font-prose, serif);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--hp-muted);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .hp-guide-go {
+    position: absolute;
+    top: 1.4rem;
+    right: 1.4rem;
+    color: var(--hp-accent-soft);
+    font-size: 1.1rem;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .hp-guide-card:hover .hp-guide-go { opacity: 1; transform: none; }
+
+  /* ── 4 · segmented latest ── */
+  .hp-seg {
+    display: inline-flex;
+    background: var(--hp-bg-inset);
+    border: 1px solid var(--hp-border);
+    border-radius: 0.5rem;
+    padding: 3px;
+    gap: 2px;
+  }
+  .hp-seg button {
+    border: 0;
+    background: transparent;
+    color: var(--hp-muted);
+    font-family: var(--font-prose, serif);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+  }
+  .hp-seg button:hover { color: var(--hp-accent); }
+  .hp-seg button[aria-pressed="true"] {
+    background: var(--hp-bg-raise);
+    color: var(--hp-accent);
+    box-shadow: inset 0 0 0 1px var(--hp-border);
+  }
+  .hp-latest a {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.3rem 1.5rem;
+    align-items: baseline;
+    padding: 1rem;
+    border-bottom: 1px solid var(--hp-border);
+    border-left: 2px solid transparent;
+    text-decoration: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .hp-latest a:hover { border-left-color: var(--hp-accent-soft); background: var(--hp-bg-inset); }
+  .hp-lt-cat {
+    grid-column: 1;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hp-accent);
+  }
+  .hp-lt-title {
+    grid-column: 1;
+    font-family: var(--font-heading, serif);
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--hp-text);
+    margin: 0;
+    line-height: 1.2;
+    transition: color 0.2s;
+  }
+  .hp-latest a:hover .hp-lt-title { color: var(--hp-accent); }
+  .hp-lt-meta {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: center;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    color: var(--hp-meta);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .hp-lt-meta .hp-upd { color: var(--hp-teal); }
+
+  /* ── closing pull-quote ── */
+  .hp-closer { text-align: center; max-width: 40rem; margin: 4rem auto 3.5rem; }
+  .hp-closer-line {
+    font-family: var(--font-heading, serif);
+    font-size: clamp(1.7rem, 4.2vw, 2.5rem);
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.12;
+    color: var(--hp-text);
+    margin: 0;
+    text-wrap: balance;
+  }
+  .hp-closer-rule {
+    color: var(--hp-accent-soft);
+    letter-spacing: 0.45em;
+    font-size: 0.8rem;
+    margin: 1.1rem 0;
+    opacity: 0.85;
+  }
+  .hp-closer-sub {
+    font-family: var(--font-prose, serif);
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--hp-muted);
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hp-latest a, .hp-chev, .hp-guide-card, .hp-guide-go { transition: none; }
+    .hp-guide-card:hover { transform: none; }
+  }
+
+  /* ══════════════ Section heading (legacy — used by blurb) ══════════════ */
   .section-heading {
     display: flex;
     align-items: center;
@@ -609,177 +732,89 @@ const structuredData = {
     text-transform: uppercase;
     color: rgb(var(--color-primary-600));
   }
-  :global(.dark) .section-heading {
-    color: rgb(var(--color-primary-400));
-  }
-  .section-heading-ornament {
-    color: rgb(var(--color-highlight-500));
-    font-size: 0.5em;
-    opacity: 0.7;
-    vertical-align: middle;
-  }
+  :global(.dark) .section-heading { color: rgb(var(--color-primary-400)); }
 
-  /* ── Support & Socials section ── */
-  .support-section {
-    border-top: 1px solid rgb(var(--color-highlight-500) / 0.2);
-    padding-top: 3.5rem;
+  /* ══════════════ Support — full-bleed CTA band ══════════════ */
+  .hp-support-band {
+    /* -2rem cancels the wrapping .py-8 bottom padding so the CTA sits flush to the patterned footer */
+    margin-bottom: -2rem;
+    padding: 4rem 1rem 4.25rem;
+    background:
+      radial-gradient(120% 140% at 50% 0%, rgb(var(--color-highlight-500) / 0.10), transparent 55%),
+      var(--hp-bg-inset);
+    border-top: 1px solid var(--hp-border);
   }
-
-  .support-inner {
+  .hp-support-contact {
+    font-family: var(--font-prose, serif);
+    font-size: 0.9rem;
+    color: var(--hp-muted);
+    margin: 1.6rem 0 0;
+  }
+  .hp-support-contact a {
+    color: var(--hp-accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .hp-support-contact a:hover { border-bottom-color: currentColor; }
+  .hp-support {
     text-align: center;
-    max-width: 38rem;
+    max-width: 44rem;
     margin: 0 auto;
   }
-
-  .support-ornament {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 1.75rem;
-  }
-  .support-ornament-line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(to right, transparent, rgb(var(--color-highlight-500) / 0.4));
-  }
-  .support-ornament-line:last-child {
-    background: linear-gradient(to left, transparent, rgb(var(--color-highlight-500) / 0.4));
-  }
-  .support-ornament-glyph {
-    color: rgb(var(--color-highlight-500));
-    font-size: 0.9rem;
-    line-height: 1;
-  }
-
-  .support-heading {
+  .hp-support h2 {
     font-family: var(--font-heading, serif);
-    font-size: clamp(1.35rem, 4vw, 1.75rem);
+    font-size: 1.75rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgb(var(--color-primary-900));
-    margin: 0 0 1.25rem;
+    color: var(--hp-text);
+    margin: 0;
   }
-  :global(.dark) .support-heading {
-    color: rgb(var(--color-primary-50));
-  }
-
-  .support-body {
+  .hp-support p {
     font-family: var(--font-prose, serif);
-    font-size: 1rem;
-    line-height: 1.8;
-    color: rgb(var(--color-primary-700));
-    margin: 0 0 1rem;
+    color: var(--hp-muted);
+    max-width: 48ch;
+    margin: 0.75rem auto 1.75rem;
+    line-height: 1.7;
+    text-wrap: pretty;
   }
-  :global(.dark) .support-body {
-    color: rgb(var(--color-primary-300));
+  .hp-support-actions { display: flex; flex-direction: column; align-items: center; gap: 0.85rem; }
+  .hp-support-socials { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+  .hp-btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.7rem 1.3rem; border-radius: 0.5rem;
+    font-family: var(--font-prose, serif); font-size: 0.95rem; font-weight: 600;
+    border: 1px solid var(--hp-border-strong); background: transparent; color: var(--hp-text);
+    text-decoration: none; transition: border-color 0.2s, color 0.2s, background 0.2s;
   }
-  .support-body--secondary {
-    font-size: 0.93rem;
-    color: rgb(var(--color-primary-500));
-    margin-bottom: 2rem;
-  }
-  :global(.dark) .support-body--secondary {
-    color: rgb(var(--color-primary-400));
-  }
-
-  .support-donate-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.65rem 1.6rem;
-    background: rgb(var(--color-highlight-500));
-    color: #fff;
-    font-family: var(--font-prose, serif);
-    font-size: 0.97rem;
-    font-weight: 500;
-    letter-spacing: 0.03em;
-    border-radius: 0.2rem;
-    text-decoration: none;
-    border: 1px solid rgb(var(--color-highlight-500));
-    transition: background 0.18s, border-color 0.18s;
-    margin-bottom: 2.5rem;
-  }
-  .support-donate-btn:hover {
-    background: rgb(var(--color-highlight-400));
-    border-color: rgb(var(--color-highlight-400));
-    text-decoration: none;
-  }
-  .support-donate-icon {
-    opacity: 0.9;
-  }
-
-  .support-divider {
-    position: relative;
-    height: 1px;
-    background:
-      linear-gradient(to right, transparent, rgb(var(--color-highlight-500) / 0.4)) 0 0 / 44% 1px no-repeat,
-      linear-gradient(to left, transparent, rgb(var(--color-highlight-500) / 0.4)) 100% 0 / 44% 1px no-repeat;
-    margin-bottom: 1.75rem;
-    overflow: visible;
-  }
-  .support-divider-ornament {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    color: rgb(var(--color-highlight-400));
-    font-size: 0.6em;
-    letter-spacing: 0.35em;
-    white-space: nowrap;
-    background: rgb(var(--color-primary-50));
-    padding: 0 0.4rem;
-  }
-  :global(.dark) .support-divider-ornament {
-    background: rgb(var(--color-primary-950));
-  }
-
-  .support-follow-label {
-    font-family: var(--font-prose, serif);
-    font-style: italic;
-    font-size: 0.88rem;
-    color: rgb(var(--color-primary-400));
-    margin: 0 0 1rem;
-    letter-spacing: 0.03em;
-  }
-
-  .support-socials {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    padding-bottom: 1rem;
-  }
-
-  .support-social-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.45rem 0.9rem;
-    border: 1px solid rgb(var(--color-primary-200));
-    border-radius: 0.2rem;
-    font-family: var(--font-prose, serif);
-    font-size: 0.88rem;
-    color: rgb(var(--color-primary-600));
-    text-decoration: none;
-    background: rgb(var(--color-primary-50));
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-  }
-  :global(.dark) .support-social-link {
-    border-color: rgb(var(--color-primary-700));
-    color: rgb(var(--color-primary-300));
-    background: rgb(var(--color-primary-900) / 0.6);
-  }
-  .support-social-link:hover {
-    border-color: rgb(var(--color-highlight-500) / 0.6);
-    color: rgb(var(--color-highlight-600));
-    background: rgb(var(--color-primary-100));
-    text-decoration: none;
-  }
-  :global(.dark) .support-social-link:hover {
-    border-color: rgb(var(--color-highlight-600) / 0.5);
-    color: rgb(var(--color-highlight-400));
-    background: rgb(var(--color-primary-800) / 0.5);
-  }
+  .hp-btn:not(.primary):hover { border-color: var(--hp-accent-soft); color: var(--hp-accent); text-decoration: none; }
+  .hp-btn.primary { background: var(--hp-accent); border-color: var(--hp-accent); color: rgb(var(--color-primary-50)); }
+  :global(html.dark) .hp-btn.primary { color: rgb(var(--color-primary-900)); }
+  .hp-btn.primary:hover { background: rgb(var(--color-highlight-800)); border-color: rgb(var(--color-highlight-800)); text-decoration: none; }
+  :global(html.dark) .hp-btn.primary:hover { background: rgb(var(--color-highlight-300)); border-color: rgb(var(--color-highlight-300)); }
 </style>
+
+<script>
+  function initHomeSections() {
+    // Segmented "Latest" toggle
+    const seg = document.querySelector('.hp-seg');
+    if (seg) {
+      seg.querySelectorAll('button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+          btn.setAttribute('aria-pressed', 'true');
+          const isNew = (btn as HTMLElement).dataset.tab === 'new';
+          const nw = document.getElementById('hp-latest-new');
+          const up = document.getElementById('hp-latest-upd');
+          if (nw) nw.hidden = !isNew;
+          if (up) up.hidden = isNew;
+        });
+      });
+    }
+  }
+
+  // Initial load fires DOMContentLoaded only; Swup fires `swup:page:view` (once)
+  // per navigation. So: direct call wires the toggle on load, listener re-wires it
+  // after each swap (the segmented buttons are replaced with the swapped content).
+  initHomeSections();
+  document.addEventListener('swup:page:view', initHomeSections);
+</script>

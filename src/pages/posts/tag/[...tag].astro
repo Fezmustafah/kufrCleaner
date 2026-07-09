@@ -3,7 +3,9 @@ import type { GetStaticPaths } from 'astro';
 import { getCollection, getEntry, render } from 'astro:content';
 import { siteConfig } from '@/config';
 import { shouldShowPost, sortPostsByDate, extractTags } from '@/utils/markdown';
+import { topicSlug } from '@/utils/topics';
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import TopicBanner from '@/components/TopicBanner.astro';
 import PostCard from '@/components/PostCard.astro';
 import Pagination from '@/components/Pagination.astro';
 import Icon from '@/components/Icon.astro';
@@ -17,31 +19,31 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
   return allTags.map(tag => ({
     params: { tag },
-    props: { tag, allPosts: sortedPosts, allTags }
+    props: { tag, allPosts: sortedPosts }
   }));
 };
 
 const { tag, allPosts } = Astro.props as {
   tag: string;
   allPosts: any[];
-  allTags: string[];
 };
-
 const isDev = import.meta.env.DEV;
+const baseUrl = import.meta.env.BASE_URL;
+
 if (!tag && !isDev) return Astro.redirect('/404');
 
-// Load optional tag entry
+// Load the optional tag entry (description, cover image, MOC body).
+// Entry ids are slugified by Astro's glob loader, so slugify the raw value to match.
 let tagEntry: any = null;
 let TagContent: any = null;
 try {
-  tagEntry = await getEntry('tags', tag);
+  tagEntry = await getEntry('tags', topicSlug(tag));
   if (tagEntry) {
     const rendered = await render(tagEntry);
     TagContent = rendered.Content;
   }
 } catch (_) {}
 
-// Filter posts by tag
 const filteredPosts = allPosts.filter((post: any) => {
   if (!post.data.tags) return false;
   const postTags = Array.isArray(post.data.tags) ? post.data.tags : [post.data.tags];
@@ -51,182 +53,188 @@ const filteredPosts = allPosts.filter((post: any) => {
 const postsPerPage = siteConfig.postOptions.postsPerPage;
 const totalPosts = filteredPosts.length;
 const totalPages = Math.ceil(totalPosts / postsPerPage);
+const currentPage = 1;
 const paginatedPosts = filteredPosts.slice(0, postsPerPage);
 
 const tagDisplayTitle = tagEntry?.data.title || tag;
-const tagDescription = tagEntry?.data.description || `All posts tagged with "${tag}"`;
+const tagDescription = tagEntry?.data.description || null;
 const coverImage = tagEntry?.data.image || null;
 const coverImageAlt = tagEntry?.data.imageAlt || tagDisplayTitle;
 
 const seoData = {
-  title: `${tagDisplayTitle} | ${siteConfig.title}`,
-  description: tagDescription,
+  title: `#${tagDisplayTitle} | ${siteConfig.title}`,
+  description: tagDescription || `All posts tagged with "${tag}"`,
   canonical: Astro.url.href,
   ogType: 'website' as const
 };
 
-const baseUrl = `${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`;
+const listBaseUrl = `${baseUrl}posts/tag/${encodeURIComponent(tag)}`;
 const pagination = {
-  currentPage: 1,
+  currentPage,
   totalPages,
-  hasNext: totalPages > 1,
+  hasNext: currentPage < totalPages,
   hasPrev: false,
-  nextUrl: totalPages > 1 ? `${baseUrl}/2` : undefined,
+  nextUrl: totalPages > 1 ? `${listBaseUrl}/2/` : undefined,
   prevUrl: undefined
 };
 ---
 
 <BaseLayout seoData={seoData}>
-  <div class="py-8">
-    <div class="tag-moc-grid" style={`--contentWidth: ${siteConfig.layout.contentWidth}`}>
+  <div class="tag-single" style={`--contentWidth: ${siteConfig.layout.contentWidth}`}>
 
-      <article class="moc-article bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm overflow-hidden">
+    <nav class="tag-back">
+      <a href={`${baseUrl}posts/tag/`}>
+        <Icon name="chevron-left" class="w-3.5 h-3.5" />
+        All tags
+      </a>
+    </nav>
 
-        <!-- Banner: clamp height handles any image resolution gracefully -->
-        {coverImage && coverImage !== '' ? (
-          <div class="moc-banner">
-            <img
-              src={coverImage}
-              alt={coverImageAlt}
-              class="w-full h-full object-cover object-center"
-              loading="eager"
-              fetchpriority="high"
-            />
-            <div class="moc-banner-overlay" />
-          </div>
-        ) : (
-          <div class="moc-banner moc-banner--gradient" />
-        )}
+    <!-- Banner hero: entry image or al-andalus arabesque, title overlaid -->
+    <header class="tag-hero">
+      <TopicBanner name={tagDisplayTitle} image={coverImage} imageAlt={coverImageAlt} eager={true} />
+      <div class="tag-hero-content">
+        <p class="tag-hero-kicker">Tag</p>
+        <h1 class="tag-hero-title">#{tagDisplayTitle}</h1>
+        {tagDescription && <p class="tag-hero-desc">{tagDescription}</p>}
+        <span class="tag-hero-count">{totalPosts === 1 ? '1 article' : `${totalPosts.toLocaleString()} articles`}</span>
+      </div>
+    </header>
 
-        <!-- Header: sits below banner -->
-        <div class="px-6 pt-6 pb-4 border-b border-primary-200 dark:border-primary-700">
-          <div class="flex items-center gap-2 mb-3">
-            <a
-              href={`${import.meta.env.BASE_URL}posts/tag`}
-              class="inline-flex items-center text-sm text-primary-500 dark:text-primary-400 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
-            >
-              <Icon name="tag" class="w-3 h-3 mr-1 opacity-70" />
-              All tags
-            </a>
-          </div>
+    <!-- Optional MOC prose from the tag entry -->
+    {TagContent && (
+      <div class="tag-moc prose dark:prose-invert max-w-none">
+        <TagContent />
+      </div>
+    )}
 
-          <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50 mb-3 leading-tight">
-            #{tagDisplayTitle}
-          </h1>
-
-          {tagEntry?.data.description && (
-            <p class="text-base text-primary-600 dark:text-primary-300 max-w-prose leading-relaxed mb-3">
-              {tagEntry.data.description}
-            </p>
-          )}
-
-          <span class="text-sm font-medium text-primary-500 dark:text-primary-400">
-            {totalPosts === 1 ? '1 post' : `${totalPosts} posts`}
-          </span>
+    <!-- Posts -->
+    {paginatedPosts.length > 0 ? (
+      <>
+        <div class="posts-cards-grid">
+          {paginatedPosts.map((post: any, index: number) => (
+            <PostCard post={post} context="tags" eager={index < 4} />
+          ))}
         </div>
-
-        <!-- Prose body from tag file (description essay, context, etc.) -->
-        {TagContent && (
-          <div class="px-6 py-6 border-b border-primary-200 dark:border-primary-700">
-            <div class="prose dark:prose-dark max-w-none">
-              <TagContent />
-            </div>
-          </div>
-        )}
-
-        <!-- Post card grid — 2 cols on md+, mimics Bases card view -->
-        <div class="p-6">
-          {paginatedPosts.length > 0 ? (
-            <>
-              <div class="posts-cards-grid">
-                {paginatedPosts.map((post: any, index: number) => (
-                  <PostCard post={post} context="tags" eager={index < 4} />
-                ))}
-              </div>
-              <div class="mt-8">
-                <Pagination pagination={pagination} baseUrl={baseUrl} />
-              </div>
-            </>
-          ) : (
-            <div class="text-center py-12">
-              <Icon name="tag" class="w-10 h-10 text-primary-300 dark:text-primary-600 mx-auto mb-3" />
-              <p class="text-base text-primary-500 dark:text-primary-400">No posts yet.</p>
-            </div>
-          )}
+        <div class="tag-pagination">
+          <Pagination pagination={pagination} baseUrl={listBaseUrl} />
         </div>
+      </>
+    ) : (
+      <div class="tag-empty">
+        <Icon name="tag" class="w-9 h-9" />
+        <p>No posts with this tag yet.</p>
+      </div>
+    )}
 
-      </article>
-    </div>
   </div>
 </BaseLayout>
 
 <style>
-  /* Centered single-column — clean MOC layout, no sidebar */
-  .tag-moc-grid {
-    display: grid;
-    grid-template-columns: minmax(0, var(--contentWidth));
-    justify-content: center;
-    padding: 0 1rem;
+  .tag-single {
+    max-width: var(--contentWidth, 65rem);
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3.5rem;
   }
+  @media (min-width: 1280px) { .tag-single { padding-left: 1.5rem; padding-right: 1.5rem; } }
 
-  .moc-breadcrumb {
-    grid-column: 1 / -1;
+  /* ── Back link ── */
+  .tag-back { margin-bottom: 0.9rem; }
+  .tag-back a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--font-prose, serif);
+    font-size: 0.85rem;
+    color: rgb(var(--color-primary-500));
+    text-decoration: none;
+    transition: color 0.15s ease;
   }
+  .tag-back a:hover { color: rgb(var(--color-highlight-600)); }
+  :global(.dark) .tag-back a { color: rgb(var(--color-primary-400)); }
+  :global(.dark) .tag-back a:hover { color: rgb(var(--color-highlight-400)); }
 
-  .moc-article {
-    min-width: 0;
-  }
-
-  /* Banner: clamp handles portrait/landscape/square without distortion */
-  .moc-banner {
-    width: 100%;
-    height: clamp(180px, 28vw, 380px);
-    overflow: hidden;
+  /* ── Banner hero ── */
+  .tag-hero {
     position: relative;
-    background: var(--color-primary-200, #e5e7eb);
+    overflow: hidden;
+    border-radius: 0.75rem;
+    min-height: clamp(200px, 30vw, 340px);
+    border: 1px solid rgb(var(--color-highlight-500) / 0.2);
+    display: flex;
+  }
+  .tag-hero-content {
+    position: relative;
+    z-index: 1;
+    align-self: flex-end;
+    padding: clamp(1.25rem, 3.5vw, 2.5rem);
+    max-width: 52rem;
+  }
+  .tag-hero-kicker {
+    font-family: var(--font-prose, serif);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-300));
+    margin: 0 0 0.55rem;
+  }
+  .tag-hero-title {
+    font-family: var(--font-heading, serif);
+    font-size: clamp(1.9rem, 5vw, 3.1rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.04;
+    color: rgb(var(--color-primary-50));
+    margin: 0;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+  .tag-hero-desc {
+    font-family: var(--font-prose, serif);
+    font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+    line-height: 1.6;
+    color: rgb(var(--color-primary-200));
+    margin: 0.85rem 0 0;
+    max-width: 46rem;
+    text-wrap: pretty;
+  }
+  .tag-hero-count {
+    display: inline-block;
+    font-family: var(--font-prose, serif);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-100));
+    margin-top: 1.1rem;
+    padding: 0.32rem 0.7rem;
+    border: 1px solid rgb(var(--color-highlight-400) / 0.4);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.25);
+    backdrop-filter: blur(4px);
   }
 
-  :global(.dark) .moc-banner {
-    background: var(--color-primary-800, #1f2937);
+  /* ── MOC prose ── */
+  .tag-moc {
+    margin: 2rem 0 0.5rem;
+    padding-bottom: 1.75rem;
+    border-bottom: 1px solid rgb(var(--color-primary-200));
   }
+  :global(.dark) .tag-moc { border-bottom-color: rgb(var(--color-primary-800)); }
 
-  .moc-banner--gradient {
-    background: linear-gradient(
-      135deg,
-      oklch(var(--p-300, 0.85 0.05 250)) 0%,
-      oklch(var(--p-200, 0.92 0.02 250)) 100%
-    );
+  /* ── Posts ── */
+  .posts-cards-grid { margin-top: 2rem; }
+  .tag-pagination { margin-top: 2.5rem; }
+
+  .tag-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+    padding: 4rem 0;
+    color: rgb(var(--color-primary-500));
+    font-family: var(--font-prose, serif);
   }
-
-  :global(.dark) .moc-banner--gradient {
-    background: linear-gradient(
-      135deg,
-      oklch(var(--p-800, 0.25 0.04 250)) 0%,
-      oklch(var(--p-700, 0.32 0.04 250)) 100%
-    );
-  }
-
-  /* Subtle scrim so header text stays readable if we later overlay text on banner */
-  .moc-banner-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.08) 100%);
-    pointer-events: none;
-  }
-
-
-  @media (min-width: 1280px) {
-    .tag-moc-grid {
-      padding: 0 1.5rem;
-    }
-  }
-
-  /* Tailwind's bg utilities won't work in oklch without vars — fallback to primary scale */
-  .moc-banner--gradient {
-    background: linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%);
-  }
-
-  :global(.dark) .moc-banner--gradient {
-    background: linear-gradient(135deg, #1e2939 0%, #273549 100%);
-  }
+  :global(.dark) .tag-empty { color: rgb(var(--color-primary-400)); }
 </style>

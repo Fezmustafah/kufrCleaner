@@ -165,7 +165,6 @@ export default defineConfig({
   '/posts/john-8-58': '/posts/did-jesus-ever-say-i-am-god-the-ego-eimi-and-yahweh-argument-destroyed',
   '/posts/did-joshua-destroy-the-walls-of-jericho': '/posts/did-joshua-destroy-the-walls-of-jericho-the-archaeological-evidence-against-the-book-of-joshua',
   '/posts/khalid-bin-al-walid-may-allah-be-pleased-with-him-was-a-cannibal-who': '/posts/did-khalid-ibn-al-walid-commit-cannibalism-refuting-the-slander-full-isnad-analysis-biblical-counter-evidence',
-  '/posts/mecca-never-existed': '/posts/did-mecca-exist-before-the-4th-century-historical-evidence-that-proves-it-did',
   '/posts/monkey-adultery': '/posts/did-monkeys-stone-for-zina-refuting-the-sahih-al-bukhari-objection',
   '/posts/contradiction-in-the-quran-as-it-mentions-different-statements-about-the-fire-that-moses-peace-be': '/posts/did-moses-say-different-things-about-the-fire-refuting-the-quran-contradiction-claim',
   '/posts/doubt-about-moses-peace-be-upon-him-throwing-the-tablets': '/posts/did-moses-throwing-the-tablets-disrespect-gods-word-al-araf-150-explained-with-tafsir-bible',

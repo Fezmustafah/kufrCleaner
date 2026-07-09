@@ -2,198 +2,381 @@
 import { getCollection } from 'astro:content';
 import { siteConfig } from '@/config';
 import { shouldShowPost, sortPostsByDate, extractTags } from '@/utils/markdown';
+import { topicSlug } from '@/utils/topics';
+import { layoutTagCloud } from '@/utils/tag-cloud';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Icon from '@/components/Icon.astro';
 
 const isDev = import.meta.env.DEV;
+const baseUrl = import.meta.env.BASE_URL;
 
 const allPosts = await getCollection('posts');
-const visiblePosts = allPosts.filter(post => shouldShowPost(post, isDev));
-const sortedPosts = sortPostsByDate(visiblePosts);
-const allTags = extractTags(sortedPosts);
+const visiblePosts = sortPostsByDate(allPosts.filter(post => shouldShowPost(post, isDev)));
+// Drop noise tags (empties + the "tag"/"untitled"/"test" placeholders)
+const TAG_NOISE = new Set(['tag', 'untitled', 'test']);
+const allTags = extractTags(visiblePosts).filter((t) => {
+  const s = t.trim();
+  return s.length > 0 && !TAG_NOISE.has(s.toLowerCase());
+});
 
+// Optional title override from a tag entry (keyed by slug id)
 const tagEntries = await getCollection('tags').catch(() => []);
-const tagEntryMap = Object.fromEntries(tagEntries.map(e => [e.id, e]));
+const titleBySlug = new Map(tagEntries.map(e => [e.id, e.data.title]));
 
-// Build tag data with post counts
-const tagData = allTags.map(tag => {
-  const entry = tagEntryMap[tag];
-  const postCount = sortedPosts.filter((post: any) => {
-    if (!post.data.tags) return false;
-    const postTags = Array.isArray(post.data.tags) ? post.data.tags : [post.data.tags];
-    return postTags.some((t: any) => t && typeof t === 'string' && t.trim() === tag.trim());
+// Display cleanup only: drop leading/trailing emoji, symbols and decorative
+// brackets so e.g. "📜《in-bible》" shows as "in-bible". The link still uses the
+// raw tag value, so counts and routing are unaffected.
+const cleanTitle = (s: string) =>
+  s.replace(/^[^\p{L}\p{N}]+/u, '').replace(/[^\p{L}\p{N}]+$/u, '').trim() || s.trim();
+
+const tags = allTags.map((tag) => {
+  const count = visiblePosts.filter((post: any) => {
+    const t = post.data.tags;
+    if (!t) return false;
+    return (Array.isArray(t) ? t : [t]).some((x: any) => x && typeof x === 'string' && x.trim() === tag.trim());
   }).length;
-
   return {
-    tag,
-    displayTitle: entry?.data.title || tag,
-    description: entry?.data.description || null,
-    image: entry?.data.image || null,
-    imageAlt: entry?.data.imageAlt || tag,
-    postCount,
+    raw: tag,
+    count,
+    title: cleanTitle(titleBySlug.get(topicSlug(tag)) || tag),
+    url: `${baseUrl}posts/tag/${encodeURIComponent(tag)}/`,
   };
-}).sort((a, b) => a.displayTitle.localeCompare(b.displayTitle));
+});
+
+const totalPosts = visiblePosts.length;
+
+// ── Cloud: build-time spiral layout → static SVG (no client JS) ──
+const cloud = layoutTagCloud(
+  tags.map(t => ({ text: t.title, count: t.count, url: t.url })),
+  { minFont: 18, maxFont: 62 }
+);
+
+// ── Alphabetical index (discovery layer) ──
+const letterOf = (s: string) => {
+  const c = (s.trim()[0] || '#').toUpperCase();
+  return /[A-Z]/.test(c) ? c : '#';
+};
+const byTitle = [...tags].sort((a, b) => a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }));
+const groups = new Map<string, typeof tags>();
+for (const t of byTitle) {
+  const L = letterOf(t.title);
+  if (!groups.has(L)) groups.set(L, []);
+  groups.get(L)!.push(t);
+}
+const ALPHA = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const sections = ALPHA.filter(L => groups.has(L)).map(L => ({ letter: L, tags: groups.get(L)! }));
+const idFor = (L: string) => (L === '#' ? 'ltr-sym' : `ltr-${L}`);
 
 const seoData = {
   title: `Tags | ${siteConfig.title}`,
-  description: `Browse ${allTags.length} tags across ${visiblePosts.length} posts.`,
+  description: `Browse ${tags.length} tags across ${totalPosts.toLocaleString()} articles.`,
   canonical: Astro.url.href,
-  ogType: 'website' as const
+  ogType: 'website' as const,
 };
 ---
 
 <BaseLayout seoData={seoData}>
-  <div class="py-8">
-    <div class="tag-moc-grid" style={`--contentWidth: ${siteConfig.layout.contentWidth}`}>
+  <div class="tag-index" style={`--contentWidth: ${siteConfig.layout.contentWidth}`}>
 
-      <article class="moc-article bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm overflow-hidden">
+    <header class="tag-head">
+      <p class="tag-kicker">Browse the library</p>
+      <h1 class="tag-title">Tags</h1>
+      <p class="tag-sub">{tags.length} tags across {totalPosts.toLocaleString()} articles</p>
+    </header>
 
-        <!-- Header -->
-        <div class="px-6 py-6 border-b border-primary-200 dark:border-primary-700">
-          <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50 mb-1 leading-tight">
-            Tags
-          </h1>
-          <p class="text-base text-primary-500 dark:text-primary-400">
-            {allTags.length} tags · {visiblePosts.length} posts
-          </p>
-        </div>
+    {tags.length > 0 ? (
+      <>
+        <!-- Word cloud — size scales with post count -->
+        <section class="tag-cloud-panel" aria-label="Tag cloud">
+          <svg
+            class="tag-cloud"
+            viewBox={cloud.viewBox}
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label={`Cloud of ${tags.length} tags, sized by number of articles`}
+          >
+            {cloud.words.map((w, i) => (
+              <a
+                href={w.url}
+                aria-label={`${w.text}, ${w.count} article${w.count === 1 ? '' : 's'}`}
+                style={`animation-delay:${Math.min(i * 0.018, 0.9).toFixed(3)}s`}
+              >
+                <title>{w.text} · {w.count} article{w.count === 1 ? '' : 's'}</title>
+                <text
+                  class="cloud-word"
+                  x={w.x}
+                  y={w.y}
+                  text-anchor="middle"
+                  dominant-baseline="central"
+                  style={`font-size:${w.size}px;--g:${w.weight.toFixed(3)}`}
+                >{w.text}</text>
+              </a>
+            ))}
+          </svg>
+        </section>
 
-        <!-- Tag card grid -->
-        <div class="p-6">
-          {tagData.length > 0 ? (
-            <div class="tag-card-grid">
-              {tagData.map(({ tag, displayTitle, description, image, imageAlt, postCount }) => (
-                <a
-                  href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`}
-                  class="tag-card group"
-                >
-                  <!-- Card image / gradient -->
-                  {image && image !== '' ? (
-                    <div class="tag-card-image">
-                      <img
-                        src={image}
-                        alt={imageAlt}
-                        class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                    </div>
-                  ) : (
-                    <div class="tag-card-image tag-card-image--gradient">
-                      <Icon name="tag" class="w-7 h-7 text-primary-400 dark:text-primary-500" />
-                    </div>
-                  )}
+        <!-- Alphabetical index -->
+        <p class="az-subhead">Browse A–Z</p>
+        <nav class="az-rail" aria-label="Jump to letter">
+          {ALPHA.map((L) =>
+            groups.has(L) ? (
+              <a class="az-letter" href={`#${idFor(L)}`}>{L}</a>
+            ) : (
+              <span class="az-letter az-letter--off" aria-hidden="true">{L}</span>
+            )
+          )}
+        </nav>
 
-                  <!-- Card body -->
-                  <div class="tag-card-body">
-                    <div class="flex items-start justify-between gap-2 mb-1">
-                      <h2 class="min-w-0 break-words line-clamp-2 text-base font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors leading-snug">
-                        #{displayTitle}
-                      </h2>
-                      <span class="shrink-0 text-sm font-medium px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-700 text-primary-500 dark:text-primary-400 tabular-nums">
-                        {postCount}
-                      </span>
-                    </div>
-                    {description && (
-                      <p class="text-sm text-primary-500 dark:text-primary-400 line-clamp-2 leading-relaxed">
-                        {description}
-                      </p>
-                    )}
-                  </div>
+        {sections.map((sec) => (
+          <section class="tag-section" id={idFor(sec.letter)}>
+            <h2 class="tag-section-h">{sec.letter}</h2>
+            <div class="tag-row">
+              {sec.tags.map((t) => (
+                <a class="tag-chip" href={t.url}>
+                  <span class="tag-chip-dot" aria-hidden="true"></span>
+                  <span class="tag-chip-name">{t.title}</span>
+                  <span class="tag-chip-count">{t.count}</span>
                 </a>
               ))}
             </div>
-          ) : (
-            <div class="text-center py-16">
-              <Icon name="tag" class="w-10 h-10 text-primary-300 dark:text-primary-600 mx-auto mb-3" />
-              <p class="text-base text-primary-500 dark:text-primary-400">No tags found.</p>
-            </div>
-          )}
-        </div>
-      </article>
-    </div>
+          </section>
+        ))}
+      </>
+    ) : (
+      <p class="tag-empty">No tags found.</p>
+    )}
+
   </div>
 </BaseLayout>
 
 <style>
-  .tag-moc-grid {
-    display: grid;
-    grid-template-columns: minmax(0, var(--contentWidth));
-    justify-content: center;
-    padding: 0 1rem;
+  .tag-index {
+    max-width: var(--contentWidth, 65rem);
+    margin: 0 auto;
+    padding: 2.5rem 1rem 3.5rem;
   }
+  @media (min-width: 1280px) { .tag-index { padding-left: 1.5rem; padding-right: 1.5rem; } }
 
-  .moc-breadcrumb { grid-column: 1 / -1; }
-  .moc-article { min-width: 0; }
-
-  /* Tag card grid: 2 cols mobile, 3 cols sm+, 4 cols lg+ */
-  .tag-card-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+  /* ── Header ── */
+  .tag-head { margin-bottom: 1.75rem; }
+  .tag-kicker {
+    font-family: var(--font-prose, serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-600));
+    margin: 0 0 0.5rem;
   }
-
-  @media (min-width: 480px) {
-    .tag-card-grid { grid-template-columns: repeat(3, 1fr); }
+  :global(.dark) .tag-kicker { color: rgb(var(--color-highlight-400)); }
+  .tag-title {
+    font-family: var(--font-heading, serif);
+    font-size: clamp(2rem, 5vw, 2.9rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    color: rgb(var(--color-primary-900));
+    margin: 0 0 0.4rem;
   }
-
-  @media (min-width: 768px) {
-    .tag-card-grid { grid-template-columns: repeat(4, 1fr); }
+  :global(.dark) .tag-title { color: rgb(var(--color-primary-50)); }
+  .tag-sub {
+    font-family: var(--font-prose, serif);
+    font-size: 0.95rem;
+    color: rgb(var(--color-primary-500));
+    margin: 0;
   }
+  :global(.dark) .tag-sub { color: rgb(var(--color-primary-400)); }
 
-  .tag-card {
-    display: block;
-    text-decoration: none;
-    border-radius: 0.5rem;
-    border: 1px solid;
-    border-color: rgb(var(--color-primary-200, 229 231 235));
-    background: white;
-    overflow: hidden;
-    transition: border-color 150ms, box-shadow 150ms;
+  /* ── Word cloud ── */
+  .tag-cloud-panel {
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 0.75rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    margin-bottom: 2.75rem;
+    background:
+      radial-gradient(120% 120% at 50% 0%, rgb(var(--color-highlight-500) / 0.05), transparent 70%),
+      rgb(var(--color-primary-50) / 0.5);
   }
-
-  :global(.dark) .tag-card {
-    border-color: rgb(var(--color-primary-700, 55 65 81));
-    background: rgb(var(--color-primary-800, 31 41 55) / 0.5);
+  :global(.dark) .tag-cloud-panel {
+    border-color: rgb(var(--color-primary-800));
+    background:
+      radial-gradient(120% 120% at 50% 0%, rgb(var(--color-highlight-500) / 0.08), transparent 70%),
+      rgb(var(--color-primary-900) / 0.35);
   }
-
-  .tag-card:hover {
-    border-color: rgb(var(--color-highlight-300, 134 239 172));
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  .tag-cloud { display: block; width: 100%; height: auto; overflow: visible; }
+  /* Colour ramps continuously from muted ink (rare tags) to full gold (frequent
+     tags); --g is the 0..1 normalised post count, set per word. */
+  .cloud-word {
+    font-family: var(--font-heading, serif);
+    font-weight: 600;
+    fill: color-mix(in oklab, rgb(var(--color-highlight-500)) calc(var(--g, 0) * 100%), rgb(var(--color-primary-600)));
+    fill-opacity: calc(0.72 + var(--g, 0) * 0.28);
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: fill 0.15s ease, fill-opacity 0.15s ease, transform 0.18s ease;
   }
-
-  :global(.dark) .tag-card:hover {
-    border-color: rgb(var(--color-highlight-600, 22 163 74));
+  :global(.dark) .cloud-word {
+    fill: color-mix(in oklab, rgb(var(--color-highlight-400)) calc(var(--g, 0) * 100%), rgb(var(--color-primary-300)));
   }
-
-  /* Cover image area — aspect-ratio keeps cards uniform regardless of source image size */
-  .tag-card-image {
-    width: 100%;
-    aspect-ratio: 3/2;
-    overflow: hidden;
-    position: relative;
-    background: #e5e7eb;
+  .tag-cloud a { cursor: pointer; outline: none; animation: cloud-in 0.45s ease backwards; }
+  .tag-cloud a:hover .cloud-word,
+  .tag-cloud a:focus-visible .cloud-word {
+    fill: rgb(var(--color-highlight-600));
+    fill-opacity: 1;
+    transform: scale(1.1);
+    text-decoration: underline;
   }
-
-  :global(.dark) .tag-card-image {
-    background: #1f2937;
+  :global(.dark) .tag-cloud a:hover .cloud-word,
+  :global(.dark) .tag-cloud a:focus-visible .cloud-word {
+    fill: rgb(var(--color-highlight-300));
   }
+  .tag-cloud a:focus-visible .cloud-word {
+    stroke: rgb(var(--color-highlight-500));
+    stroke-width: 0.4px;
+    paint-order: stroke;
+  }
+  @keyframes cloud-in { from { opacity: 0; } to { opacity: 1; } }
+  /* Cloud is a decorative enhancement; on small screens the A–Z list is primary */
+  @media (max-width: 559px) { .tag-cloud-panel { display: none; } }
 
-  .tag-card-image--gradient {
+  /* ── Alphabetical index ── */
+  .az-subhead {
+    font-family: var(--font-prose, serif);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-500));
+    margin: 0 0 0.35rem;
+  }
+  :global(.dark) .az-subhead { color: rgb(var(--color-primary-400)); }
+
+  .az-rail {
+    position: sticky;
+    top: 3.5rem;
+    z-index: 20;
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    padding: 0.55rem 0;
+    margin-bottom: 1.5rem;
+    background: rgb(var(--color-primary-50) / 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgb(var(--color-primary-200));
+  }
+  :global(.dark) .az-rail {
+    background: rgb(var(--color-primary-950) / 0.85);
+    border-bottom-color: rgb(var(--color-primary-800));
+  }
+  .az-letter {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%);
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 0.35rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    color: rgb(var(--color-primary-500));
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .az-letter:hover {
+    background: rgb(var(--color-highlight-500) / 0.15);
+    color: rgb(var(--color-highlight-700));
+  }
+  :global(.dark) .az-letter { color: rgb(var(--color-primary-400)); }
+  :global(.dark) .az-letter:hover { color: rgb(var(--color-highlight-300)); }
+  .az-letter--off { opacity: 0.25; pointer-events: none; }
+
+  .tag-section {
+    scroll-margin-top: 6.5rem;
+    margin-bottom: 1.75rem;
+  }
+  .tag-section-h {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-heading, serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: rgb(var(--color-highlight-700));
+    margin: 0 0 0.75rem;
+  }
+  :global(.dark) .tag-section-h { color: rgb(var(--color-highlight-400)); }
+  .tag-section-h::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgb(var(--color-primary-200));
+  }
+  :global(.dark) .tag-section-h::after { background: rgb(var(--color-primary-800)); }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.38rem 0.55rem 0.38rem 0.7rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-50));
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  :global(.dark) .tag-chip {
+    border-color: rgb(var(--color-primary-800));
+    background: rgb(var(--color-primary-900) / 0.4);
+  }
+  .tag-chip:hover {
+    transform: translateY(-2px);
+    border-color: rgb(var(--color-highlight-400) / 0.6);
+    background: rgb(var(--color-highlight-500) / 0.08);
+  }
+  .tag-chip-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    border: 1.5px solid rgb(var(--color-highlight-500) / 0.6);
+    flex: none;
+  }
+  .tag-chip-name {
+    font-family: var(--font-heading, serif);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1;
+    color: rgb(var(--color-primary-800));
+  }
+  :global(.dark) .tag-chip-name { color: rgb(var(--color-primary-100)); }
+  .tag-chip:hover .tag-chip-name { color: rgb(var(--color-highlight-700)); }
+  :global(.dark) .tag-chip:hover .tag-chip-name { color: rgb(var(--color-highlight-300)); }
+  .tag-chip-count {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.68rem;
+    color: rgb(var(--color-primary-500));
+    background: rgb(var(--color-primary-100));
+    border-radius: 999px;
+    padding: 0.08rem 0.4rem;
+    min-width: 1.2rem;
+    text-align: center;
+  }
+  :global(.dark) .tag-chip-count {
+    color: rgb(var(--color-primary-300));
+    background: rgb(var(--color-primary-800));
   }
 
-  :global(.dark) .tag-card-image--gradient {
-    background: linear-gradient(135deg, #1e2939 0%, #273549 100%);
+  .tag-empty {
+    font-family: var(--font-prose, serif);
+    text-align: center;
+    color: rgb(var(--color-primary-500));
+    padding: 4rem 0;
   }
 
-  .tag-card-body {
-    padding: 0.625rem 0.75rem 0.75rem;
-  }
-
-  @media (min-width: 1280px) {
-    .tag-moc-grid { padding: 0 1.5rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .tag-chip { transition: border-color 0.15s ease, background 0.15s ease; }
+    .tag-chip:hover { transform: none; }
+    .az-rail { backdrop-filter: none; }
+    .tag-cloud a { animation: none; }
+    .cloud-word { transition: fill 0.15s ease, fill-opacity 0.15s ease; }
+    .tag-cloud a:hover .cloud-word { transform: none; }
   }
 </style>

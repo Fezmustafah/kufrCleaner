@@ -140,7 +140,7 @@ export function getGraphColors(_node: HTMLElement, included_colors: string[], cu
 	const hl  = (s: string) => readChannelVar(`--color-highlight-${s}`);
 	const sec = (s: string) => readChannelVar(`--color-secondary-${s}`);
 
-	const paletteOverrides: Partial<GraphColorConfig> = isDark ? {
+	const paletteOverrides: Record<string, string | null> = isDark ? {
 		nodeColor:           p('400'),
 		nodeColorHover:      hl('400'),
 		nodeColorAdjacent:   p('600'),

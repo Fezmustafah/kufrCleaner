@@ -88,6 +88,7 @@
     "@types/d3": "^7.4.3",
     "@types/hast": "^3.0.4",
     "@types/js-yaml": "^4.0.9",
+    "@types/mdast": "^4.0.4",
     "@types/picomatch": "^4.0.3",
     "@types/unist": "^3.0.3",
     "astro-pagefind": "^2.0.0",
@@ -95,6 +96,7 @@
     "dotenv": "^17.4.2",
     "trash": "^10.1.1",
     "tsx": "^4.21.0",
+    "vfile": "^6.0.3",
     "vite": "^7.3.1",
     "wrangler": "^4.71.0"
   }

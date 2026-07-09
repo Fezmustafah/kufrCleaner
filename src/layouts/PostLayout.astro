@@ -102,8 +102,9 @@ const { prev: prevPost, next: nextPost } = getAdjacentPosts(visiblePosts, post.i
 // let resolvedImageBasePath: string | undefined;
 // if (post.data.image) { ... }
 
+const graphSidebarEnabled = siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView.showInSidebar;
 let hasLocalGraphConnections = false;
-if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView.showInSidebar) {
+if (graphSidebarEnabled) {
   try {
     const sitemapPath = join(process.cwd(), 'public', 'graph', 'sitemap.json');
     const sitemap = JSON.parse(readFileSync(sitemapPath, 'utf-8'));
@@ -161,7 +162,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             <!-- Category eyebrow -->
             {siteConfig.postOptions.categories && (post.data as any).category && (
               <a
-                href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent((post.data as any).category)}`}
+                href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent((post.data as any).category)}/`}
                 class="inline-block text-xs font-semibold tracking-[0.12em] uppercase text-highlight-600 dark:text-highlight-400 mb-3 hover:opacity-75 transition-opacity"
                 data-pagefind-meta="category"
                 data-pagefind-filter="category"
@@ -204,7 +205,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
                       <>
                         {i > 0 && <span class="text-primary-300 dark:text-primary-700 select-none">/</span>}
                         <a
-                          href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}`}
+                          href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}/`}
                           class="hover:text-secondary-500 dark:hover:text-secondary-300 transition-colors"
                           data-pagefind-filter="tag"
                         >
@@ -244,7 +245,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
               {prevPost && (
                 <div class="text-left">
                   <a
-                    href={`${import.meta.env.BASE_URL}posts/${prevPost.id}`}
+                    href={`${import.meta.env.BASE_URL}posts/${prevPost.id}/`}
                     class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
                   >
                     <h3 class="text-base font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
@@ -260,7 +261,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
               {nextPost && (
                 <div class={`text-right ${!prevPost ? 'md:col-start-2' : ''}`}>
                   <a
-                    href={`${import.meta.env.BASE_URL}posts/${nextPost.id}`}
+                    href={`${import.meta.env.BASE_URL}posts/${nextPost.id}/`}
                     class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
                   >
                     <h3 class="text-base font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
@@ -319,10 +320,17 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
           <!-- Collapsible content: TOC + graph -->
           <div class="sidebar-toc-content" id="sidebar-toc-content">
             {shouldShowTOC && <TableOfContents headings={toc} />}
-            {hasLocalGraphConnections && (
-              <div class="left-sidebar-graph">
-                <SiteGraph mode="sidebar" currentSlug={`posts/${post.id}`} />
-              </div>
+            {graphSidebarEnabled && (
+              hasLocalGraphConnections ? (
+                <div class="left-sidebar-graph">
+                  <SiteGraph mode="sidebar" currentSlug={`posts/${post.id}`} />
+                </div>
+              ) : (
+                <div class="left-sidebar-graph-empty flex flex-col items-center justify-center gap-2 text-center h-[140px]" aria-label="No linked articles">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="text-primary-300 dark:text-primary-600"><circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="8" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M6.8 6.7l10 1.4M7.4 8.1l4 8M17 10l-4.6 6" stroke-dasharray="2 2"/></svg>
+                  <p class="text-xs text-primary-400 dark:text-primary-500 m-0">No linked articles yet</p>
+                </div>
+              )
             )}
           </div>
         </aside>
@@ -340,7 +348,7 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
     <!-- Contents sidebar collapse toggle — defined in BaseLayout, always available -->
     <script>
       // Direct hard-load init (Swup navigations handled via BaseLayout's astro:page-load)
-      window['initSidebarToggle']?.();
+      (window as any).initSidebarToggle?.();
     </script>
 
     <script define:vars={{ posts: visiblePosts.map(p => ({ id: p.id, data: { title: p.data.title } })), commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id, BASE_URL: import.meta.env.BASE_URL }}>
@@ -391,9 +399,9 @@ if (siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView
             const anchor = anchorMatch ? anchorMatch[1] : null;
 
             if (anchor) {
-              link.href = `${BASE_URL}posts/${post.id}#${anchor}`;
+              link.href = `${BASE_URL}posts/${post.id}/#${anchor}`;
             } else {
-              link.href = `${BASE_URL}posts/${post.id}`;
+              link.href = `${BASE_URL}posts/${post.id}/`;
             }
 
             if (displayOverride && displayOverride !== 'null' && displayOverride !== 'undefined') {

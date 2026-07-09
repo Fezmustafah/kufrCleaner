@@ -183,14 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
   flashHashHeading();
 });
 
-document.addEventListener('page:view', () => {
-  // Clean up annotation SVGs that Swup doesn't remove (they live outside #swup).
-  if (headingAnnotation) { headingAnnotation.hide(); headingAnnotation = null; }
-  document.querySelectorAll('svg.rough-annotation').forEach(el => el.remove());
-  initializeTableOfContents();
-  flashHashHeading();
-});
-
 document.addEventListener('astro:page-load', () => {
   if (scrollTimeout) clearTimeout(scrollTimeout);
   if (headingAnnotation) { headingAnnotation.hide(); headingAnnotation = null; }

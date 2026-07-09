@@ -427,12 +427,6 @@
   force = true
 
 [[redirects]]
-  from = "/posts/mecca-never-existed"
-  to = "/posts/did-mecca-exist-before-the-4th-century-historical-evidence-that-proves-it-did"
-  status = 301
-  force = true
-
-[[redirects]]
   from = "/posts/monkey-adultery"
   to = "/posts/did-monkeys-stone-for-zina-refuting-the-sahih-al-bukhari-objection"
   status = 301

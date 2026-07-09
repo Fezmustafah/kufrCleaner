@@ -155,6 +155,8 @@ const paletteIcon = allSectionsDisabled ? 'search' : 'command';
 )}
 
 <script>
+// The Header persists across Swup navigations; guard its one-time bindings below.
+let navBound = false;
 function loadNavScript() {
   const wrapper = document.getElementById('navbar-wrapper');
   const bg      = document.getElementById('navbar-bg');
@@ -208,44 +210,52 @@ function loadNavScript() {
 
   updateNav();
 
-  // ── Radial gradient hover on nav pill (astro-obsidian mouse-follow effect) ──
-  if (pill && glow) {
-    pill.addEventListener('mousemove', (e: MouseEvent) => {
-      const b = pill.getBoundingClientRect();
-      const x = e.clientX - b.left;
-      const y = e.clientY - b.top;
-      const r = Math.sqrt(b.width ** 2 + b.height ** 2) / 2.5;
-      (glow as HTMLElement).style.background =
-        `radial-gradient(${r}px circle at ${x}px ${y}px, rgb(var(--color-highlight-500) / 0.15) 0%, transparent 65%)`;
-      (glow as HTMLElement).style.opacity = '1';
+  // Bind persistent-element listeners exactly once. loadNavScript re-runs on every
+  // astro:page-load (to refresh the scroll/dark-hero state above), so without this
+  // guard each navigation would stack another handler and the mobile menu / feature
+  // buttons would cancel themselves out — the "freeze until refresh" bug.
+  if (!navBound) {
+    navBound = true;
+
+    // ── Radial gradient hover on nav pill (astro-obsidian mouse-follow effect) ──
+    if (pill && glow) {
+      pill.addEventListener('mousemove', (e: MouseEvent) => {
+        const b = pill.getBoundingClientRect();
+        const x = e.clientX - b.left;
+        const y = e.clientY - b.top;
+        const r = Math.sqrt(b.width ** 2 + b.height ** 2) / 2.5;
+        (glow as HTMLElement).style.background =
+          `radial-gradient(${r}px circle at ${x}px ${y}px, rgb(var(--color-highlight-500) / 0.15) 0%, transparent 65%)`;
+        (glow as HTMLElement).style.opacity = '1';
+      });
+      pill.addEventListener('mouseleave', () => {
+        (glow as HTMLElement).style.opacity = '0';
+      });
+    }
+
+    // ── Mobile menu ────────────────────────────────────────────────────────────
+    document.getElementById('nav-menu-switch')?.addEventListener('click', () => {
+      document.getElementById('nav-menu-panel')?.classList.toggle('float-panel-closed');
     });
-    pill.addEventListener('mouseleave', () => {
-      (glow as HTMLElement).style.opacity = '0';
+    document.addEventListener('click', e => {
+      const panel = document.getElementById('nav-menu-panel');
+      if (panel && !panel.classList.contains('float-panel-closed')) {
+        if (!(e.target as Element).closest('#nav-menu-switch, #nav-menu-panel'))
+          panel.classList.add('float-panel-closed');
+      }
+    });
+
+    // ── Feature buttons ────────────────────────────────────────────────────────
+    document.getElementById('header-theme-button')?.addEventListener('click', () => {
+      if ((window as any).siteConfig?.commandPalette?.enabled)
+        window.dispatchEvent(new CustomEvent('openCommandPalette'));
+      else
+        (window as any).themeSelectorInstance?.open?.();
+    });
+    document.getElementById('command-palette-trigger')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('openCommandPalette'));
     });
   }
-
-  // ── Mobile menu ────────────────────────────────────────────────────────────
-  document.getElementById('nav-menu-switch')?.addEventListener('click', () => {
-    document.getElementById('nav-menu-panel')?.classList.toggle('float-panel-closed');
-  });
-  document.addEventListener('click', e => {
-    const panel = document.getElementById('nav-menu-panel');
-    if (panel && !panel.classList.contains('float-panel-closed')) {
-      if (!(e.target as Element).closest('#nav-menu-switch, #nav-menu-panel'))
-        panel.classList.add('float-panel-closed');
-    }
-  });
-
-  // ── Feature buttons ────────────────────────────────────────────────────────
-  document.getElementById('header-theme-button')?.addEventListener('click', () => {
-    if ((window as any).siteConfig?.commandPalette?.enabled)
-      window.dispatchEvent(new CustomEvent('openCommandPalette'));
-    else
-      (window as any).themeSelectorInstance?.open?.();
-  });
-  document.getElementById('command-palette-trigger')?.addEventListener('click', () => {
-    window.dispatchEvent(new CustomEvent('openCommandPalette'));
-  });
 }
 
 loadNavScript();

@@ -25,17 +25,23 @@ function initAiAssistant(): void {
   const form = root.querySelector<HTMLFormElement>('[data-ai-form]');
   const input = root.querySelector<HTMLTextAreaElement>('[data-ai-input]');
   const sendBtn = root.querySelector<HTMLButtonElement>('[data-ai-send]');
-  const iconOpen = root.querySelector<SVGElement>('[data-ai-icon-open]');
-  const iconClose = root.querySelector<SVGElement>('[data-ai-icon-close]');
+  const iconOpen = root.querySelector('[data-ai-icon-open]');
+  const iconClose = root.querySelector('[data-ai-icon-close]');
   if (!panel || !toggle || !messages || !form || !input || !workerUrl) return;
 
   let busy = false;
 
+  function setIconHidden(icon: Element | null, hidden: boolean): void {
+    if (icon instanceof HTMLElement || icon instanceof SVGElement) {
+      icon.style.display = hidden ? 'none' : '';
+    }
+  }
+
   function setOpen(open: boolean): void {
     panel!.hidden = !open;
     toggle!.setAttribute('aria-expanded', String(open));
-    if (iconOpen) iconOpen.hidden = open;
-    if (iconClose) iconClose.hidden = !open;
+    setIconHidden(iconOpen, open);
+    setIconHidden(iconClose, !open);
     if (open) setTimeout(() => input!.focus(), 60);
   }
 
@@ -145,7 +151,8 @@ function initAiAssistant(): void {
   });
 }
 
-document.addEventListener('page:view', initAiAssistant);
 document.addEventListener('astro:page-load', initAiAssistant);
 if (document.readyState !== 'loading') initAiAssistant();
 else document.addEventListener('DOMContentLoaded', initAiAssistant);
+
+export {};

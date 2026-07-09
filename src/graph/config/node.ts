@@ -134,7 +134,7 @@ export const nodeStyleSchema = z.object({
 
 export type NodeStyle = z.infer<typeof nodeStyleSchema>;
 
-export const nodeDefaultStyle = {
+export const nodeDefaultStyle: NodeStyle = {
 	shape: "circle" as NodeShapeType,
 	shapeColor: "nodeColor" as NodeColorType,
 	shapeSize: 6,
@@ -150,20 +150,20 @@ export const nodeDefaultStyle = {
 	neighborScale: 0.5
 }
 
-export const nodeVisitedStyle = { shapeColor: "nodeColorVisited" as NodeColorType };
+export const nodeVisitedStyle: NodeStyle = { shapeColor: "nodeColorVisited" as NodeColorType };
 
-export const nodeCurrentStyle = { shapeColor: "nodeColorCurrent" as NodeColorType };
+export const nodeCurrentStyle: NodeStyle = { shapeColor: "nodeColorCurrent" as NodeColorType };
 
-export const nodeUnresolvedStyle = { shapeColor: "nodeColorUnresolved" as NodeColorType };
+export const nodeUnresolvedStyle: NodeStyle = { shapeColor: "nodeColorUnresolved" as NodeColorType };
 
-export const nodeExternalStyle = {
+export const nodeExternalStyle: NodeStyle = {
 	shape: "square" as NodeShapeType,
 	shapeColor: "nodeColorExternal" as NodeColorType,
 	strokeColor: "inherit" as NodeColorType,
 	nodeScale: 0.8
 };
 
-export const tagDefaultStyle = {
+export const tagDefaultStyle: NodeStyle = {
 	// polygon-4 at rotation 0 = vertices at top/right/bottom/left = true diamond
 	// (shape:'square' adds PI/4 rotation which gives a flat-sided square instead)
 	shape: 'polygon' as NodeShapeType,

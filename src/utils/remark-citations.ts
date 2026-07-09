@@ -64,7 +64,7 @@ const remarkCitations: Plugin<[], Root> = function () {
     if (!refMap.size) return;
 
     // Pass 2 (mutating): replace [@key] text nodes with HTML superscript links
-    visit(tree, 'text', (node: Text, index, parent) => {
+    visit(tree, 'text', (node: Text, index: number | undefined, parent: any) => {
       if (!parent || index == null) return;
       const value = node.value;
       if (!value.includes('[@')) return;
@@ -95,8 +95,8 @@ const remarkCitations: Plugin<[], Root> = function () {
       }
 
       if (parts.length === 0) return;
-      (parent.children as any[]).splice(index as number, 1, ...parts);
-      return [SKIP, (index as number) + parts.length];
+      (parent.children as any[]).splice(index, 1, ...parts);
+      return [SKIP, index + parts.length];
     });
   };
 };

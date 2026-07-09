@@ -1,16 +1,9 @@
 import { setSlashes } from '../sitemap/browser-utils';
 
-// kufrCleaner: visited-page tracking always uses localStorage (no Starlight virtual module)
-const config = { trackVisitedPages: 'local' as const };
-
 export function getVisitedEndpoints(): Set<string> {
-	if (config.trackVisitedPages === 'disable') return new Set();
-
 	return new Set(
 		JSON.parse(
-			(config.trackVisitedPages === 'session' ? sessionStorage : localStorage).getItem(
-				'starlight-site-graph--visited-pages',
-			) ?? '[]',
+			localStorage.getItem('starlight-site-graph--visited-pages') ?? '[]',
 		),
 	);
 }

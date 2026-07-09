@@ -40,7 +40,7 @@ const shouldShowCoverImage = (() => {
   }
 })();
 
-const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
+const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}/`;
 ---
 
 <!--
@@ -88,7 +88,7 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
     {category && siteConfig.postOptions.categories && (
       <div class="mb-1 relative z-10">
         <a
-          href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}`}
+          href={`${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(category)}/`}
           class="text-[0.7rem] font-bold tracking-[0.14em] uppercase text-highlight-600 dark:text-highlight-400 hover:text-highlight-700 dark:hover:text-highlight-300 transition-colors"
           aria-label={`View posts in ${category}`}
         >
@@ -107,9 +107,9 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
       </a>
     </h3>
 
-    {/* Description — featured only */}
-    {featured && description && (
-      <p class="text-primary-600 dark:text-primary-300 line-clamp-2 text-base leading-relaxed mb-2">
+    {/* Description — featured card + listing pages (category / tag) */}
+    {description && (featured || context === 'posts' || context === 'tags') && (
+      <p class={`text-primary-600 dark:text-primary-300 line-clamp-2 leading-relaxed mb-2 ${featured ? 'text-base' : 'text-sm'}`}>
         {description}
       </p>
     )}
@@ -145,7 +145,7 @@ const postUrl = `${import.meta.env.BASE_URL}posts/${post.id}`;
       <div class="mt-2 flex flex-wrap gap-1.5 relative z-10">
         {tags.slice(0, 3).map((tag: string) => (
           <a
-            href={`${import.meta.env.BASE_URL}posts/tag/${tag}`}
+            href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}/`}
             class="inline-flex items-center gap-1 text-[0.8rem] text-highlight-600 dark:text-highlight-300 bg-highlight-500/10 dark:bg-highlight-600/15 px-2 py-0.5 rounded-md border border-highlight-400/30 dark:border-highlight-600/35 hover:bg-highlight-500/20 dark:hover:bg-highlight-600/25 hover:border-highlight-400/50 hover:text-highlight-700 dark:hover:text-highlight-200 transition-colors"
             aria-label={`View posts tagged with ${tag}`}
           >
