@@ -449,8 +449,10 @@ SiteGraph.astro (props: mode, currentSlug, config overrides)
 | Mode | Depth | Height | Where used |
 |---|---|---|---|
 | `sidebar` | 1 (direct neighbours) | 220px | PostLayout left sidebar |
-| `modal` | −1 (full graph) | 60vh min | `GraphModal.astro` overlay |
+| `modal` | −1 (full graph) | 60vh min | `/graph-embed` page, loaded in an iframe inside `Header.astro`'s modal overlay |
 | `hero` | −1 (full graph) | 100vh | `/graph-view` page |
+
+Depth −1 is clamped by `graph-component.ts` `validateConfig()` to `MAX_DEPTH - 1 = 5`; `preprocess-sitemap.ts` treats `depth >= 5` as −1, i.e. render the full graph.
 
 Physics is tuned per mode. Sidebar uses defaults (5–20 nodes). Modal/hero reduces `repelForce` to 80, adds `linkDistance: 50`, increases `alphaDecay` to 0.06 for fast stable layout with 300+ nodes.
 

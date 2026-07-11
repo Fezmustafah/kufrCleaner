@@ -308,14 +308,15 @@ export class GraphRenderer {
 			this.drawNodeShape(node, hovered, adjacent);
 
 			if (this.context.config.renderLabels && node.label) {
-				// Labels are hidden by default at every zoom level.
-				// They appear ONLY for the hovered node and its direct neighbours.
-				// This eliminates chaotic long-title overlap, fixes tag nodes not
-				// showing their label on hover, and reveals adjacent article titles
-				// when hovering a tag. PIXI skips invisible objects entirely.
-				const labelVisible = hovered || adjacent;
+				// Stock zoom-driven label behavior (Quartz-style): every label's
+				// alpha follows the animator's 'labelOpacity' value, which is
+				// derived from the zoom level (simulator.getCurrentLabelOpacity).
+				// Hovered/adjacent nodes get their hover/adjacent styling on top.
+				this.updateLabel(node, hovered, adjacent);
+				// Perf micro-opt: PIXI skips invisible objects entirely, so hide
+				// fully transparent labels instead of rendering them at alpha 0.
+				const labelVisible = node.label.alpha > 0.01 || hovered || adjacent;
 				if (node.label.visible !== labelVisible) node.label.visible = labelVisible;
-				if (labelVisible) this.updateLabel(node, hovered, adjacent);
 			}
 
 			node.node!.position.set(node.x!, node.y!);
@@ -477,17 +478,32 @@ export class GraphRenderer {
 	}
 
 	updateLabel(node: NodeData, hovered?: boolean, adjacent?: boolean) {
+		// Counter-scale labels by 1/k (Quartz) so text stays a constant SCREEN size
+		// while the stage zooms — otherwise zooming the global graph blows the
+		// labels up into an unreadable wall of world-scaled text.
+		const invZoom = 1 / this.simulator.zoomTransform.k;
 		let labelOffset, labelOpacity, labelColor, labelScale;
 		if (hovered) {
 			labelOffset = this.context.animator.getValue('labelOffset');
 			labelOpacity = this.context.animator.getValue('labelOpacityHover');
 			labelColor = this.context.animator.getValue('labelColorHover');
-			labelScale = this.context.animator.getValue('labelScaleHover');
+			labelScale = this.context.animator.getValue('labelScaleHover') * invZoom;
 		} else {
 			labelOffset = this.context.config.labelOffset;
-			labelOpacity = this.context.animator.getValue('labelOpacity' + (adjacent ? 'Adjacent' : ''));
+			// While a hover is active the animator drives label opacity (upstream
+			// behavior — non-adjacent labels fade to labelMutedOpacity, adjacent to
+			// labelAdjacentOpacity; hover renders every frame so tweens complete).
+			// At REST the baseline comes straight from the zoom formula, NOT the
+			// animator: the dirty-flag render loop stops once the simulation settles,
+			// which freezes animator tweens mid-flight (labels stranded at e.g. 0.099
+			// instead of 0 — a grey smear over 1200 nodes).
+			labelOpacity = adjacent
+				? this.context.animator.getValue('labelOpacityAdjacent')
+				: this.simulator.currentlyHovered !== ''
+					? this.context.animator.getValue('labelOpacity')
+					: Math.min(1, this.simulator.getCurrentLabelOpacity(this.simulator.zoomTransform.k));
 			labelColor = this.context.animator.getValue('labelColor');
-			labelScale = 1;
+			labelScale = invZoom;
 		}
 
 		node.label!.scale.set(labelScale);

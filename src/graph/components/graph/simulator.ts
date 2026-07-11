@@ -4,17 +4,7 @@ import * as d3 from 'd3';
 import { prefetch } from 'astro:prefetch';
 import { type GraphRenderer } from './renderer';
 import { type GraphComponent } from './graph-component';
-import { ensureLeadingSlash } from '../../sitemap/browser-utils';
-
-// Targeting-reticle cursor: red ring + center dot, white outline ensures
-// visibility on both light and dark canvas backgrounds. Hotspot = center (10,10).
-const NODE_HOVER_CURSOR =
-	'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'20\' height=\'20\'%3E' +
-	'%3Ccircle cx=\'10\' cy=\'10\' r=\'7\' fill=\'none\' stroke=\'white\' stroke-width=\'3.5\'/%3E' +
-	'%3Ccircle cx=\'10\' cy=\'10\' r=\'7\' fill=\'none\' stroke=\'%23ef4444\' stroke-width=\'1.5\'/%3E' +
-	'%3Ccircle cx=\'10\' cy=\'10\' r=\'3\' fill=\'white\'/%3E' +
-	'%3Ccircle cx=\'10\' cy=\'10\' r=\'2\' fill=\'%23ef4444\'/%3E' +
-	'%3C/svg%3E") 10 10, crosshair';
+import { ensureLeadingSlash, setSlashes } from '../../sitemap/browser-utils';
 
 export class GraphSimulator {
 	container!: HTMLCanvasElement;
@@ -114,7 +104,7 @@ export class GraphSimulator {
 		this.simulation
 			.stop()
 			.force('link', linkForce)
-			.force('charge', d3.forceManyBody<NodeData>().distanceMax(400).strength(-this.context.config.repelForce))
+			.force('charge', d3.forceManyBody<NodeData>().distanceMax(500).strength(-this.context.config.repelForce))
 			.force('forceX', d3.forceX<NodeData>().strength(this.context.config.centerForce))
 			.force('forceY', d3.forceY<NodeData>().strength(this.context.config.centerForce))
 			.force(
@@ -252,7 +242,7 @@ export class GraphSimulator {
 					this.context.setStyleHovered();
 					this.requestRender = true;
 				}
-				this.container.style.cursor = NODE_HOVER_CURSOR;
+				this.container.style.cursor = this.context.enableClick && this.isClickable(closestNode) ? 'pointer' : 'default';
 			} else if (this.currentlyHovered) {
 				this.unhoverNode();
 			}
@@ -342,8 +332,22 @@ export class GraphSimulator {
 						this.context.currentPage = closestNode.id;
 						this.context.full_refresh();
 						this.context.setStyleDefault();
+					} else if (this.context.config.followLink === 'new-tab') {
+						window.open(ensureLeadingSlash(closestNode.id), '_blank');
 					} else {
-						window.open(ensureLeadingSlash(closestNode.id), this.context.config.followLink === 'new-tab' ? '_blank' : '_self');
+						// Trailing slash is load-bearing: the SITE serves pages at /path/ only
+						// (context.trailingSlashes=false is slug normalization, not URL style).
+						// Swup's page fetch does not survive the slashless 404/redirect — it
+						// falls back to a full page load, silently defeating the SPA nav below.
+						const url = setSlashes(closestNode.id, true, true);
+						// Same-tab: prefer Swup SPA navigation; window.open('_self') is the
+						// fallback for iframe embeds or pages where Swup never booted.
+						const swup = (window as unknown as { swup?: { navigate?: (url: string) => void } }).swup;
+						if (window.self === window.top && typeof swup?.navigate === 'function') {
+							swup.navigate(url);
+						} else {
+							window.open(url, '_self');
+						}
 					}
 				}
 				this.lastClick = clickTime;

@@ -65,6 +65,18 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 
 	let slug = context.currentPage;
 
+	// Record the current page as visited (Quartz-style). processSitemapData runs on
+	// every graph init (initial load + each Swup navigation), so this accumulates the
+	// visited set over time. Same storage key that getVisitedEndpoints() reads.
+	try {
+		if (!visitedPages.has(slug)) {
+			visitedPages.add(slug);
+			localStorage.setItem('starlight-site-graph--visited-pages', JSON.stringify([...visitedPages]));
+		}
+	} catch {
+		// localStorage unavailable (private mode / storage disabled) — visited styling degrades gracefully
+	}
+
 	const normalizeSlug = (s: string) =>
 		(s.startsWith('http') || s.startsWith('mailto:')) ? s : simplifySlug(s, context.trailingSlashes);
 

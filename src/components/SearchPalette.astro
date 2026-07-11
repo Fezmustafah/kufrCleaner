@@ -1,0 +1,605 @@
+---
+import { siteConfig } from '../config';
+import Icon from './Icon.astro';
+
+const base = import.meta.env.BASE_URL;
+const searchUrl = `${base}search/`;
+const placeholder = siteConfig.commandPalette.placeholder || 'Search the wiki';
+---
+
+<!--
+  Search palette — a pure search modal (the old command palette, stripped of
+  quick actions / pages / social; those live in the nav drawer now).
+  Rendered by BaseLayout OUTSIDE #swup-container, so it persists across Swup
+  navigations and its module script binds exactly once per session.
+
+  Open from anywhere: window.searchPalette.open(seed?) / .toggle() — or the
+  legacy 'openCommandPalette' event (404 page still dispatches it).
+-->
+<div id="search-palette" class="sp-overlay" role="dialog" aria-modal="true" aria-label="Search">
+  <div class="sp-panel">
+    <!-- No-JS never sees this (opens via JS only), but a real form keeps Enter
+         semantics native when scripting half-fails. -->
+    <form class="sp-input-row" role="search" method="get" action={searchUrl}>
+      <Icon name="search" class="sp-input-icon w-4 h-4" />
+      <input
+        id="sp-input"
+        name="q"
+        type="search"
+        placeholder={placeholder}
+        autocomplete="off"
+        spellcheck="false"
+        role="combobox"
+        aria-expanded="false"
+        aria-controls="sp-results"
+        aria-label="Search"
+      />
+      <span id="sp-spinner" class="sp-spinner" hidden aria-hidden="true"></span>
+      <kbd class="sp-kbd">esc</kbd>
+    </form>
+
+    <div id="sp-body" class="sp-body">
+      <!-- Idle: recent searches, or a quiet hint -->
+      <div id="sp-idle">
+        <div id="sp-recent" hidden>
+          <div class="sp-section-head">
+            <span class="sp-label">Recent</span>
+            <button id="sp-clear-recent" class="sp-clear" type="button">Clear</button>
+          </div>
+          <div id="sp-recent-list"></div>
+        </div>
+        <p id="sp-hint" class="sp-hint">Start typing to search every article.</p>
+      </div>
+
+      <!-- Results -->
+      <div id="sp-results" role="listbox" aria-label="Search results" hidden></div>
+
+      <!-- No matches -->
+      <div id="sp-empty" class="sp-empty" hidden>
+        <p>No quick matches.</p>
+        <a id="sp-empty-all" href={searchUrl} class="sp-empty-link">Search everything on the search page →</a>
+      </div>
+    </div>
+
+    <div class="sp-footer">
+      <span class="sp-keys">
+        <kbd>↑</kbd><kbd>↓</kbd> navigate&ensp;<kbd>↵</kbd> open
+      </span>
+      <a id="sp-all-link" href={searchUrl} class="sp-all">Advanced search →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Pagefind singleton (readiness reset per page view: the WASM worker may
+  //    be killed between Swup navigations — same pattern as the old hero search)
+  let pf: any = null;
+  let pfReady = false;
+  async function initPagefind(): Promise<boolean> {
+    if (pfReady) return true;
+    try {
+      const path = '/pagefind/pagefind.js';
+      pf = await import(/* @vite-ignore */ path);
+      await pf.init();
+      pfReady = true;
+      return true;
+    } catch {
+      return false; // index not built (e.g. dev) — degrade to the /search page
+    }
+  }
+  document.addEventListener('swup:page:view', () => { pfReady = false; });
+
+  const RECENT_KEY = 'search-palette-recent';
+  const MAX_RECENT = 8;
+
+  function initSearchPalette() {
+    const overlay = document.getElementById('search-palette');
+    const input = document.getElementById('sp-input') as HTMLInputElement | null;
+    const form = overlay?.querySelector('form');
+    const idle = document.getElementById('sp-idle');
+    const recentWrap = document.getElementById('sp-recent');
+    const recentList = document.getElementById('sp-recent-list');
+    const results = document.getElementById('sp-results');
+    const empty = document.getElementById('sp-empty');
+    const emptyAll = document.getElementById('sp-empty-all') as HTMLAnchorElement | null;
+    const allLink = document.getElementById('sp-all-link') as HTMLAnchorElement | null;
+    const spinner = document.getElementById('sp-spinner');
+    if (!overlay || !input || !results || !idle || !empty) return;
+
+    const searchBase = form?.getAttribute('action') || '/search/';
+    const searchUrl = (q: string) => q ? `${searchBase}?q=${encodeURIComponent(q)}` : searchBase;
+
+    let isOpen = false;
+    let debTimer = 0;
+
+    // ── Recents ──────────────────────────────────────────────────
+    const getRecent = (): string[] => {
+      try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch { return []; }
+    };
+    const saveRecent = (q: string) => {
+      if (!q) return;
+      try {
+        const list = [q, ...getRecent().filter(r => r !== q)].slice(0, MAX_RECENT);
+        localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+      } catch { /* private mode */ }
+    };
+    const esc = (s: string) => s.replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!
+    ));
+    const renderRecent = () => {
+      const list = getRecent();
+      if (!recentWrap || !recentList) return;
+      recentWrap.hidden = list.length === 0;
+      recentList.innerHTML = list.map(q =>
+        `<button type="button" class="sp-recent-item" data-q="${esc(q)}">
+           <svg class="sp-recent-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+           <span>${esc(q)}</span>
+         </button>`).join('');
+    };
+    recentList?.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLElement>('.sp-recent-item');
+      if (!btn?.dataset.q) return;
+      input.value = btn.dataset.q;
+      input.focus();
+      run(btn.dataset.q);
+    });
+    document.getElementById('sp-clear-recent')?.addEventListener('click', () => {
+      try { localStorage.removeItem(RECENT_KEY); } catch { /* ignore */ }
+      renderRecent();
+    });
+
+    // ── View states ──────────────────────────────────────────────
+    const showIdle = () => {
+      idle.hidden = false; results.hidden = true; empty.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+      renderRecent();
+    };
+    const showResults = () => { idle.hidden = true; results.hidden = false; empty.hidden = true; };
+    const showEmpty = (q: string) => {
+      idle.hidden = true; results.hidden = true; empty.hidden = false;
+      if (emptyAll) emptyAll.href = searchUrl(q);
+    };
+
+    // ── Open / close / toggle ────────────────────────────────────
+    const open = (seed?: string) => {
+      if (isOpen && !seed) { input.focus(); return; }
+      isOpen = true;
+      overlay.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      if (seed) {
+        input.value = seed;
+        run(seed.trim());
+      } else if (!input.value.trim()) {
+        showIdle();
+      }
+      // rAF: focus only lands once the overlay is visible
+      requestAnimationFrame(() => input.focus());
+    };
+    const close = () => {
+      if (!isOpen) return;
+      isOpen = false;
+      overlay.classList.remove('is-open');
+      input.blur();
+      if ((window as any).restoreScroll) (window as any).restoreScroll();
+      else document.body.style.overflow = '';
+    };
+    const toggle = (seed?: string) => { isOpen ? close() : open(seed); };
+
+    (window as any).searchPalette = { open, close, toggle, isOpen: () => isOpen };
+    window.addEventListener('toggle-search-palette', () => toggle());
+    // Legacy event — 404 page and any stragglers still dispatch this
+    window.addEventListener('openCommandPalette', () => open());
+
+    overlay.addEventListener('click', (e) => {
+      if (!(e.target as Element).closest('.sp-panel')) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (isOpen && e.key === 'Escape') close();
+    });
+
+    // ── Search ───────────────────────────────────────────────────
+    const optionEls = () => Array.from(results.querySelectorAll<HTMLElement>('[role="option"]'));
+    const setSel = (i: number) => {
+      optionEls().forEach((el, j) => {
+        const on = j === i;
+        el.classList.toggle('is-active', on);
+        el.setAttribute('aria-selected', on ? 'true' : 'false');
+        if (on) {
+          input.setAttribute('aria-activedescendant', el.id);
+          el.scrollIntoView({ block: 'nearest' });
+        }
+      });
+      if (i < 0) input.removeAttribute('aria-activedescendant');
+    };
+
+    const mark = (text: string, q: string) => {
+      const escd = esc(text || '');
+      const toks = q.trim().split(/\s+/).filter(Boolean)
+        .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      if (!toks.length) return escd;
+      return escd.replace(new RegExp(`(${toks.join('|')})`, 'gi'), '<mark>$1</mark>');
+    };
+
+    // Pagefind's top-of-page excerpt leads with the masthead (title, dates,
+    // ◈ separator) — drop through the last masthead marker near the start so
+    // the snippet begins at the article body. ponytail: byline heuristics
+    // for both masthead generations; raw excerpt fallback.
+    const cleanExcerpt = (html: string) => {
+      for (const re of [/^[\s\S]*?\d[\d,]*\s+words\s+/i, /^[\s\S]*?◈\s*/]) {
+        const stripped = html.replace(re, '');
+        if (stripped !== html && stripped.length > 20) return stripped;
+      }
+      return html;
+    };
+
+    const navigate = (href: string) => {
+      close();
+      const swup = (window as any).swup;
+      if (swup?.navigate) swup.navigate(href);
+      else window.location.href = href;
+    };
+
+    const render = (items: any[], q: string) => {
+      const rows = items.map((it, i) => `
+        <a href="${esc(it.url)}" role="option" id="sp-opt-${i}" class="sp-result" aria-selected="false">
+          ${it.category ? `<span class="sp-result-cat">${esc(it.category)}</span>` : ''}
+          <span class="sp-result-title">${mark(it.title, q)}</span>
+          ${it.excerpt ? `<span class="sp-result-excerpt">${it.excerpt}</span>` : ''}
+        </a>`).join('');
+      results.innerHTML = rows +
+        `<a href="${esc(searchUrl(q))}" role="option" id="sp-opt-${items.length}" class="sp-result-all" aria-selected="false">
+           See all results for <span class="sp-result-q">“${esc(q)}”</span> →</a>`;
+      optionEls().forEach((el, i) => {
+        el.addEventListener('mouseenter', () => setSel(i));
+        el.addEventListener('click', (e) => {
+          e.preventDefault();
+          saveRecent(q);
+          navigate(el.getAttribute('href')!);
+        });
+      });
+      input.setAttribute('aria-expanded', 'true');
+      showResults();
+    };
+
+    const run = async (q: string) => {
+      if (q.length < 2) { showIdle(); return; }
+      spinner!.hidden = false;
+      const ok = await initPagefind();
+      spinner!.hidden = true;
+      if (!ok) { showEmpty(q); return; }               // no index → point at /search
+      if (input.value.trim() !== q) return;            // stale query
+      const res = await pf.search(q);
+      const data = await Promise.all((res.results as any[]).slice(0, 10).map((r: any) => r.data()));
+      if (input.value.trim() !== q) return;            // stale after hydration
+      if (allLink) allLink.href = searchUrl(q);
+      if (!data.length) { showEmpty(q); return; }
+      render(data.map((d: any) => ({
+        title:    d.meta.title || d.url,
+        url:      d.url,
+        category: d.meta.category || '',
+        excerpt:  cleanExcerpt(d.excerpt || ''),
+      })), q);
+    };
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      window.clearTimeout(debTimer);
+      if (allLink) allLink.href = searchUrl(q);
+      if (q.length < 2) { showIdle(); return; }
+      debTimer = window.setTimeout(() => run(q), 150);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd+K toggles closed even while typing (the global shortcut
+      // handler skips input fields, so the palette owns this case)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        close();
+        return;
+      }
+      const opts = optionEls();
+      const cur = opts.findIndex(o => o.classList.contains('is-active'));
+      if (e.key === 'ArrowDown' && !results.hidden) {
+        e.preventDefault(); setSel(Math.min(cur + 1, opts.length - 1));
+      } else if (e.key === 'ArrowUp' && !results.hidden) {
+        e.preventDefault(); setSel(cur < 0 ? opts.length - 1 : Math.max(cur - 1, 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const q = input.value.trim();
+        if (cur >= 0 && opts[cur]) {
+          saveRecent(q);
+          navigate(opts[cur].getAttribute('href')!);
+        } else if (q) {
+          saveRecent(q);
+          navigate(searchUrl(q));   // no selection → full search page
+        }
+      }
+    });
+
+    // Footer link should also close the palette and record the query
+    allLink?.addEventListener('click', (e) => {
+      e.preventDefault();
+      saveRecent(input.value.trim());
+      navigate(allLink.href);
+    });
+    emptyAll?.addEventListener('click', (e) => {
+      e.preventDefault();
+      saveRecent(input.value.trim());
+      navigate(emptyAll.href);
+    });
+
+    showIdle();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSearchPalette);
+  } else {
+    initSearchPalette();
+  }
+</script>
+
+<style is:global>
+  /* Global (not scoped): result/recent rows are injected via innerHTML, so
+     Astro scoped-style attributes never reach them. All classes are sp-. */
+  /* ── Overlay ── */
+  .sp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9995;
+    background: rgb(0 0 0 / 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12vh 1rem 1rem;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s ease, visibility 0s 0.18s;
+  }
+  .sp-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.18s ease, visibility 0s 0s;
+  }
+
+  /* ── Panel ── */
+  .sp-panel {
+    width: 100%;
+    max-width: 38rem;
+    font-family: var(--font-ui);
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh;
+    background: rgb(var(--color-primary-50));
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: var(--radius-large);
+    box-shadow: 0 24px 64px rgb(0 0 0 / 0.25);
+    overflow: hidden;
+    transform: translateY(-0.5rem) scale(0.98);
+    transition: transform 0.18s ease;
+  }
+  .sp-overlay.is-open .sp-panel { transform: none; }
+  .dark .sp-panel {
+    background: rgb(var(--color-primary-950));
+    border-color: rgb(var(--color-primary-700));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sp-overlay, .sp-panel { transition: none; }
+  }
+
+  /* ── Input row ── */
+  .sp-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid rgb(var(--color-primary-200) / 0.7);
+  }
+  .dark .sp-input-row { border-bottom-color: rgb(var(--color-primary-800)); }
+  .sp-input-row .sp-input-icon {
+    flex-shrink: 0;
+    color: rgb(var(--color-primary-400));
+  }
+  #sp-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 0.9375rem;
+    color: rgb(var(--color-primary-900));
+  }
+  .dark #sp-input { color: rgb(var(--color-primary-100)); }
+  #sp-input::placeholder { color: rgb(var(--color-primary-400)); }
+  #sp-input::-webkit-search-decoration,
+  #sp-input::-webkit-search-cancel-button,
+  #sp-input::-webkit-search-results-button,
+  #sp-input::-webkit-search-results-decoration { -webkit-appearance: none; }
+
+  .sp-spinner {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    border: 2px solid rgb(var(--color-primary-300));
+    border-top-color: rgb(var(--color-highlight-500));
+    border-radius: 9999px;
+    animation: sp-spin 0.7s linear infinite;
+  }
+  @keyframes sp-spin { to { transform: rotate(360deg); } }
+
+  .sp-kbd, .sp-keys kbd {
+    font-family: ui-monospace, monospace;
+    font-size: 0.6875rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-100) / 0.6);
+    color: rgb(var(--color-primary-500));
+  }
+  .dark .sp-kbd, .dark .sp-keys kbd {
+    border-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-900));
+    color: rgb(var(--color-primary-400));
+  }
+
+  /* ── Body ── */
+  .sp-body {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sp-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-400));
+  }
+  .dark .sp-label { color: rgb(var(--color-primary-500)); }
+
+  .sp-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem 0.25rem;
+  }
+  .sp-clear {
+    font-size: 0.75rem;
+    color: rgb(var(--color-primary-400));
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  .sp-clear:hover { color: var(--primary); }
+
+  .sp-recent-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    color: rgb(var(--color-primary-700));
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .dark .sp-recent-item { color: rgb(var(--color-primary-300)); }
+  .sp-recent-item:hover { background: var(--btn-plain-bg-hover); }
+  .sp-recent-item .sp-recent-icon,
+  .sp-recent-item .sp-recent-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+    color: rgb(var(--color-primary-400));
+  }
+
+  .sp-hint {
+    margin: 0;
+    padding: 1.25rem 1rem 1.5rem;
+    font-size: 0.8125rem;
+    color: rgb(var(--color-primary-400));
+    text-align: center;
+  }
+
+  /* ── Results ── */
+  #sp-results { padding: 0.375rem 0; }
+  .sp-result {
+    display: block;
+    padding: 0.625rem 1rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .sp-result.is-active { background: var(--btn-plain-bg-hover); }
+  .sp-result-cat {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-600));
+    margin-bottom: 0.125rem;
+  }
+  .dark .sp-result-cat { color: rgb(var(--color-highlight-400)); }
+  .sp-result-title {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: rgb(var(--color-primary-900));
+  }
+  .dark .sp-result-title { color: rgb(var(--color-primary-100)); }
+  .sp-result-excerpt {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: rgb(var(--color-primary-500));
+  }
+  .dark .sp-result-excerpt { color: rgb(var(--color-primary-400)); }
+  .sp-result mark, .sp-result-excerpt mark {
+    background: rgb(var(--color-highlight-500) / 0.18);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  .sp-result-all {
+    display: block;
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+    color: rgb(var(--color-highlight-600));
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .dark .sp-result-all { color: rgb(var(--color-highlight-400)); }
+  .sp-result-all.is-active { background: var(--btn-plain-bg-hover); }
+  .sp-result-q { font-style: italic; }
+
+  /* ── Empty ── */
+  .sp-empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: rgb(var(--color-primary-500));
+  }
+  .sp-empty p { margin: 0 0 0.375rem; }
+  .sp-empty-link {
+    color: rgb(var(--color-highlight-600));
+    text-decoration: none;
+  }
+  .dark .sp-empty-link { color: rgb(var(--color-highlight-400)); }
+  .sp-empty-link:hover { text-decoration: underline; }
+
+  /* ── Footer ── */
+  .sp-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    border-top: 1px solid rgb(var(--color-primary-200) / 0.7);
+    font-size: 0.6875rem;
+    color: rgb(var(--color-primary-400));
+  }
+  .dark .sp-footer { border-top-color: rgb(var(--color-primary-800)); }
+  .sp-keys { display: inline-flex; align-items: center; gap: 0.25rem; }
+  .sp-all {
+    color: rgb(var(--color-primary-500));
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.15s ease;
+  }
+  .sp-all:hover { color: var(--primary); }
+</style>

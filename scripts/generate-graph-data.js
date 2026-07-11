@@ -56,24 +56,46 @@ function getColorForCategory(category) {
 }
 
 /**
- * Read maxNodes from config file
+ * Read maxNodes from src/config.ts.
+ *
+ * Node can't import the TS config directly, so we scrape it — but anchored to the
+ * sacred [CONFIG:POST_OPTIONS_GRAPH_VIEW_MAX_NODES] marker comment that the Astro
+ * Modular Settings plugin maintains, which is far more stable than matching a bare
+ * `maxNodes:` (that key name could appear in other option blocks). Falls back to a
+ * bare-key scan, then to a loud default.
  */
+const DEFAULT_MAX_NODES = 100;
 function getMaxNodesFromConfig() {
   try {
     const configPath = join(projectRoot, "src", "config.ts");
     const configContent = readFileSync(configPath, "utf-8");
 
-    // Extract maxNodes value from config
-    const maxNodesMatch = configContent.match(/maxNodes:\s*(\d+)/);
-    if (maxNodesMatch) {
-      return parseInt(maxNodesMatch[1], 10);
+    // Preferred: value on the line following the [CONFIG:...] marker.
+    const markerMatch = configContent.match(
+      /\[CONFIG:POST_OPTIONS_GRAPH_VIEW_MAX_NODES\][^\n]*\r?\n\s*maxNodes:\s*(\d+)/
+    );
+    if (markerMatch) {
+      return parseInt(markerMatch[1], 10);
     }
 
-    // Default fallback
-    return 100;
+    // Fallback: bare key scan (marker missing/moved — warn so it gets fixed).
+    const bareMatch = configContent.match(/maxNodes:\s*(\d+)/);
+    if (bareMatch) {
+      log.warn(
+        "⚠️  [CONFIG:POST_OPTIONS_GRAPH_VIEW_MAX_NODES] marker not found next to maxNodes in src/config.ts — matched a bare `maxNodes:` key instead. Verify the marker."
+      );
+      return parseInt(bareMatch[1], 10);
+    }
+
+    log.warn(
+      `⚠️  Could not find maxNodes in src/config.ts — using default: ${DEFAULT_MAX_NODES}`
+    );
+    return DEFAULT_MAX_NODES;
   } catch (error) {
-    log.warn("Could not read config file, using default maxNodes: 100");
-    return 100;
+    log.warn(
+      `⚠️  Could not read src/config.ts (${error.message}) — using default maxNodes: ${DEFAULT_MAX_NODES}`
+    );
+    return DEFAULT_MAX_NODES;
   }
 }
 
@@ -610,36 +632,35 @@ async function generateGraphData() {
           .filter(s => validPostSlugs.has(s) && s !== slug)
       )];
 
+      // Tag adjacency must be SYMMETRIC. The client (preprocess-sitemap.ts)
+      // synthesizes tag nodes with id `posts/tag/${tag}` from each entry's `tags`
+      // array and gives THEM adjacency to their posts — but an article node's
+      // `adjacent` set is built only from its `links` ∪ `backlinks`. Appending the
+      // tag ids to `links` makes article→tag adjacency explicit, so hovering an
+      // article highlights its tag nodes (renderer no longer depends on its
+      // bidirectional fallback check). These ids are deliberately NOT sitemap keys:
+      // preprocess skips non-key links when building edges (validLinks check), so
+      // the single rendered post→tag edge still comes from the `tags` array only.
+      const tagLinks = tags.map(t => `posts/tag/${t}`);
+
       sitemap[slug] = {
         exists: true,
         external: false,
         title: post.data?.title ?? post.id,
-        links: outgoingLinks,
+        links: [...outgoingLinks, ...tagLinks],
         backlinks: [],        // filled in second pass
         tags,
         ...(category ? { nodeStyle: { shapeColor: getColorForCategory(category) } } : {}),
       };
     }
 
-    // Add synthetic tag nodes
-    const allTags = new Set();
-    for (const post of visiblePosts) {
-      for (const tag of (Array.isArray(post.data?.tags) ? post.data.tags : [])) {
-        if (tag) allTags.add(tag);
-      }
-    }
-    for (const tag of allTags) {
-      sitemap[`tag:${tag}`] = {
-        exists: true,
-        external: false,
-        title: tag,
-        links: [],
-        backlinks: [],
-        tags: [],
-      };
-    }
+    // NOTE: no synthetic `tag:${tag}` sitemap entries. They never matched the
+    // client's synthesized tag-node ids (`posts/tag/${tag}`), so they carried no
+    // adjacency — and in full-graph mode (depth -1) every sitemap key becomes a
+    // node, so each one rendered as a phantom orphan duplicate of its tag node.
 
-    // Second pass: invert links → backlinks
+    // Second pass: invert links → backlinks (tag pseudo-links have no sitemap
+    // entry, so they are skipped here automatically).
     for (const [slug, entry] of Object.entries(sitemap)) {
       for (const target of entry.links ?? []) {
         if (sitemap[target]) {

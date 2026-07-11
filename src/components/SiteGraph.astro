@@ -3,7 +3,7 @@ import type { GraphConfig } from '@/graph/config';
 import Graph from '@/graph/components/graph/Graph.astro';
 import '@/graph/graph.css';
 
-export type GraphMode = 'sidebar' | 'modal' | 'hero';
+export type GraphMode = 'sidebar' | 'hero';
 
 interface Props {
     mode: GraphMode;
@@ -22,39 +22,29 @@ const {
 const base = import.meta.env.BASE_URL;
 const sitemapUrl = `${base}graph/sitemap.json`;
 
+// Physics, hover, zoom, and styling all run on starlight-site-graph defaults.
+// The only deviations are site choices (depth, actions, tag rendering) and the
+// label model: labels counter-scale by 1/k (screen-constant size), so
+// labelOpacityScale is retuned per mode around that.
 const BASE_CONFIG: Partial<GraphConfig> = {
     // sidebar: depth=1 (direct neighbors only)
-    // modal: depth=3, falls back to location.pathname as slug (data-slug="" → falsy → window.location)
-    // hero: depth=-1 (full graph — unlimited; user can reduce via toolbar)
-    depth: mode === 'sidebar' ? 1 : -1,  // sidebar: depth-1 local; modal + hero: full global graph
+    // hero: depth=-1 (full global graph on /graph-view/)
+    depth: mode === 'sidebar' ? 1 : -1,
     scale: mode === 'sidebar' ? 1.0 : 1.1,
-    enableDrag: true,
-    enableZoom: true,
-    enablePan: true,
-    enableHover: true,
-    enableClick: 'auto',
-    renderLabels: true,
-    renderArrows: false,
-    renderUnresolved: false,
+
+    // Zoom-driven label opacity: getCurrentLabelOpacity(k) = max((k * labelOpacityScale - 1) / 0.9, 0)
+    // sidebar (initial scale 1.0, labelOpacityScale 2.0): (1.0 * 2.0 - 1) / 0.9 ≈ 1.11 → labels fully
+    //   visible at rest — small local graph, titles ARE the content.
+    // hero (labelOpacityScale 0.45): hidden until k ≈ 2.2 (1/0.45), fully opaque at
+    //   k ≈ 4.2 ((1+0.9)/0.45) — labels are screen-constant size (renderer
+    //   counter-scales by 1/k), so they only appear once the view is sparse
+    //   enough for 1200+ titles not to smear into each other.
+    labelOpacityScale: mode === 'sidebar' ? 2.0 : 0.45,
     renderExternal: false,
     tagRenderMode: 'node',
     actions: mode === 'sidebar'
         ? ['fullscreen', 'depth', 'reset-zoom', 'settings']
         : ['reset-zoom', 'render-arrows', 'settings'],
-    prefetchPages: true,
-
-    // Physics tuned per mode.
-    // Sidebar (5–20 nodes): defaults are fine.
-    // Modal/global (300+ nodes): aggressive repel + zero link distance causes
-    // nodes to slam together and bounce. Lower repel, add link spacing, faster
-    // alpha decay, and more collider room give a stable settled layout quickly.
-    ...(mode !== 'sidebar' ? {
-        repelForce:      80,   // default 200 — too aggressive for dense graphs
-        linkDistance:    50,   // default 0  — gives nodes a natural spacing goal
-        centerForce:     0.03, // default 0.05 — looser center pull, more spread
-        colliderPadding: 10,   // default 20 — less bounce between collision radii
-        alphaDecay:      0.06, // default 0.0228 — 3× faster convergence
-    } : {}),
 };
 
 const graphConfig = { ...BASE_CONFIG, ...configOverride } as GraphConfig;
@@ -73,6 +63,5 @@ const graphConfig = { ...BASE_CONFIG, ...configOverride } as GraphConfig;
 .slsg-wrapper { display: block; width: 100%; height: 100%; }
 
 .slsg-mode-sidebar { height: 220px; }
-.slsg-mode-modal   { height: 100%; min-height: 60vh; }
 .slsg-mode-hero    { width: 100vw; height: 100vh; }
 </style>

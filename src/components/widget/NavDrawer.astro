@@ -1,0 +1,509 @@
+---
+import { siteConfig, getThemeDisplayName } from '../../config';
+import Icon from '../Icon.astro';
+
+interface NavLink {
+  name: string;
+  url: string;
+  external?: boolean;
+}
+
+interface Props {
+  links: NavLink[];
+}
+
+const links = Astro.props.links;
+
+// Palette preview swatches: [surface, accent, tertiary] per theme.
+// Values mirror the runtime theme registry in BaseLayout.astro (primary-100 /
+// highlight-500 / secondary-500 or primary-500) — keep in sync when a theme
+// is added there. House palettes first, the rest alphabetical.
+const SWATCHES: Record<string, [string, string, string]> = {
+  'al-andalus':    ['#F2EAD8', '#B8840A', '#198D7B'],
+  'ottoman-slate': ['#ECEEF1', '#C12B40', '#B9882A'],
+  'minimal':       ['#F5F5F5', '#708794', '#737373'],
+  'atom':          ['#EAEAEB', '#3D74E2', '#71717A'],
+  'ayu':           ['#FCFCFC', '#E6913D', '#A8A8A8'],
+  'catppuccin':    ['#F2E9E1', '#DCB6AF', '#7F849C'],
+  'charcoal':      ['#FFFFFF', '#808080', '#454545'],
+  'dracula':       ['#FAF8FF', '#8B5CF6', '#6272A4'],
+  'everforest':    ['#F4F4F1', '#A7C080', '#A89984'],
+  'flexoki':       ['#F2F0E5', '#319089', '#B7B5AC'],
+  'gruvbox':       ['#F2E5BC', '#D79921', '#A89984'],
+  'macos':         ['#F9F9F9', '#007AFF', '#A0A0A0'],
+  'nord':          ['#E5E9F0', '#5E81AC', '#81A1C1'],
+  'obsidian':      ['#E5E5E5', '#8257E7', '#525252'],
+  'oxygen':        ['#F1F5F9', '#0EA5E9', '#64748B'],
+  'rose-pine':     ['#F2E9E1', '#EB6F92', '#908CAA'],
+  'sky':           ['#EDEDEC', '#2EAADC', '#72706C'],
+  'solarized':     ['#EEE8D5', '#268BD2', '#93A1A1'],
+  'things':        ['#F5F6F8', '#1B61C2', '#A9ABB0'],
+};
+const themeChoices: string[] = (
+  Array.isArray(siteConfig.availableThemes)
+    ? siteConfig.availableThemes
+    : Object.keys(SWATCHES)
+).filter(t => t in SWATCHES);
+const swatchStyle = (t: string) => {
+  const [surface, accent, tertiary] = SWATCHES[t];
+  return `background:
+    radial-gradient(circle at 68% 70%, ${tertiary} 0 16%, transparent 17.5%),
+    linear-gradient(135deg, ${surface} 0 49.5%, ${accent} 50.5% 100%);`;
+};
+
+const graphEnabled = siteConfig.postOptions.graphView.enabled;
+const currentTheme = siteConfig.theme in SWATCHES ? siteConfig.theme : themeChoices[0];
+---
+
+<!--
+  Right-edge navigation drawer — opened by the header hamburger on every
+  viewport. MUST stay OUTSIDE #navbar-wrapper: the navbar's auto-hide uses a
+  transform, which would turn the wrapper into a containing block and break
+  this position:fixed panel. Open/close is driven by Header's script
+  (window.__setNavDrawer).
+-->
+<div id="nav-drawer-scrim" class="nav-drawer-scrim" aria-hidden="true"></div>
+
+<aside id="nav-drawer" class="nav-drawer" aria-label="Site menu" aria-hidden="true" tabindex="-1">
+  <div class="nd-head">
+    <button id="nav-drawer-close" class="nd-close" type="button" aria-label="Close menu">
+      <Icon name="x" class="w-4 h-4" />
+    </button>
+  </div>
+
+  <!-- Search trigger — opens the search palette -->
+  <button id="nd-search" class="nd-search" type="button">
+    <Icon name="search" class="w-4 h-4 nd-search-icon" />
+    <span class="nd-search-text">Search the wiki…</span>
+    <kbd id="nd-search-kbd" class="nd-kbd">Ctrl K</kbd>
+  </button>
+  <a id="nd-adv-search" class="nd-adv-search" href={`${import.meta.env.BASE_URL}search/`}>
+    Advanced search
+    <Icon name="arrow-right" class="w-3 h-3" />
+  </a>
+
+  <nav class="nd-section" aria-label="Browse">
+    <p class="nd-label">Browse</p>
+    {links.map(link => (
+      <a
+        href={link.url}
+        class="nd-item"
+        target={link.external ? '_blank' : null}
+      >
+        <span>{link.name}</span>
+        {!link.external && <Icon name="chevron-right" class="nd-item-icon w-4 h-4" />}
+        {link.external && <Icon name="external-link" class="nd-item-icon w-3.5 h-3.5" />}
+      </a>
+    ))}
+  </nav>
+
+  {graphEnabled && (
+    <div class="nd-section">
+      <p class="nd-label">Explore</p>
+      <a id="nd-graph" class="nd-item" href={`${import.meta.env.BASE_URL}graph-view/`}>
+        <span class="nd-item-lead">
+          <Icon name="git-fork" class="w-4 h-4 nd-lead-icon" />
+          Knowledge graph
+        </span>
+        <Icon name="chevron-right" class="nd-item-icon w-4 h-4" />
+      </a>
+    </div>
+  )}
+
+  <!-- Footer: appearance — palette dropdown (all themes), mode below -->
+  <div class="nd-foot">
+    <p class="nd-label">Appearance</p>
+
+    {themeChoices.length > 1 && (
+      <div class="nd-palette">
+        <button
+          id="nd-palette-trigger"
+          class="nd-palette-trigger"
+          type="button"
+          aria-expanded="false"
+          aria-controls="nd-themes"
+        >
+          <span id="nd-palette-swatch" class="nd-swatch" style={swatchStyle(currentTheme)} aria-hidden="true"></span>
+          <span id="nd-palette-name" class="nd-palette-name">{getThemeDisplayName(currentTheme)}</span>
+          <Icon name="chevron-down" class="nd-palette-chevron w-4 h-4" />
+        </button>
+
+        <div id="nd-themes" class="nd-themes" role="radiogroup" aria-label="Color palette" hidden>
+          {themeChoices.map(t => (
+            <button class="nd-theme" type="button" data-theme={t} role="radio" aria-checked="false">
+              <span class="nd-swatch" style={swatchStyle(t)} aria-hidden="true"></span>
+              <span class="nd-theme-name">{getThemeDisplayName(t)}</span>
+              <Icon name="check" class="nd-theme-check w-4 h-4" />
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <div id="nd-mode" class="nd-mode" role="radiogroup" aria-label="Color mode">
+      <button class="nd-mode-btn" type="button" data-mode="light" role="radio" aria-checked="false">
+        <Icon name="sun" class="w-3.5 h-3.5" />
+        <span>Light</span>
+      </button>
+      <button class="nd-mode-btn" type="button" data-mode="dark" role="radio" aria-checked="false">
+        <Icon name="moon" class="w-3.5 h-3.5" />
+        <span>Dark</span>
+      </button>
+      <button class="nd-mode-btn" type="button" data-mode="auto" role="radio" aria-checked="false">
+        <Icon name="sun-moon" class="w-3.5 h-3.5" />
+        <span>Auto</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<style>
+  /* ── Scrim ── */
+  .nav-drawer-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgb(0 0 0 / 0.4);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0s 0.25s;
+  }
+  .nav-drawer-scrim.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.25s ease, visibility 0s 0s;
+  }
+
+  /* ── Drawer panel ── */
+  .nav-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90;
+    width: 19rem;
+    max-width: 88vw;
+    display: flex;
+    flex-direction: column;
+    background: var(--float-panel-bg);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-left: 1px solid rgb(var(--color-primary-200) / 0.8);
+    box-shadow: -16px 0 48px rgb(0 0 0 / 0.12);
+    transform: translateX(105%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+    font-family: var(--font-ui);
+  }
+  :global(.dark) .nav-drawer {
+    border-left-color: rgb(var(--color-primary-700) / 0.8);
+    box-shadow: -16px 0 48px rgb(0 0 0 / 0.4);
+  }
+  /* Header renders us inside #top-row (pointer-events: none) — restore input */
+  .nav-drawer { pointer-events: none; }
+  .nav-drawer.is-open { transform: translateX(0); pointer-events: auto; }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-drawer, .nav-drawer-scrim { transition: none; }
+  }
+
+  /* ── Head ── */
+  .nd-head {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+  }
+  .nd-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    border: none;
+    background: none;
+    color: rgb(var(--color-primary-500));
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .nd-close:hover { background: var(--btn-plain-bg-hover); color: var(--primary); }
+
+  /* ── Search trigger ── */
+  .nd-search {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-primary-100) / 0.5);
+    color: rgb(var(--color-primary-400));
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  :global(.dark) .nd-search {
+    border-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-900) / 0.5);
+    color: rgb(var(--color-primary-500));
+  }
+  .nd-search:hover {
+    border-color: rgb(var(--color-highlight-500) / 0.5);
+    background: rgb(var(--color-primary-100));
+  }
+  :global(.dark) .nd-search:hover { background: rgb(var(--color-primary-900)); }
+  .nd-search-text { flex: 1; text-align: left; }
+  .nd-search { margin-bottom: 0.25rem; }
+
+  /* Advanced search — quiet link under the search trigger */
+  .nd-adv-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: rgb(var(--color-primary-400));
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .nd-adv-search:hover { color: var(--primary); text-decoration: none; }
+  .nd-kbd {
+    font-family: ui-monospace, monospace;
+    font-size: 0.625rem;
+    padding: 0.125rem 0.3125rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid rgb(var(--color-primary-200));
+    color: rgb(var(--color-primary-400));
+    white-space: nowrap;
+  }
+  :global(.dark) .nd-kbd { border-color: rgb(var(--color-primary-700)); }
+
+  /* ── Sections ── */
+  .nd-section { margin-bottom: 1rem; }
+  .nd-label {
+    margin: 0 0 0.25rem;
+    padding-left: 0.75rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-400));
+  }
+  :global(.dark) .nd-label { color: rgb(var(--color-primary-500)); }
+
+  .nd-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    min-height: 2.375rem;
+    border: none;
+    border-radius: var(--radius-md);
+    background: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    color: rgb(var(--color-primary-700));
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  :global(.dark) .nd-item { color: rgb(var(--color-primary-200)); }
+  .nd-item:hover {
+    background: var(--btn-plain-bg-hover);
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .nd-item[aria-current='page'] {
+    background: rgb(var(--color-highlight-500) / 0.1);
+    color: rgb(var(--color-highlight-700));
+    font-weight: 600;
+  }
+  :global(.dark) .nd-item[aria-current='page'] { color: rgb(var(--color-highlight-300)); }
+
+  .nd-item-lead { display: inline-flex; align-items: center; gap: 0.625rem; }
+  .nd-item :global(.nd-lead-icon) { color: rgb(var(--color-primary-400)); }
+  .nd-item:hover :global(.nd-lead-icon) { color: var(--primary); }
+
+  .nd-item :global(.nd-item-icon) {
+    color: rgb(var(--color-primary-400));
+    opacity: 0;
+    transform: translateX(-0.25rem);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    flex-shrink: 0;
+  }
+  .nd-item:hover :global(.nd-item-icon) {
+    color: var(--primary);
+    opacity: 1;
+    transform: translateX(0);
+  }
+  @media (hover: none) {
+    .nd-item :global(.nd-item-icon) { opacity: 0.5; transform: none; }
+  }
+
+  /* ── Footer: appearance ── */
+  .nd-foot {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgb(var(--color-primary-200) / 0.7);
+  }
+  :global(.dark) .nd-foot { border-top-color: rgb(var(--color-primary-800)); }
+
+  /* Palette drop-UP — trigger row + scrollable list opening ABOVE it, so the
+     trigger never moves and the footer keeps its physical place. */
+  .nd-palette { position: relative; margin: 0.375rem 0.75rem 0.5rem; }
+  .nd-palette-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-primary-100) / 0.5);
+    font-size: 0.8125rem;
+    color: rgb(var(--color-primary-700));
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  :global(.dark) .nd-palette-trigger {
+    border-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-900) / 0.5);
+    color: rgb(var(--color-primary-200));
+  }
+  .nd-palette-trigger:hover {
+    border-color: rgb(var(--color-highlight-500) / 0.5);
+  }
+  .nd-palette-name { flex: 1; text-align: left; font-weight: 500; }
+  .nd-palette-trigger :global(.nd-palette-chevron) {
+    color: rgb(var(--color-primary-400));
+    transition: transform 0.2s ease;
+  }
+  .nd-palette-trigger :global(.nd-palette-chevron) { transform: rotate(180deg); }
+  .nd-palette-trigger[aria-expanded='true'] :global(.nd-palette-chevron) {
+    transform: none;
+  }
+
+  .nd-themes {
+    position: absolute;
+    bottom: calc(100% + 0.375rem);
+    left: 0;
+    right: 0;
+    z-index: 5;
+    max-height: 14rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding: 0.25rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-primary-50));
+    box-shadow: 0 -8px 24px rgb(0 0 0 / 0.1);
+    animation: nd-rise 0.15s ease;
+  }
+  :global(.dark) .nd-themes {
+    border-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-900));
+    box-shadow: 0 -8px 24px rgb(0 0 0 / 0.35);
+  }
+  .nd-themes[hidden] { display: none; }
+  @keyframes nd-rise {
+    from { opacity: 0; transform: translateY(0.375rem); }
+    to   { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nd-themes { animation: none; }
+  }
+
+  /* Mode: segmented light/dark/auto control — sits below the palette */
+  .nd-mode {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0 0.75rem 0.625rem;
+    padding: 0.25rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-primary-100) / 0.5);
+  }
+  :global(.dark) .nd-mode {
+    border-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-900) / 0.5);
+  }
+  .nd-mode-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0;
+    border: none;
+    border-radius: calc(var(--radius-md) - 0.25rem);
+    background: none;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(var(--color-primary-500));
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .nd-mode-btn:hover { color: var(--primary); }
+  .nd-mode-btn[aria-checked='true'] {
+    background: rgb(var(--color-primary-50));
+    color: rgb(var(--color-primary-800));
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+  }
+  :global(.dark) .nd-mode-btn[aria-checked='true'] {
+    background: rgb(var(--color-primary-800));
+    color: rgb(var(--color-primary-100));
+  }
+
+  /* Palette: preview rows (swatch + name + check) */
+  .nd-theme {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 0.4375rem 0.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    background: none;
+    font-size: 0.8125rem;
+    text-align: left;
+    color: rgb(var(--color-primary-600));
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  :global(.dark) .nd-theme { color: rgb(var(--color-primary-300)); }
+  .nd-theme:hover { background: var(--btn-plain-bg-hover); color: var(--primary); }
+  .nd-theme[aria-checked='true'] {
+    background: rgb(var(--color-highlight-500) / 0.08);
+    color: rgb(var(--color-primary-800));
+  }
+  :global(.dark) .nd-theme[aria-checked='true'] { color: rgb(var(--color-primary-100)); }
+
+  .nd-swatch {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+  }
+  :global(.dark) .nd-swatch { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); }
+
+  .nd-theme-name { flex: 1; }
+  .nd-theme :global(.nd-theme-check) {
+    color: rgb(var(--color-highlight-600));
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  :global(.dark) .nd-theme :global(.nd-theme-check) { color: rgb(var(--color-highlight-400)); }
+  .nd-theme[aria-checked='true'] :global(.nd-theme-check) { opacity: 1; transform: none; }
+</style>

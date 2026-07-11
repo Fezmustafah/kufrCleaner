@@ -102,6 +102,79 @@ const { prev: prevPost, next: nextPost } = getAdjacentPosts(visiblePosts, post.i
 // let resolvedImageBasePath: string | undefined;
 // if (post.data.image) { ... }
 
+// Source citations quoted in the article body — counted at build time from
+// callout markers (types are case-insensitive in remark-callouts).
+const countMarkers = (re: RegExp) => (post.body || '').match(re)?.length || 0;
+const sourceCounts = {
+  quran: countMarkers(/^> ?\[!quran/gim),
+  bible: countMarkers(/^> ?\[!bible/gim),
+  hadith: countMarkers(/^> ?\[!hadith/gim),
+  scholar: countMarkers(/^> ?\[!scholar/gim),
+};
+
+// Posts with {{margin notes}} (⟪⟫ is the MDX escape form) get the content
+// block snugged toward the infobox so the pooled left whitespace can host
+// margin notes beside the TOC rail. {{ in code fences may false-positive;
+// harmless (just alignment).
+
+// Per-section metadata for the TOC hover card: a plain-text excerpt of the
+// section body + the names of its direct child headings. Keyed by normalized
+// heading text (TOC entries carry rendered text, not markdown source).
+const stripMd = (s: string) =>
+  s
+    .replace(/^\s*(?:[-+*]|\d+\.)\s+/, '')
+    .replace(/%%[\s\S]*?%%/g, '')
+    .replace(/\{\{sidenotes\[([^\]]*)\]:[\s\S]*?\}\}/g, '$1') // labeled note: keep the anchor words
+    .replace(/\{\{[\s\S]*?\}\}/g, '')
+    .replace(/!\[\[[^\]]*\]\]/g, '')
+    .replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, '$2')
+    .replace(/\[\[([^\]]*)\]\]/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/[*_`~$]|==|!!|\^\^|\(\(|\)\)|\|\|/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizeHeading = (s: string) => stripMd(s).toLowerCase();
+
+const sectionMeta = (() => {
+  const meta = new Map<string, { excerpt: string; children: string[] }>();
+  const found: { key: string; depth: number; text: string; parts: string[] }[] = [];
+  let cur: (typeof found)[number] | null = null;
+  let inCode = false;
+
+  for (const rawLine of (post.body || '').split('\n')) {
+    if (/^\s*(```|~~~)/.test(rawLine)) { inCode = !inCode; continue; }
+    if (inCode) continue;
+
+    const m = rawLine.match(/^(#{2,6})\s+(.+)/);
+    if (m) {
+      cur = { key: normalizeHeading(m[2]), depth: m[1].length, text: stripMd(m[2]), parts: [] };
+      found.push(cur);
+      continue;
+    }
+    if (!cur || cur.parts.join(' ').length > 300) continue;
+    // Callout markers contribute their body text, not the marker line
+    const line = rawLine.replace(/^>+\s*(\[!\w+\][+-]?\s*)?/, '');
+    const text = stripMd(line);
+    if (text) cur.parts.push(text);
+  }
+
+  found.forEach((s, i) => {
+    const children: string[] = [];
+    for (let j = i + 1; j < found.length; j++) {
+      if (found[j].depth <= s.depth) break;
+      if (found[j].depth === s.depth + 1) children.push(found[j].text);
+    }
+    let excerpt = s.parts.join(' ');
+    if (excerpt.length > 220) excerpt = excerpt.slice(0, 220).replace(/\s+\S*$/, '') + '…';
+    if (!meta.has(s.key)) meta.set(s.key, { excerpt, children });
+  });
+
+  return meta;
+})();
+
 const graphSidebarEnabled = siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView.showInSidebar;
 let hasLocalGraphConnections = false;
 if (graphSidebarEnabled) {
@@ -176,46 +249,40 @@ if (graphSidebarEnabled) {
               {post.data.title}
             </h1>
 
-            <!-- Single meta line: date · read time · word count · tags -->
+            <!-- Single meta line: tags · bare updated date (wiki masthead — no
+                 "Published/Updated" labels, no lead, no rule; the description is
+                 SEO/card-only, and full dates live in the colophon at the bottom) -->
             <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-primary-400 dark:text-primary-500">
 
-              <time datetime={post.data.date.toISOString()} data-pagefind-meta="date">
-                {formatDate(post.data.date)}
+              {siteConfig.postOptions.tags && post.data.tags && post.data.tags.length > 0 && (
+                <div class="flex flex-wrap items-center gap-x-1.5">
+                  {post.data.tags.map((tag, i) => (
+                    <>
+                      {i > 0 && <span class="text-primary-300 dark:text-primary-700 select-none">/</span>}
+                      <a
+                        href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}/`}
+                        class="hover:text-secondary-500 dark:hover:text-secondary-300 transition-colors"
+                        data-pagefind-filter="tag"
+                      >
+                        {tag}
+                      </a>
+                    </>
+                  ))}
+                  <span aria-hidden="true" class="select-none">·</span>
+                </div>
+              )}
+
+              <time
+                datetime={(post.data.modified ?? post.data.date).toISOString()}
+                class="text-primary-300 dark:text-primary-600"
+              >
+                {formatDate(post.data.modified ?? post.data.date)}
               </time>
 
-              {siteConfig.postOptions.readingTime && readingTime && (
-                <>
-                  <span aria-hidden="true" class="select-none">·</span>
-                  <span>{readingTime.text && readingTime.text !== 'read0' ? readingTime.text : '1 min read'}</span>
-                </>
-              )}
-
-              {siteConfig.postOptions.wordCount && wordCount !== undefined && (
-                <>
-                  <span aria-hidden="true" class="select-none">·</span>
-                  <span>{wordCount} words</span>
-                </>
-              )}
-
-              {siteConfig.postOptions.tags && post.data.tags && post.data.tags.length > 0 && (
-                <>
-                  <span aria-hidden="true" class="select-none">·</span>
-                  <div class="flex flex-wrap items-center gap-x-1.5">
-                    {post.data.tags.map((tag, i) => (
-                      <>
-                        {i > 0 && <span class="text-primary-300 dark:text-primary-700 select-none">/</span>}
-                        <a
-                          href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}/`}
-                          class="hover:text-secondary-500 dark:hover:text-secondary-300 transition-colors"
-                          data-pagefind-filter="tag"
-                        >
-                          {tag}
-                        </a>
-                      </>
-                    ))}
-                  </div>
-                </>
-              )}
+              {/* Publish date stays in the DOM for Pagefind's date meta */}
+              <time datetime={post.data.date.toISOString()} data-pagefind-meta="date" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">
+                {formatDate(post.data.date)}
+              </time>
 
             </div>
           </header>
@@ -225,55 +292,83 @@ if (graphSidebarEnabled) {
           <Content />
         </div>
 
-        <!-- Page actions: Share · Open in AI · Copy Markdown -->
-        <PageActions
-          postId={post.id}
-          postTitle={post.data.title}
-          postUrl={Astro.url.href}
-        />
+        <!-- Colophon: document metadata + actions on one line, wiki-style —
+             subtle, like reading a file's properties. -->
+        {/* not-prose: page-actions-client relocates this inside #post-content
+            (above the footnotes), where .prose typography would otherwise restyle it */}
+        <section class="post-colophon not-prose" data-pagefind-ignore aria-label="About this article">
+          <dl class="post-colophon-grid">
+            <div>
+              <dt>First published</dt>
+              <dd><time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time></dd>
+            </div>
+            {/* No "Last revised" — the masthead already shows the bare revision date */}
+            {siteConfig.postOptions.wordCount && wordCount && (
+              <div>
+                <dt>Length</dt>
+                <dd>{wordCount.toLocaleString()} words · {siteConfig.postOptions.readingTime ? readingTime?.text : ''}</dd>
+              </div>
+            )}
+            {(sourceCounts.quran > 0 || sourceCounts.bible > 0 || sourceCounts.hadith > 0 || sourceCounts.scholar > 0) && (
+              <div>
+                <dt>Sources cited</dt>
+                <dd>
+                  {[
+                    sourceCounts.quran > 0 && `Qurʼan ${sourceCounts.quran}`,
+                    sourceCounts.bible > 0 && `Bible ${sourceCounts.bible}`,
+                    sourceCounts.hadith > 0 && `Hadith ${sourceCounts.hadith}`,
+                    sourceCounts.scholar > 0 && `Scholars ${sourceCounts.scholar}`,
+                  ].filter(Boolean).join(' · ')}
+                </dd>
+              </div>
+            )}
+          </dl>
+          <PageActions
+            postId={post.id}
+            postTitle={post.data.title}
+            postUrl={Astro.url.href}
+          />
+        </section>
 
-        {siteConfig.postOptions.linkedMentions.enabled && (
-          <div data-pagefind-ignore>
-            <LinkedMentions currentSlug={post.id} />
-          </div>
-        )}
-
-        <!-- Post navigation -->
-        {siteConfig.postOptions.postNavigation && (prevPost || nextPost) && (
-          <nav data-pagefind-ignore class={`mt-8 pt-8 ${siteConfig.postOptions.linkedMentions.enabled ? '' : 'border-t border-primary-200 dark:border-primary-700'}`}>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {prevPost && (
-                <div class="text-left">
-                  <a
-                    href={`${import.meta.env.BASE_URL}posts/${prevPost.id}/`}
-                    class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
-                  >
-                    <h3 class="text-base font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
-                      {prevPost.data.title}
-                    </h3>
-                    <div class="flex justify-start mt-2">
-                      <Icon name="arrow-left" class="w-5 h-5 text-primary-500 dark:text-primary-400 group-hover:text-highlight-500 dark:group-hover:text-highlight-400 transition-colors" />
-                    </div>
-                  </a>
-                </div>
-              )}
-
-              {nextPost && (
-                <div class={`text-right ${!prevPost ? 'md:col-start-2' : ''}`}>
-                  <a
-                    href={`${import.meta.env.BASE_URL}posts/${nextPost.id}/`}
-                    class="group block p-4 rounded-lg border border-primary-200 dark:border-primary-700 hover:border-highlight-300 dark:hover:border-highlight-600 transition-all duration-200 hover:shadow-md"
-                  >
-                    <h3 class="text-base font-semibold text-primary-900 dark:text-primary-50 group-hover:text-highlight-600 dark:group-hover:text-highlight-400 transition-colors">
-                      {nextPost.data.title}
-                    </h3>
-                    <div class="flex justify-end mt-2">
-                      <Icon name="arrow-right" class="w-5 h-5 text-primary-500 dark:text-primary-400 group-hover:text-highlight-500 dark:group-hover:text-highlight-400 transition-colors" />
-                    </div>
-                  </a>
-                </div>
+        <!-- Connections: backlinks + local graph, side by side. The right
+             gutter no longer hosts the graph — marginalia gets the whole strip. -->
+        {(siteConfig.postOptions.linkedMentions.enabled || (graphSidebarEnabled && hasLocalGraphConnections)) && (
+          <section class="post-connections" data-pagefind-ignore aria-label="Connections">
+            <div class="post-connections-mentions">
+              {siteConfig.postOptions.linkedMentions.enabled && (
+                <LinkedMentions currentSlug={post.id} />
               )}
             </div>
+            {graphSidebarEnabled && hasLocalGraphConnections && (
+              <div class="post-connections-graph">
+                <SiteGraph mode="sidebar" currentSlug={`posts/${post.id}`} />
+              </div>
+            )}
+          </section>
+        )}
+
+        <!-- Post navigation — quiet text links; LinkedMentions above is the primary relation nav -->
+        {siteConfig.postOptions.postNavigation && (prevPost || nextPost) && (
+          <nav data-pagefind-ignore class="mt-8 pt-5 border-t border-primary-200/60 dark:border-primary-700/60 flex flex-wrap justify-between gap-x-6 gap-y-2 text-sm">
+            {prevPost ? (
+              <a
+                href={`${import.meta.env.BASE_URL}posts/${prevPost.id}/`}
+                class="group inline-flex items-center gap-1.5 max-w-[48%] text-primary-500 dark:text-primary-400 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
+              >
+                <Icon name="arrow-left" class="w-4 h-4 flex-shrink-0" />
+                <span class="truncate">{prevPost.data.title}</span>
+              </a>
+            ) : <span></span>}
+
+            {nextPost && (
+              <a
+                href={`${import.meta.env.BASE_URL}posts/${nextPost.id}/`}
+                class="group inline-flex items-center gap-1.5 max-w-[48%] ml-auto text-right text-primary-500 dark:text-primary-400 hover:text-highlight-600 dark:hover:text-highlight-400 transition-colors"
+              >
+                <span class="truncate">{nextPost.data.title}</span>
+                <Icon name="arrow-right" class="w-4 h-4 flex-shrink-0" />
+              </a>
+            )}
           </nav>
         )}
 
@@ -294,47 +389,15 @@ if (graphSidebarEnabled) {
         <span data-pagefind-meta="image" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">{seoData.ogImage?.url || ''}</span>
       </article>
 
-      <!-- Left sidebar: Contents header (toggle) + TOC + Local graph -->
-      {(shouldShowTOC || hasLocalGraphConnections) && (
+      <!-- Left sidebar: minimal line-rail TOC (behaviour in toc-client.ts) -->
+      {shouldShowTOC && (
         <aside class="post-layout-left-col" id="post-left-sidebar">
-          <!-- Clickable "Contents" header — collapses/expands sidebar content -->
-          <button
-            class="sidebar-toc-header"
-            id="sidebar-toc-header"
-            aria-expanded="true"
-            aria-controls="sidebar-toc-content"
-            title="Toggle table of contents"
-          >
-            <!-- Ornamental divider — full width with centered diamond -->
-            <span class="sidebar-toc-divider" aria-hidden="true">
-              <span class="sidebar-toc-line"></span>
-              <span class="sidebar-toc-ornament">◈</span>
-              <span class="sidebar-toc-line"></span>
-            </span>
-            <!-- Tiny chevron below ornament indicates collapse state -->
-            <svg class="sidebar-toc-chevron" xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="18 15 12 9 6 15"/>
-            </svg>
-          </button>
-
-          <!-- Collapsible content: TOC + graph -->
-          <div class="sidebar-toc-content" id="sidebar-toc-content">
-            {shouldShowTOC && <TableOfContents headings={toc} />}
-            {graphSidebarEnabled && (
-              hasLocalGraphConnections ? (
-                <div class="left-sidebar-graph">
-                  <SiteGraph mode="sidebar" currentSlug={`posts/${post.id}`} />
-                </div>
-              ) : (
-                <div class="left-sidebar-graph-empty flex flex-col items-center justify-center gap-2 text-center h-[140px]" aria-label="No linked articles">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="text-primary-300 dark:text-primary-600"><circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="8" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M6.8 6.7l10 1.4M7.4 8.1l4 8M17 10l-4.6 6" stroke-dasharray="2 2"/></svg>
-                  <p class="text-xs text-primary-400 dark:text-primary-500 m-0">No linked articles yet</p>
-                </div>
-              )
-            )}
-          </div>
+          <TableOfContents headings={toc} sectionMeta={sectionMeta} />
         </aside>
       )}
+
+      <!-- Right column intentionally empty: the whole gutter belongs to
+           marginalia now (infobox → colophon, graph → connections section). -->
     </div>
   </div>
   </div>
@@ -344,12 +407,6 @@ if (graphSidebarEnabled) {
        as inline uncompiled TypeScript in BaseLayout's body <slot name="scripts">.
        Without the Fragment wrapper, Astro's script hoisting compiles and deduplicates them. -->
     <!-- Marginalia: extracted to /src/scripts/marginalia-client.ts and imported globally from BaseLayout. -->
-
-    <!-- Contents sidebar collapse toggle — defined in BaseLayout, always available -->
-    <script>
-      // Direct hard-load init (Swup navigations handled via BaseLayout's astro:page-load)
-      (window as any).initSidebarToggle?.();
-    </script>
 
     <script define:vars={{ posts: visiblePosts.map(p => ({ id: p.id, data: { title: p.data.title } })), commentsEnabled: siteConfig.postOptions.comments.enabled, postTitle: post.data.title, postSlug: post.id, BASE_URL: import.meta.env.BASE_URL }}>
 
@@ -496,6 +553,93 @@ if (graphSidebarEnabled) {
       display: none;
     }
 
+    /* ── Colophon: document metadata + actions on one hairline-ruled line —
+       the start of the end-zone (the TOC rail releases here). ── */
+    .post-colophon {
+      margin-top: 3rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgb(var(--color-primary-200) / 0.8);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem 2rem;
+    }
+    /* Actions stay on the metadata line: never wrap on desktop (the dl's own
+       items may reflow instead), only stack on narrow screens */
+    .post-colophon > :global(.post-actions-section) {
+      flex-shrink: 0;
+    }
+    @media (min-width: 900px) {
+      .post-colophon {
+        flex-wrap: nowrap;
+      }
+      .post-colophon-grid {
+        min-width: 0;
+      }
+    }
+    :global(.dark) .post-colophon {
+      border-top-color: rgb(var(--color-primary-700) / 0.8);
+    }
+    .post-colophon-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 2.75rem;
+      margin: 0;
+    }
+    .post-colophon-grid dt {
+      font-size: 0.6875rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgb(var(--color-primary-400) / 0.85);
+      margin-bottom: 0.15rem;
+    }
+    :global(.dark) .post-colophon-grid dt {
+      color: rgb(var(--color-primary-500) / 0.85);
+    }
+    .post-colophon-grid dd {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: rgb(var(--color-primary-600));
+    }
+    :global(.dark) .post-colophon-grid dd {
+      color: rgb(var(--color-primary-400));
+    }
+
+    /* ── Connections: backlinks + local graph share the end-zone.
+       No rule of its own — the colophon's hairline opens the end-zone and
+       the section header is separation enough (fewer h-rules overall). ── */
+    .post-connections {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      align-items: start;
+      margin-top: 3rem;
+    }
+    .post-connections-graph {
+      /* Node labels paint to the canvas edge — clip them at the cell */
+      overflow: hidden;
+    }
+    @media (min-width: 900px) {
+      .post-connections {
+        grid-template-columns: 1fr 20rem;
+      }
+      /* Level the graph with the scrollable mentions list (below the
+         "Connections" header: 1.5rem line + 1.5rem margin) */
+      .post-connections-graph {
+        margin-top: 3rem;
+      }
+      /* No backlinks → the graph is the whole section: full width */
+      .post-connections:not(:has(#linked-mentions-toggle)) {
+        grid-template-columns: 1fr;
+      }
+      .post-connections:not(:has(#linked-mentions-toggle)) .post-connections-graph {
+        margin-top: 0;
+        width: 100%;
+      }
+    }
+
     /*
      * ≥1100px layout:
      *   [260px left col] [1fr article] [220px right gutter for marginalia]
@@ -504,7 +648,7 @@ if (graphSidebarEnabled) {
      */
     @media (min-width: 1100px) {
       .post-layout-grid.has-left-col {
-        grid-template-columns: 240px 1fr 200px;
+        grid-template-columns: 1fr 15rem;
         column-gap: 0.5rem;
         max-width: var(--page-width);
         margin-left: auto;
@@ -512,126 +656,51 @@ if (graphSidebarEnabled) {
         padding: 0 1.5rem;
       }
 
+      /* TOC rail: pinned to the viewport's left edge, vertically centered
+         (aarnphm). Out of the grid flow entirely — the freed column width
+         goes to the article. toc-client toggles .toc-released once the post
+         body ends (footnote section reaches mid-viewport) so the rail bows
+         out where the "rest" of the document begins. */
       .post-layout-left-col {
         display: flex;
         flex-direction: column;
-        grid-column: 1;
-        grid-row: 1;
-        position: sticky;
-        top: 5rem;
-        align-self: start;
-        max-height: calc(100vh - 6rem);
-        overflow: hidden;
-        padding-top: 1rem;
-        padding-bottom: 0.5rem;
-        /* position: sticky creates a stacking context */
+        position: fixed;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 30;
+        overflow: visible; /* floating TOC card extends past the rail */
+        transition: opacity 0.3s ease;
       }
-
-      .post-layout-grid.has-left-col .post-layout-article {
-        grid-column: 2;
-        grid-row: 1;
-      }
-
-      /* ── Ornamental divider toggle ─────────────────────────────────────── */
-      .sidebar-toc-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.18rem;
-        width: 100%;
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 0.1rem 0 0.55rem;
-        color: rgb(var(--color-highlight-600));
-        user-select: none;
-        flex-shrink: 0;
-        transition: color 0.15s;
-      }
-      .sidebar-toc-header:hover { color: rgb(var(--color-highlight-500)); }
-      :global(.dark) .sidebar-toc-header { color: rgb(var(--color-highlight-400)); }
-      :global(.dark) .sidebar-toc-header:hover { color: rgb(var(--color-highlight-300)); }
-
-      /* Full-width line ─ ◈ ─ */
-      .sidebar-toc-divider {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        width: 100%;
-      }
-      .sidebar-toc-line {
-        flex: 1;
-        height: 1px;
-        background: rgb(var(--color-highlight-400) / 0.25);
-        transition: background-color 0.15s;
-      }
-      .sidebar-toc-header:hover .sidebar-toc-line {
-        background: rgb(var(--color-highlight-400) / 0.5);
-      }
-      .sidebar-toc-ornament {
-        font-size: 0.7rem;
-        opacity: 0.8;
-        flex-shrink: 0;
-        line-height: 1;
-      }
-
-      /* Chevron centered below ornament */
-      .sidebar-toc-chevron {
-        flex-shrink: 0;
-        opacity: 0.55;
-        transition: transform 0.2s ease, opacity 0.15s;
-      }
-      .sidebar-toc-header:hover .sidebar-toc-chevron { opacity: 0.85; }
-      .post-layout-left-col.is-collapsed .sidebar-toc-chevron {
-        transform: rotate(180deg);
-      }
-
-      /* ── Collapsible content: TOC + graph ────────────────────────────────── */
-      .sidebar-toc-content {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
-        transition: opacity 0.18s ease, visibility 0.18s ease;
-      }
-
-      .post-layout-left-col.is-collapsed .sidebar-toc-content {
+      .post-layout-left-col.toc-released {
         opacity: 0;
-        visibility: hidden;
         pointer-events: none;
       }
 
-      /* TOC: natural height up to 60vh, scrolls internally if longer */
-      .sidebar-toc-content :global(.toc-nav) {
-        flex: 0 0 auto;
-        min-height: 0;
-        max-height: calc(60vh - 3rem);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .sidebar-toc-content :global(.toc-scroll-container) {
-        flex: 1;
-        min-height: 0;
+      .post-layout-grid.has-left-col .post-layout-article {
+        grid-column: 1;
+        grid-row: 1;
       }
 
-      /* Graph: sits right below TOC with a thin separator */
-      .left-sidebar-graph {
-        flex: 0 0 auto;
-        margin-top: 0.5rem;
-        padding-top: 0.5rem;
-        border-top: 1px solid rgb(var(--color-primary-200) / 0.5);
+      /* Cap the content block at today's measure as --page-width widens the
+         column (55.5rem = 51rem text + 2×2.25rem wrapper padding). Every
+         post snugs toward the infobox so the geometry is identical whether
+         or not a post has marginalia — the pooled whitespace always sits
+         left of the text, between the TOC rail and the content, where margin
+         notes live when present (see layoutMarginaliaFloats in
+         marginalia-client.ts). */
+      .post-layout-grid.has-left-col .post-content-wrapper {
+        max-width: 55.5rem;
+        margin-left: auto;
+        margin-right: 0;
       }
-      :global(.dark) .left-sidebar-graph {
-        border-top-color: rgb(var(--color-primary-700) / 0.5);
-      }
+
     }
 
-    /* ── Full layout at ≥1300px: restore wider columns ──────────────────── */
+    /* ── Full layout at ≥1300px: wider gutter, roomier article ──────────── */
     @media (min-width: 1300px) {
       .post-layout-grid.has-left-col {
-        grid-template-columns: 300px 1fr 280px;
+        grid-template-columns: 1fr 19rem;
         column-gap: 0.75rem;
       }
     }

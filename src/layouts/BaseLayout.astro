@@ -4,7 +4,7 @@ import type { SEOData } from '@/types';
 import { generateStructuredData, generateOrganizationSchema, generateWebsiteSchema, generateDefinedTermSchema } from '@/utils/seo';
 import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
-import CommandPalette from '@/components/CommandPalette.astro';
+import SearchPalette from '@/components/SearchPalette.astro';
 import ThemeSelector from '@/components/ThemeSelector.astro';
 import ScrollToTop from '@/components/ScrollToTop.astro';
 import Lightbox from '@/components/Lightbox.astro';
@@ -1225,8 +1225,8 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
   <!-- Footer -->
   <Footer />
 
-  <!-- Command Palette -->
-  {siteConfig.commandPalette.enabled && <CommandPalette />}
+  <!-- Search Palette -->
+  {siteConfig.commandPalette.enabled && <SearchPalette />}
 
   <!-- Theme Selector (for when command palette is disabled but theme button is needed) -->
   <ThemeSelector />
@@ -1265,6 +1265,21 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     </script>
     <script>
       try { await import('../scripts/ai-assistant-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/page-actions-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/linked-mentions-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/homepage-hero-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/search-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/graph-client.ts'); } catch (_) {}
     </script>
 
   <!-- Global scripts - Defer non-critical JavaScript -->
@@ -1424,9 +1439,9 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
           e.preventDefault();
           e.stopPropagation();
 
-          // Dispatch the openCommandPalette event
-          const event = new CustomEvent('openCommandPalette');
-          window.dispatchEvent(event);
+          // Toggle the search palette (closing while focused inside its input
+          // is handled by the palette itself — this handler skips input fields)
+          window.dispatchEvent(new CustomEvent('toggle-search-palette'));
         }
       });
     }
@@ -1558,7 +1573,8 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
       }, 100);
     });
 
-    // bfcache restore (browser back/forward — Swup skips these via skipPopStateHandling:true).
+    // bfcache restore (full-page back/forward from OUTSIDE the Swup session —
+    // within it, Swup handles popstate itself and fires astro:page-load).
     // Components handle their own pageshow (Lightbox, LocalGraph, PostLayout annotations/marginalia).
     // BaseLayout only needs to re-run global things here.
     window.addEventListener('pageshow', (e) => {
@@ -1841,8 +1857,12 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
           // DON'T update URL - let the browser handle it naturally
           // This prevents interfering with browser history
 
-          // Custom smooth scroll animation
-          const targetPosition = targetElement.offsetTop - 100; // Account for header
+          // Custom smooth scroll animation. Document-space position, NOT
+          // offsetTop — offsetTop is relative to the nearest positioned
+          // ancestor (.post-layout-article is position:relative), which sent
+          // every in-article anchor jump (footnote refs/backrefs, heading
+          // permalinks) to the top of the page.
+          const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - 100; // Account for header
           const startPosition = window.pageYOffset;
           const distance = targetPosition - startPosition;
           const duration = 800; // 800ms duration

@@ -164,15 +164,12 @@ export const nodeExternalStyle: NodeStyle = {
 };
 
 export const tagDefaultStyle: NodeStyle = {
-	// polygon-4 at rotation 0 = vertices at top/right/bottom/left = true diamond
-	// (shape:'square' adds PI/4 rotation which gives a flat-sided square instead)
-	shape: 'polygon' as NodeShapeType,
-	shapePoints: 4,
-	shapeRotation: 0,
+	shape: 'circle' as NodeShapeType,
 	shapeSize: 6,
-	shapeColor: 'nodeColorTag' as NodeColorType,
-	strokeWidth: 0,
-	colliderScale: 1.2,
+	shapeColor: 'backgroundColor' as NodeColorType,
+	strokeColor: "nodeColorTag" as NodeColorType,
+	strokeWidth: 1,
+	colliderScale: 1,
 	nodeScale: 1,
-	neighborScale: 0.5,
+	neighborScale: 0.7
 }

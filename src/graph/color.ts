@@ -146,7 +146,8 @@ export function getGraphColors(_node: HTMLElement, included_colors: string[], cu
 		nodeColorAdjacent:   p('600'),
 		nodeColorMuted:      p('800'),
 		nodeColorCurrent:    hl('500'),
-		nodeColorVisited:    p('500'),
+		// Lighter than default node (p400) and adjacent (p600), distinct from current (highlight)
+		nodeColorVisited:    p('300'),
 		nodeColorUnresolved: p('700'),
 		nodeColorExternal:   p('600'),
 		nodeColorTag:        hl('300'),
@@ -166,7 +167,8 @@ export function getGraphColors(_node: HTMLElement, included_colors: string[], cu
 		nodeColorAdjacent:   p('500'),
 		nodeColorMuted:      p('200'),
 		nodeColorCurrent:    hl('600'),
-		nodeColorVisited:    p('500'),
+		// Darker than default node (p400) and adjacent (p500), distinct from current (highlight)
+		nodeColorVisited:    p('700'),
 		nodeColorUnresolved: p('300'),
 		nodeColorExternal:   p('400'),
 		nodeColorTag:        hl('400'),

@@ -21,9 +21,15 @@
   --ma-offset: 4rem;
 }
 
-/* ── Counter reset ──────────────────────────────────────────────────────── */
-#post-content {
-  counter-reset: footnote-counter;
+/* Echoed footnote refs (remark-marginalia re-emits a hidden GFM reference
+   after a marker whose note cites [^n], so the definition still renders in
+   the bottom footnote section and its ↩ returns here). Must keep geometry —
+   display:none would leave the ↩ backref with no scroll target (jumps to
+   page top) — so hide by visibility + collapse to zero width instead. */
+sup.fn-echo {
+  visibility: hidden;
+  font-size: 0;
+  line-height: 0;
 }
 
 /* ── Container ──────────────────────────────────────────────────────────── */
@@ -38,7 +44,6 @@ input.margin-toggle {
 
 /* ── Label — aarnphm sidenote-label style ───────────────────────────────── */
 label.footnote-number {
-  counter-increment: footnote-counter;
   cursor: pointer;
   display: inline;
   border-bottom: 1px solid rgb(var(--color-highlight-600) / 0.7);
@@ -53,9 +58,20 @@ label.footnote-number {
   color: rgb(var(--color-highlight-400));
 }
 
+/* Keyboard focus ring — the marker is a focusable control (role=button) */
+label.footnote-number:focus-visible {
+  outline: 2px solid rgb(var(--color-highlight-600));
+  outline-offset: 2px;
+}
+.dark label.footnote-number:focus-visible {
+  outline-color: rgb(var(--color-highlight-400));
+}
+
+/* Marker glyph: ▪ (aarnphm sidenote convention) — deliberately NOT a number,
+   so marginalia markers can't be confused with numbered GFM footnote refs. */
 label.footnote-number::after {
-  content: counter(footnote-counter);
-  font-size: 0.7em;
+  content: '▪';
+  font-size: 0.55em;
   font-weight: 600;
   vertical-align: super;
   line-height: 0;
@@ -105,17 +121,8 @@ label.footnote-number::after {
   background-color: rgb(var(--color-primary-900));
 }
 
-/* Note counter prefix */
-.footnote::before {
-  content: counter(footnote-counter) ". ";
-  font-weight: 600;
-  color: rgb(var(--color-highlight-600));
-  font-size: 0.85em;
-}
-
-.dark .footnote::before {
-  color: rgb(var(--color-highlight-400));
-}
+/* No prefix inside the note — pairing is positional + hover cross-highlight
+   (aarnphm). The in-text marker (▪ or anchor words) is the only signpost. */
 
 /* ── Hover state — gold dashed border, mirrors TOC active-indicator exactly ── */
 .footnote:hover,
@@ -177,6 +184,13 @@ label.footnote-number::after {
 
   .footnote:target {
     animation: marginalia-flash 1.2s ease;
+  }
+
+  /* Drift-capped notes (layoutMarginaliaFloats adds .marginalia-overflow when
+     stacking would land a note >14rem below its anchor): the float hides and
+     the marker behaves like the mobile hover/click popover instead. */
+  .footnote-container.marginalia-overflow .footnote {
+    display: none;
   }
 }
 
@@ -262,4 +276,46 @@ label.footnote-number::after {
   display: block;
   margin: 0.4rem 0;
   border-radius: var(--radius-xs);
+}
+
+/* ── GFM footnote section — the "rest" of the document, set apart ──────────
+   No rule of its own: the colophon (relocated above it by page-actions-client)
+   opens the end-zone with the single hairline; the small-caps FOOTNOTES label
+   is separation enough. */
+#post-content section.footnotes {
+  margin-top: 3rem;
+  font-size: 0.875rem;
+  color: rgb(var(--color-primary-600));
+}
+.dark #post-content section.footnotes {
+  color: rgb(var(--color-primary-400));
+}
+
+/* Un-hide the sr-only "Footnotes" heading as a small-caps section label
+   (overrides both the sr-only utility and prose h2 typography) */
+#post-content section.footnotes > h2#footnote-label {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--color-primary-500));
+}
+#post-content section.footnotes > h2#footnote-label a[data-role='anchor'] {
+  display: none;
+}
+
+#post-content section.footnotes li {
+  margin: 0.4rem 0;
+}
+#post-content section.footnotes li:target {
+  animation: marginalia-flash 1.2s ease;
 }

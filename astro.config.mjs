@@ -519,17 +519,18 @@ image: {
       updateBodyClass: false,
       globalInstance: true,
       reloadScripts: false, // SwupScriptsPlugin breaks ES module scripts (import X as Y syntax error)
-      plugins: [], // Disable all plugins including scroll
-      skipPopStateHandling: (event) => {
-        // ALWAYS skip Swup handling for back/forward navigation
-        // Let the browser handle it naturally
-        return true;
-      },
-      // Simplified link selector for better compatibility
-      linkSelector: 'a[href]:not([data-no-swup]):not([href^="mailto:"]):not([href^="tel:"])'
+      plugins: [] // Disable all plugins including scroll
+      // NOTE: swup-core options like skipPopStateHandling/linkSelector are NOT
+      // forwarded by @swup/astro (see its Options interface) — Swup handles
+      // browser back/forward itself (default popstate handling, no animation)
+      // and fires page:view → astro:page-load on every history navigation.
     })
   ],
   markdown: {
+      // Clean #fn-1 / #fnref-1 footnote anchors. The default 'user-content-'
+      // prefix is GitHub's DOM-clobbering guard for untrusted comment HTML —
+      // pointless for our own content. (Marginalia ids are mn-* to stay clear.)
+      remarkRehype: { clobberPrefix: '' },
       remarkPlugins: [
       remarkCitations,          // Process [@citation-key] inline citations
       remarkObsidianImageSize, // Parse Obsidian image size syntax first
@@ -660,3 +661,7 @@ image: {
     assets: '_assets'
   }
 });
+
+
+
+

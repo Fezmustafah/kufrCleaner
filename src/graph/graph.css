@@ -15,7 +15,7 @@
     --slsg-node-color-muted:    #e2e8f0; /* primary-200  */
 
     --slsg-node-color-current:    #dc2626; /* highlight-600 */
-    --slsg-node-color-visited:    #64748b; /* primary-500  */
+    --slsg-node-color-visited:    #334155; /* primary-700 — darker than default/adjacent */
     --slsg-node-color-unresolved: #cbd5e1; /* primary-300  */
     --slsg-node-color-external:   #94a3b8; /* primary-400  */
     --slsg-node-color-tag:        #f87171; /* highlight-400 */
@@ -51,7 +51,7 @@
     --slsg-node-color-muted:    #1e293b; /* primary-800  */
 
     --slsg-node-color-current:    #ef4444; /* highlight-500 */
-    --slsg-node-color-visited:    #64748b; /* primary-500  */
+    --slsg-node-color-visited:    #cbd5e1; /* primary-300 — lighter than default/adjacent */
     --slsg-node-color-unresolved: #334155; /* primary-700  */
     --slsg-node-color-external:   #475569; /* primary-600  */
     --slsg-node-color-tag:        #fca5a5; /* highlight-300 */
@@ -121,6 +121,20 @@
     flex-direction: column;
     gap: 0.25rem;
     z-index: 10;
+}
+
+/* Embedded (sidebar) graphs show the toolbar ONLY while the cursor is inside
+   the graph — strictly hover-bound (no :focus-within: a clicked button would
+   otherwise keep the toolbar pinned until the reader clicks elsewhere).
+   Modal/hero keep it always on. */
+.slsg-mode-sidebar .slsg-graph-action-container {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+.slsg-mode-sidebar:hover .slsg-graph-action-container {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .slsg-graph-action-button {

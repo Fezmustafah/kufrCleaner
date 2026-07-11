@@ -1,11 +1,16 @@
 import { setSlashes } from '../sitemap/browser-utils';
 
 export function getVisitedEndpoints(): Set<string> {
-	return new Set(
-		JSON.parse(
-			localStorage.getItem('starlight-site-graph--visited-pages') ?? '[]',
-		),
-	);
+	try {
+		return new Set(
+			JSON.parse(
+				localStorage.getItem('starlight-site-graph--visited-pages') ?? '[]',
+			),
+		);
+	} catch {
+		// localStorage unavailable or corrupted value — treat as no visited pages
+		return new Set();
+	}
 }
 
 export function simplifySlug(fp: string, trailingSlash: boolean): string {

@@ -69,12 +69,14 @@ export default {
             'h2 + *': { marginTop: '0.6em' },
             'h3 + *': { marginTop: '0.5em' },
             h2: {
-              fontSize: '1.4em',
+              fontSize: '1.5em',
               marginTop: '1.75em',
               marginBottom: '0.6em',
+              paddingBottom: '0.3em',
+              borderBottom: '1px solid rgb(var(--color-highlight-400) / 0.25)',
             },
             h3: {
-              fontSize: '1.35em',
+              fontSize: '1.2em',
               marginTop: '1.5em',
               marginBottom: '0.5em',
             },

@@ -1,8 +1,7 @@
 ---
 import { siteConfig } from '../config';
-import ThemeToggle from './ThemeToggle.astro';
 import Icon from './Icon.astro';
-import NavMenuPanel from './widget/NavMenuPanel.astro';
+import NavDrawer from './widget/NavDrawer.astro';
 
 interface NavLink {
   name: string;
@@ -22,32 +21,16 @@ const links: NavLink[] = siteConfig.navigation.pages
   }));
 
 const searchUrl = withBase('search/');
-
-const hasShortcut = siteConfig.commandPalette.shortcut && siteConfig.commandPalette.shortcut.trim();
-const shortcutKey = hasShortcut
-  ? siteConfig.commandPalette.shortcut.split('+').pop()?.toUpperCase() || 'K'
-  : '';
-const allSectionsDisabled =
-  !siteConfig.commandPalette.sections.quickActions &&
-  !siteConfig.commandPalette.sections.pages &&
-  !siteConfig.commandPalette.sections.social;
-const paletteIcon = allSectionsDisabled ? 'search' : 'command';
 ---
 
 <!--
-  Layout mirrors astro-obsidian:
-    [logo/home]  [nav-pill (center)]  [actions]
-
-  Two layered backgrounds:
-  1. #navbar-bg  — full-width frosted, opacity 0→1 as user scrolls (palette vars)
-  2. #nav-pill   — floating rounded-full behind center links, visible at top,
-                   fades once #navbar-bg takes over
+  Wiki chrome: no bar background at all — just the logo (left) and a cluster of
+  glass action buttons (right). Nav links live behind the hamburger on every
+  viewport (NavDrawer). Legibility over content comes from the buttons' own
+  backdrop-blur glass, not a full-width bar.
 -->
 <div id="top-row" class="h-14 z-50 pointer-events-none relative">
   <div id="navbar-wrapper" class="pointer-events-auto fixed top-0 inset-x-0 z-50 h-14 nav-at-top">
-
-    <!-- Full-width frosted bg (scroll state) -->
-    <div id="navbar-bg" aria-hidden="true"></div>
 
     <div id="navbar" class="onload-animation h-full">
       <div class="relative h-full max-w-[var(--page-width)] md:px-4 mx-auto px-4 flex items-center">
@@ -59,130 +42,75 @@ const paletteIcon = allSectionsDisabled ? 'search' : 'command';
           <img src={withBase('logo.png')} alt="" aria-hidden="true" class="h-11 w-auto shrink-0 hidden dark:block" />
         </a>
 
-        <!-- ── Center: nav pill ───────────────────────────────────────── -->
-        <div class="flex-1 flex justify-center">
+        <!-- ── Center: empty — nav links live behind the hamburger ────── -->
+        <div class="flex-1"></div>
 
-          <!-- Desktop pill -->
-          <nav id="nav-pill" class="relative hidden md:flex rounded-full group" aria-label="Main navigation">
-            <!-- Radial gradient hover glow (mirrors astro-obsidian's mouse-follow effect) -->
-            <div id="nav-pill-glow" class="absolute -inset-px rounded-full opacity-0 pointer-events-none transition-opacity duration-500" aria-hidden="true"></div>
-
-            <div class="relative text-base px-4 flex items-center">
-              {links.map(l => (
-                <a
-                  href={l.url}
-                  target={l.external ? '_blank' : undefined}
-                  aria-label={l.name}
-                  class="nav-link block px-4 py-1.5 transition-colors duration-150"
-                >
-                  <span class="flex items-center gap-1.5">
-                    {l.name}
-                    {l.external && (
-                      <Icon name="external-link" class="w-3 h-3 opacity-40" />
-                    )}
-                  </span>
-                </a>
-              ))}
-            </div>
-          </nav>
-
-          <!-- Mobile: spacer so actions stay right-aligned -->
-          <div class="md:hidden flex-1"></div>
-        </div>
-
-        <!-- ── Right: actions (circular glass, mirrors astro-obsidian SearchButton) ── -->
+        <!-- ── Right: actions (circular glass) — just search + menu; graph and
+             appearance live in the drawer ── -->
         <div class="flex items-center gap-1.5 shrink-0">
-          <a href={searchUrl} aria-label="Search" class="nav-glass-btn">
+          <!-- Toggles the search palette only — the /search page is reachable
+               via the drawer's "Advanced search" link -->
+          <button type="button" aria-label="Search" class="nav-glass-btn" id="nav-search-btn">
             <Icon name="search" class="w-4 h-4" />
-          </a>
+          </button>
 
-          {siteConfig.featureButton === 'mode' && <ThemeToggle />}
-
-          {siteConfig.featureButton === 'graph' && siteConfig.postOptions.graphView.enabled && (
-            <button id="header-graph-button" class="nav-glass-btn" aria-label="Open graph view">
-              <Icon name="git-fork" class="w-4 h-4" />
-            </button>
-          )}
-
-          {siteConfig.featureButton === 'theme' && (
-            <button id="header-theme-button" class="nav-glass-btn" aria-label="Change theme">
-              <Icon name="palette" class="w-4 h-4" />
-            </button>
-          )}
-
-          {siteConfig.commandPalette.enabled && (
-            <button
-              id="command-palette-trigger"
-              class="nav-glass-btn"
-              aria-label={`Open command palette${hasShortcut ? ` (${shortcutKey})` : ''}`}
-            >
-              <Icon name={paletteIcon} class="w-4 h-4" />
-            </button>
-          )}
-
-          <!-- Mobile hamburger -->
-          <button aria-label="Menu" class="nav-glass-btn md:!hidden" id="nav-menu-switch">
-            <Icon name="menu" class="w-4 h-4" />
+          <!-- Hamburger — all viewports; opens the nav drawer -->
+          <button
+            aria-label="Menu"
+            aria-expanded="false"
+            aria-controls="nav-drawer"
+            class="nav-glass-btn"
+            id="nav-menu-switch"
+          >
+            <Icon name="menu" class="w-4 h-4 nav-menu-icon-open" />
+            <Icon name="x" class="w-4 h-4 nav-menu-icon-close" />
           </button>
         </div>
-
-        <!-- Mobile dropdown panel -->
-        <NavMenuPanel links={links} />
 
       </div>
     </div>
   </div>
-</div>
 
-{siteConfig.postOptions.graphView.enabled && (
-    <div
-        id="graph-modal-overlay"
-        class="graph-modal-overlay hidden"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Knowledge graph"
-        tabindex="-1"
-    >
-        <button id="graph-modal-close" class="graph-modal-close" aria-label="Close graph">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-        </button>
-        <div class="graph-modal-body">
-            <div id="graph-iframe-slot" style="width:100%;height:100%;"></div>
-        </div>
-    </div>
-)}
+  <!-- Drawer + scrim live OUTSIDE #navbar-wrapper: its auto-hide transform
+       would otherwise become the containing block for these fixed panels. -->
+  <NavDrawer links={links} />
+</div>
 
 <script>
 // The Header persists across Swup navigations; guard its one-time bindings below.
 let navBound = false;
 function loadNavScript() {
   const wrapper = document.getElementById('navbar-wrapper');
-  const bg      = document.getElementById('navbar-bg');
-  const pill    = document.getElementById('nav-pill');
-  const glow    = document.getElementById('nav-pill-glow');
 
-  // ── Scroll: transparent → frosted ─────────────────────────────────────────
-  // Matches astro-obsidian thresholds: 0–60px = transparent, 60–120px = crossfade
-  const T1 = 60;   // start fading full-width bg
-  const T2 = 120;  // fully opaque
+  // nav-at-top gates the dark-hero tint only (homepage): past this the hero is
+  // gone and the action buttons revert to their normal light-glass palette.
+  const T_TOP = 90;
+
+  // Auto-hide: slide the navbar away while reading down, bring it back on any
+  // scroll-up and always near the top. HIDE_AFTER keeps it visible through the
+  // transparent→frosted crossfade; the ±4px deadband absorbs trackpad jitter.
+  // (.navbar-hidden uses a transform — safe ONLY because #navbar-wrapper has no
+  // position:fixed descendants; the graph modal overlay is a sibling.)
+  const HIDE_AFTER = 160;
+  let lastY = Math.max(0, document.documentElement.scrollTop || document.body.scrollTop);
 
   function updateNav() {
-    if (!bg || !wrapper) return;
+    if (!wrapper) return;
     const scrollY = document.documentElement.scrollTop || document.body.scrollTop;
 
-    // Full-width frosted bg opacity: 0 below T1, linear 0→1 between T1–T2
-    const bgOpacity = scrollY <= T1 ? 0 : Math.min(1, (scrollY - T1) / (T2 - T1));
-    bg.style.opacity = String(bgOpacity);
+    wrapper.classList.toggle('nav-at-top', scrollY < T_TOP);
 
-    // nav-at-top: pill visible, outer items adapt to dark hero
-    // Removed when bg is dominant (>50% opaque)
-    if (bgOpacity < 0.5) {
-      wrapper.classList.add('nav-at-top');
-    } else {
-      wrapper.classList.remove('nav-at-top');
+    // Auto-hide (clamp: macOS rubber-band overscroll reports out-of-range values)
+    const y = Math.max(0, scrollY);
+    const menuOpen = document.getElementById('nav-drawer')?.classList.contains('is-open');
+    if (y < HIDE_AFTER || menuOpen) {
+      wrapper.classList.remove('navbar-hidden');
+    } else if (y > lastY + 4) {
+      wrapper.classList.add('navbar-hidden');
+    } else if (y < lastY - 4) {
+      wrapper.classList.remove('navbar-hidden');
     }
+    lastY = y;
   }
 
   // rAF-throttle the scroll handler so we touch layout at most once per frame
@@ -208,7 +136,19 @@ function loadNavScript() {
     wrapper?.classList.remove('has-dark-hero');
   }
 
+  // The wrapper persists across Swup navigations — always land on a new page
+  // with the navbar shown (back-nav can restore a deep scroll position where
+  // no scroll-up event would ever reveal it).
+  wrapper?.classList.remove('navbar-hidden');
   updateNav();
+
+  // Mark the drawer link matching this page (re-run per navigation)
+  const path = location.pathname.replace(/\/+$/, '') || '/';
+  document.querySelectorAll<HTMLAnchorElement>('#nav-drawer a.nd-item').forEach(a => {
+    const linkPath = new URL(a.href, location.origin).pathname.replace(/\/+$/, '') || '/';
+    if (linkPath === path) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
 
   // Bind persistent-element listeners exactly once. loadNavScript re-runs on every
   // astro:page-load (to refresh the scroll/dark-hero state above), so without this
@@ -217,103 +157,131 @@ function loadNavScript() {
   if (!navBound) {
     navBound = true;
 
-    // ── Radial gradient hover on nav pill (astro-obsidian mouse-follow effect) ──
-    if (pill && glow) {
-      pill.addEventListener('mousemove', (e: MouseEvent) => {
-        const b = pill.getBoundingClientRect();
-        const x = e.clientX - b.left;
-        const y = e.clientY - b.top;
-        const r = Math.sqrt(b.width ** 2 + b.height ** 2) / 2.5;
-        (glow as HTMLElement).style.background =
-          `radial-gradient(${r}px circle at ${x}px ${y}px, rgb(var(--color-highlight-500) / 0.15) 0%, transparent 65%)`;
-        (glow as HTMLElement).style.opacity = '1';
-      });
-      pill.addEventListener('mouseleave', () => {
-        (glow as HTMLElement).style.opacity = '0';
-      });
-    }
-
-    // ── Mobile menu ────────────────────────────────────────────────────────────
-    document.getElementById('nav-menu-switch')?.addEventListener('click', () => {
-      document.getElementById('nav-menu-panel')?.classList.toggle('float-panel-closed');
-    });
-    document.addEventListener('click', e => {
-      const panel = document.getElementById('nav-menu-panel');
-      if (panel && !panel.classList.contains('float-panel-closed')) {
-        if (!(e.target as Element).closest('#nav-menu-switch, #nav-menu-panel'))
-          panel.classList.add('float-panel-closed');
+    // ── Nav drawer (all viewports) ─────────────────────────────────────────────
+    const drawer = document.getElementById('nav-drawer');
+    const scrim = document.getElementById('nav-drawer-scrim');
+    const setDrawer = (open: boolean) => {
+      drawer?.classList.toggle('is-open', open);
+      scrim?.classList.toggle('is-open', open);
+      drawer?.setAttribute('aria-hidden', String(!open));
+      document.getElementById('nav-menu-switch')?.setAttribute('aria-expanded', String(open));
+      document.body.style.overflow = open ? 'hidden' : '';
+      if (open) drawer?.focus();
+      else {
+        // Collapse the palette dropdown so the drawer reopens tidy
+        const list = document.getElementById('nd-themes');
+        if (list) list.hidden = true;
+        document.getElementById('nd-palette-trigger')?.setAttribute('aria-expanded', 'false');
       }
+    };
+    const drawerIsOpen = () => !!drawer?.classList.contains('is-open');
+    (window as any).__setNavDrawer = setDrawer;
+
+    document.getElementById('nav-menu-switch')?.addEventListener('click', () => {
+      setDrawer(!drawerIsOpen());
+    });
+    document.getElementById('nav-drawer-close')?.addEventListener('click', () => setDrawer(false));
+    scrim?.addEventListener('click', () => setDrawer(false));
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && drawerIsOpen()) setDrawer(false);
+    });
+    // Link clicks close it — the drawer persists across Swup navigations,
+    // so it would otherwise survive the page swap still open.
+    drawer?.addEventListener('click', e => {
+      if ((e.target as Element).closest('a')) setDrawer(false);
     });
 
-    // ── Feature buttons ────────────────────────────────────────────────────────
-    document.getElementById('header-theme-button')?.addEventListener('click', () => {
-      if ((window as any).siteConfig?.commandPalette?.enabled)
-        window.dispatchEvent(new CustomEvent('openCommandPalette'));
-      else
-        (window as any).themeSelectorInstance?.open?.();
+    // Search — navbar button and drawer row both toggle the search palette
+    document.getElementById('nav-search-btn')?.addEventListener('click', () => {
+      const sp = (window as any).searchPalette;
+      if (sp) sp.toggle();
+      else window.location.href = document.getElementById('nd-adv-search')?.getAttribute('href') || '/search/';
     });
-    document.getElementById('command-palette-trigger')?.addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('openCommandPalette'));
+    document.getElementById('nd-search')?.addEventListener('click', () => {
+      setDrawer(false);
+      (window as any).searchPalette?.open();
     });
+
+    // Graph is a plain link to /graph-view/ — the drawer's "any <a> click
+    // closes it" handler above covers it, and Swup handles the navigation.
+
+    // ── Appearance (drawer footer) ─────────────────────────────────────────
+    // Mode: light / dark / auto. Storage contract matches the site bootstrap:
+    // localStorage 'theme' = 'light' | 'dark'; ABSENT = follow the system.
+    const applyMode = (mode: string) => {
+      const html = document.documentElement;
+      const dark = mode === 'dark' ||
+        (mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (mode === 'auto') localStorage.removeItem('theme');
+      else localStorage.setItem('theme', mode);
+      html.classList.remove('light', 'dark');
+      html.classList.add(dark ? 'dark' : 'light');
+      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: dark ? 'dark' : 'light' } }));
+    };
+    const markAppearance = () => {
+      const mode = localStorage.getItem('theme') ?? 'auto';
+      document.querySelectorAll<HTMLElement>('#nd-mode .nd-mode-btn').forEach(b =>
+        b.setAttribute('aria-checked', String(b.dataset.mode === mode)));
+      const theme = document.documentElement.getAttribute('data-theme');
+      let activeRow: HTMLElement | null = null;
+      document.querySelectorAll<HTMLElement>('#nd-themes .nd-theme').forEach(b => {
+        const on = b.dataset.theme === theme;
+        b.setAttribute('aria-checked', String(on));
+        if (on) activeRow = b;
+      });
+      // Mirror the active palette onto the dropdown trigger
+      if (activeRow) {
+        const name = document.getElementById('nd-palette-name');
+        const swatch = document.getElementById('nd-palette-swatch');
+        const rowSwatch = (activeRow as HTMLElement).querySelector<HTMLElement>('.nd-swatch');
+        if (name) name.textContent =
+          (activeRow as HTMLElement).querySelector('.nd-theme-name')?.textContent ?? '';
+        if (swatch && rowSwatch) swatch.style.cssText = rowSwatch.style.cssText;
+      }
+    };
+    // Palette dropdown open/close
+    const paletteTrigger = document.getElementById('nd-palette-trigger');
+    const paletteList = document.getElementById('nd-themes');
+    const setPaletteList = (open: boolean) => {
+      if (!paletteTrigger || !paletteList) return;
+      paletteList.hidden = !open;
+      paletteTrigger.setAttribute('aria-expanded', String(open));
+      if (open) paletteList.querySelector<HTMLElement>('[aria-checked="true"]')
+        ?.scrollIntoView({ block: 'nearest' });
+    };
+    paletteTrigger?.addEventListener('click', () => setPaletteList(!!paletteList?.hidden));
+    document.getElementById('nd-mode')?.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLElement>('.nd-mode-btn');
+      if (!btn?.dataset.mode) return;
+      applyMode(btn.dataset.mode);
+      markAppearance();
+    });
+    // In auto mode, follow live system changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (localStorage.getItem('theme')) return; // explicit choice wins
+      const html = document.documentElement;
+      html.classList.remove('light', 'dark');
+      html.classList.add(e.matches ? 'dark' : 'light');
+      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: e.matches ? 'dark' : 'light' } }));
+    });
+    document.getElementById('nd-themes')?.addEventListener('click', (e) => {
+      const btn = (e.target as Element).closest<HTMLElement>('.nd-theme');
+      if (!btn?.dataset.theme) return;
+      (window as any).changeTheme?.(btn.dataset.theme);
+      markAppearance();
+      setPaletteList(false); // selection made — tuck the list away
+    });
+    window.addEventListener('themechange', markAppearance);
+    markAppearance();
+
+    // Platform-correct shortcut hint on the drawer search row
+    const kbd = document.getElementById('nd-search-kbd');
+    if (kbd && /mac/i.test(navigator.platform)) kbd.textContent = '⌘K';
   }
 }
 
 loadNavScript();
 document.addEventListener('swup:page:view', loadNavScript);
-
-function initGraphModal() {
-    const overlay = document.getElementById('graph-modal-overlay');
-    if (!overlay) return;
-
-    const close = document.getElementById('graph-modal-close');
-
-    const open  = () => {
-        overlay.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        (overlay as HTMLElement).focus();
-        const slot = document.getElementById('graph-iframe-slot');
-        if (!slot) return;
-        const isDark = document.documentElement.classList.contains('dark');
-        const existing = slot.querySelector('iframe') as HTMLIFrameElement | null;
-        if (!existing) {
-            const iframe = document.createElement('iframe');
-            iframe.src = `/graph-embed?theme=${isDark ? 'dark' : 'light'}`;
-            iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;background:transparent;';
-            iframe.title = 'Knowledge graph';
-            slot.appendChild(iframe);
-        } else {
-            existing.contentWindow?.postMessage({ type: 'set-theme', dark: isDark }, '*');
-        }
-    };
-    const shut  = () => { overlay.classList.add('hidden'); document.body.style.overflow = ''; };
-
-    // Header graph button only exists when featureButton === 'graph'
-    const btn = document.getElementById('header-graph-button');
-    if (btn) btn.onclick = open;
-
-    // Expose open so command palette can call it directly (avoids overflow race)
-    (window as any).__openGraphModal = open;
-
-    if (close) close.onclick = shut;
-    overlay.onclick = e => { if (e.target === overlay) shut(); };
-
-    // Keydown: remove previous before re-adding to avoid accumulation across Swup navigations
-    const prev = (window as any).__graphKeydown;
-    if (prev) document.removeEventListener('keydown', prev);
-    const handler = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) shut();
-    };
-    document.addEventListener('keydown', handler);
-    (window as any).__graphKeydown = handler;
-}
-// Run immediately (Astro module scripts are deferred — DOM is ready)
-// Also guard for edge cases where readyState is still 'loading'
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initGraphModal);
-} else {
-    initGraphModal();
-}
-document.addEventListener('swup:page:view', initGraphModal);
 </script>
 
 <style>
@@ -327,54 +295,10 @@ document.addEventListener('swup:page:view', initGraphModal);
     pointer-events: none;
   }
 
-  /* ── Full-width frosted bg (scroll state) ── */
-  #navbar-bg {
-    position: absolute;
-    inset: 0;
-    background: var(--card-bg);
-    backdrop-filter: blur(16px) saturate(150%);
-    -webkit-backdrop-filter: blur(16px) saturate(150%);
-    border-bottom: 1px solid rgb(var(--color-highlight-600) / 0.15);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* ── Nav pill ── */
-  /* Light mode: amber gold (matches "Browse the Library" button) */
-  #nav-pill {
-    background: rgb(var(--color-highlight-600) / 0.9);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgb(var(--color-highlight-400) / 0.4);
-    box-shadow: 0 4px 20px rgb(var(--color-highlight-900) / 0.2);
-    transition: background 0.25s ease, box-shadow 0.25s ease,
-                border-color 0.25s ease, backdrop-filter 0.25s ease;
-  }
-  :global(.dark) #nav-pill {
-    background: rgb(var(--color-primary-800) / 0.92);
-    border-color: rgb(var(--color-highlight-600) / 0.2);
-    box-shadow: 0 4px 20px rgb(0 0 0 / 0.25);
-  }
-  /* Shed glass when full-width header bg takes over */
-  #navbar-wrapper:not(.nav-at-top) #nav-pill {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  /* ── Nav link colours ── */
-  /* On amber pill (light mode at top): light text */
-  .nav-link { color: rgb(var(--color-primary-50)); }
-  :global(.dark) .nav-link { color: rgb(var(--color-primary-100)); }
-  .nav-link:hover { color: rgb(255 255 255); }
-  /* When scrolled (transparent pill, frosted header): use dark text in light mode */
-  #navbar-wrapper:not(.nav-at-top) .nav-link { color: rgb(var(--color-primary-900)); }
-  :global(.dark) #navbar-wrapper:not(.nav-at-top) .nav-link { color: rgb(var(--color-primary-100)); }
-  #navbar-wrapper:not(.nav-at-top) .nav-link:hover { color: var(--primary); }
+  /* ── Hamburger icon swap (menu ⇄ x, driven by aria-expanded) ── */
+  #nav-menu-switch :global(.nav-menu-icon-close) { display: none; }
+  #nav-menu-switch[aria-expanded="true"] :global(.nav-menu-icon-close) { display: block; }
+  #nav-menu-switch[aria-expanded="true"] :global(.nav-menu-icon-open) { display: none; }
 
   /* ── Home link — plain text, no bg hover ── */
   .nav-home-link {
@@ -444,21 +368,6 @@ document.addEventListener('swup:page:view', initGraphModal);
     }
   }
 
-  /* ── Scrolled state: buttons shed glass and blend into the frosted header ── */
-  #navbar-wrapper:not(.nav-at-top) :global(.nav-glass-btn),
-  #navbar-wrapper:not(.nav-at-top) :global(#theme-toggle) {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-  #navbar-wrapper:not(.nav-at-top) :global(.nav-glass-btn:hover),
-  #navbar-wrapper:not(.nav-at-top) :global(#theme-toggle:hover) {
-    background: var(--btn-plain-bg-hover);
-    border-color: transparent;
-  }
-
   /* ── Dark hero (homepage): white tint for outer items at top ── */
   #navbar-wrapper.nav-at-top.has-dark-hero .nav-home-link {
     color: rgb(var(--color-highlight-300));
@@ -478,93 +387,5 @@ document.addEventListener('swup:page:view', initGraphModal);
     background: rgb(var(--color-primary-800) / 0.7);
     border-color: rgb(var(--color-highlight-500) / 0.6);
     color: rgb(var(--color-highlight-100));
-  }
-  /* Pill nav links on dark hero: already light from the amber pill rule above */
-  #navbar-wrapper.nav-at-top.has-dark-hero .nav-link:hover {
-    color: rgb(255 255 255);
-  }
-
-  /* ── Graph modal overlay ── */
-  /*
-   * The overlay hides via opacity+visibility, NOT display:none.
-   * display:none collapses the canvas to 0×0 so graph-component initializes
-   * with no dimensions and all nodes cluster at (0,0).
-   *
-   * The HTML starts with Tailwind's .hidden class for SSR accessibility, but
-   * the rule below overrides its display:none (higher specificity wins on !important)
-   * so the overlay stays display:flex and the canvas gets real dimensions on load.
-   */
-  .graph-modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9990;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: stretch;
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-    /* visibility delay keeps element hidden until opacity fade-out completes */
-    transition: opacity 0.2s ease, visibility 0s 0.2s;
-  }
-  /* Two-class selector beats Tailwind's single-class .hidden { display:none !important } */
-  .graph-modal-overlay.hidden {
-    display: flex !important;
-  }
-  .graph-modal-overlay:not(.hidden) {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
-    transition: opacity 0.2s ease, visibility 0s 0s;
-  }
-
-  .graph-modal-body {
-    flex: 1;
-    /* Explicit height required so percentage heights (height:100%) propagate
-       correctly through the slsg-wrapper → graph-component → canvas chain */
-    height: 100%;
-    min-height: 0;
-    position: relative;
-    /* Opaque background so transparent canvas doesn't show page behind */
-    background: rgb(var(--color-primary-50));
-  }
-  :global(.dark) .graph-modal-body {
-    background: rgb(var(--color-primary-950));
-  }
-
-  /* Close button: top-LEFT so it doesn't collide with SLSG's action buttons (top-right) */
-  .graph-modal-close {
-    position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
-    /* Above SLSG action container (z-index: 10) */
-    z-index: 20;
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 0.25rem;
-    border: 1px solid rgb(var(--color-primary-200));
-    background: rgb(var(--color-primary-50) / 0.9);
-    color: rgb(var(--color-primary-600));
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    backdrop-filter: blur(4px);
-  }
-  :global(.dark) .graph-modal-close {
-    border-color: rgb(var(--color-primary-700));
-    background: rgb(var(--color-primary-950) / 0.9);
-    color: rgb(var(--color-primary-300));
-  }
-  .graph-modal-close:hover {
-    border-color: rgb(var(--color-highlight-500));
-    color: rgb(var(--color-highlight-600));
-    background: rgb(var(--color-primary-50) / 0.98);
-  }
-  :global(.dark) .graph-modal-close:hover {
-    border-color: rgb(var(--color-highlight-400));
-    color: rgb(var(--color-highlight-400));
-    background: rgb(var(--color-primary-950) / 0.98);
   }
 </style>

@@ -55,6 +55,10 @@ export class GraphComponent extends HTMLElement {
 	themeObserver: MutationObserver;
 	propertyObserver: MutationObserver;
 
+	/** True once teardown() has run — the component is dead and cannot be revived
+	 *  (renderer/simulator are constructed once, in the constructor). */
+	private destroyed: boolean = false;
+
 	constructor() {
 		super();
 		// Fallback to a detached div when there's no previous sibling (our Graph.astro
@@ -153,18 +157,26 @@ export class GraphComponent extends HTMLElement {
 		console.error('[STARLIGHT-SITE-GRAPH] graph failed to initialize:', e);
 		this.classList.remove('slsg-graph-skeleton');
 		this.placeholderContainer.style.display = 'none';
-		// Hide the whole SiteGraph wrapper (covers sidebar / modal / hero) so no
-		// empty bordered strip or dead canvas remains.
-		const wrapper = this.closest('.slsg-wrapper') as HTMLElement | null;
-		if (wrapper) wrapper.style.display = 'none';
-		this.style.display = 'none';
+		// Hide the dead canvas container, but keep the component visible and show a
+		// short user-facing notice instead of an empty box / silently missing panel.
+		this.graphContainer.style.display = 'none';
+		const notice = document.createElement('p');
+		notice.className = 'slsg-graph-fallback';
+		notice.textContent = 'Graph view unavailable';
+		notice.style.cssText = 'margin:0;padding:0.75rem 0;font-size:0.8125rem;line-height:1.4;opacity:0.55;text-align:center;';
+		this.appendChild(notice);
+		this.style.visibility = 'visible';
 	}
 
 	async connectedCallback() {
+		// A destroyed component cannot be revived (PixiJS app + observers are gone);
+		// Swup always creates a brand-new element for the next page, so this only
+		// guards against pathological re-insertion of a torn-down node.
+		if (this.destroyed) return;
 		const sitemapUrl = this.dataset['sitemapUrl'];
 		if (sitemapUrl) {
 			this.sitemap = await fetch(sitemapUrl).then(r => r.json()).catch(() => ({}));
-			if (!this.isConnected) return;
+			if (!this.isConnected || this.destroyed) return;
 			if (this.simulator?.mounted) {
 				this.full_refresh();
 			}
@@ -250,7 +262,23 @@ export class GraphComponent extends HTMLElement {
 		}
 	}
 
-	override remove() {
+	/**
+	 * Full teardown: releases the PixiJS Application (and its WebGL context — browsers
+	 * cap ~8-16 live contexts per tab), stops the simulation, removes all containers
+	 * (graphContainer/blurContainer may be parented on document.body while fullscreen),
+	 * and disconnects both MutationObservers. Idempotent — safe to reach via both
+	 * remove() and disconnectedCallback().
+	 */
+	private teardown() {
+		if (this.destroyed) return;
+		this.destroyed = true;
+
+		if (this.isFullscreen) {
+			// Unregister the document-level click-outside listener added by enableFullscreen().
+			this.fullscreenExitHandler?.();
+			this.isFullscreen = false;
+		}
+
 		this.renderer.destroy();
 		this.simulator.destroy();
 		this.placeholderContainer.remove();
@@ -261,7 +289,10 @@ export class GraphComponent extends HTMLElement {
 
 		this.themeObserver.disconnect();
 		this.propertyObserver.disconnect();
+	}
 
+	override remove() {
+		this.teardown();
 		super.remove();
 	}
 
@@ -349,13 +380,20 @@ export class GraphComponent extends HTMLElement {
 	}
 
 	disconnectedCallback() {
-		// Swup navigation removes graph-component from DOM while fullscreen may be active.
-		// graphContainer and blurContainer live on document.body at that point — clean them up.
-		if (this.isFullscreen) {
-			this.graphContainer.remove();
-			this.blurContainer.remove();
-			document.body.dataset['graphBlur'] = '';
-		}
+		// Swup navigation replaces #swup-container HTML, permanently detaching this
+		// element (the next page gets a brand-new <graph-component> whose constructor
+		// re-runs full setup). Without teardown here, every navigation leaked a live
+		// PixiJS Application + WebGL context + two MutationObservers.
+		//
+		// Fullscreen toggling does NOT re-parent <graph-component> itself — only
+		// graphContainer/blurContainer move to document.body — so this callback never
+		// fires during fullscreen enter/exit. The microtask defer below still guards
+		// the theoretical case of the element being moved within the DOM (which fires
+		// disconnected+connected synchronously): if it was re-attached by the time the
+		// microtask runs, we skip teardown.
+		queueMicrotask(() => {
+			if (!this.isConnected) this.teardown();
+		});
 	}
 
 	enableFullscreen() {

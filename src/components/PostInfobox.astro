@@ -1,0 +1,156 @@
+---
+// Wiki-style article infobox — static build-time HTML, no client JS (Swup-safe).
+// Rendered at the top of the right gutter; marginalia notes stack below it
+// via the collision guard in /src/scripts/marginalia-client.ts (#post-infobox).
+import { formatDate } from '@/utils/markdown';
+
+export interface Props {
+  date: Date;
+  modified?: Date;
+  readingTimeText?: string;
+  wordCount?: number;
+  sourceCounts: { quran: number; bible: number; hadith: number; scholar: number };
+}
+
+const { date, modified, readingTimeText, wordCount, sourceCounts } = Astro.props;
+
+const sources = [
+  { label: 'Qurʼan', count: sourceCounts.quran },
+  { label: 'Bible', count: sourceCounts.bible },
+  { label: 'Hadith', count: sourceCounts.hadith },
+  { label: 'Scholars', count: sourceCounts.scholar },
+].filter(s => s.count > 0);
+
+const lengthParts = [
+  wordCount !== undefined ? `${wordCount.toLocaleString()} words` : null,
+  readingTimeText && readingTimeText !== 'read0' ? readingTimeText : null,
+].filter(Boolean);
+---
+
+<div class="post-infobox" id="post-infobox">
+  <div class="post-infobox-ornament" aria-hidden="true">
+    <span class="post-infobox-line"></span>
+    <span class="post-infobox-diamond">◈</span>
+    <span class="post-infobox-line"></span>
+  </div>
+
+  <dl class="post-infobox-rows">
+    <div class="post-infobox-row">
+      <dt>Published</dt>
+      <dd><time datetime={date.toISOString()}>{formatDate(date)}</time></dd>
+    </div>
+
+    {modified && (
+      <div class="post-infobox-row">
+        <dt>Updated</dt>
+        <dd><time datetime={modified.toISOString()}>{formatDate(modified)}</time></dd>
+      </div>
+    )}
+
+    {lengthParts.length > 0 && (
+      <div class="post-infobox-row">
+        <dt>Length</dt>
+        <dd>{lengthParts.join(' · ')}</dd>
+      </div>
+    )}
+
+    {sources.length > 0 && (
+      <div class="post-infobox-row">
+        <dt>Sources cited</dt>
+        <dd>
+          <ul class="post-infobox-sources">
+            {sources.map(s => (
+              <li><span class="post-infobox-source-label">{s.label}</span><span class="post-infobox-source-count">{s.count}</span></li>
+            ))}
+          </ul>
+        </dd>
+      </div>
+    )}
+  </dl>
+</div>
+
+<style>
+  .post-infobox {
+    border: 1px solid rgb(var(--color-highlight-400) / 0.25);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 0.95rem 0.95rem;
+    background: rgb(var(--color-highlight-500) / 0.03);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+  :global(.dark) .post-infobox {
+    border-color: rgb(var(--color-highlight-500) / 0.25);
+    background: rgb(var(--color-highlight-400) / 0.04);
+  }
+
+  .post-infobox-ornament {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.7rem;
+    color: rgb(var(--color-highlight-600));
+  }
+  :global(.dark) .post-infobox-ornament { color: rgb(var(--color-highlight-400)); }
+  .post-infobox-line {
+    flex: 1;
+    height: 1px;
+    background: rgb(var(--color-highlight-400) / 0.25);
+  }
+  .post-infobox-diamond {
+    font-size: 0.6rem;
+    opacity: 0.8;
+    line-height: 1;
+  }
+
+  .post-infobox-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin: 0;
+  }
+  .post-infobox-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .post-infobox-row dt {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgb(var(--color-primary-400));
+  }
+  :global(.dark) .post-infobox-row dt {
+    color: rgb(var(--color-primary-500));
+  }
+  .post-infobox-row dd {
+    margin: 0;
+    color: rgb(var(--color-primary-700));
+  }
+  :global(.dark) .post-infobox-row dd {
+    color: rgb(var(--color-primary-300));
+  }
+
+  .post-infobox-sources {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .post-infobox-sources li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .post-infobox-source-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: rgb(var(--color-highlight-600));
+  }
+  :global(.dark) .post-infobox-source-count {
+    color: rgb(var(--color-highlight-400));
+  }
+</style>

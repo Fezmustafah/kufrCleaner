@@ -1,283 +1,324 @@
 ---
+// Minimal line-rail TOC, ported from aarnphm.github.io (Quartz).
+// Each heading renders as a thin horizontal line; hovering the rail magnifies
+// lines with a gaussian falloff and shows a floating label; headings currently
+// on screen get their line emphasised (`in-view`, via IntersectionObserver).
+// All behaviour lives in /src/scripts/toc-client.ts (loaded globally from
+// BaseLayout — Swup-safe, re-inits on astro:page-load).
 import type { Heading } from '@/types';
 import { getTableOfContentsDepth } from '@/config';
 
 export interface Props {
   headings: Heading[];
+  /** Per-section hover-card data, keyed by normalized heading text (built in PostLayout) */
+  sectionMeta?: Map<string, { excerpt: string; children: string[] }>;
 }
 
-const { headings } = Astro.props;
+const { headings, sectionMeta } = Astro.props;
+
+const metaFor = (text: string) =>
+  sectionMeta?.get(text.replace(/\s+/g, ' ').trim().toLowerCase());
 
 const maxDepth = getTableOfContentsDepth();
-const filteredHeadings = headings.filter(h => h.depth >= 2 && h.depth <= maxDepth);
+// footnote-label = the GFM footnote section's heading — not part of the body
+const filteredHeadings = headings.filter(
+  h => h.depth >= 2 && h.depth <= maxDepth && h.slug !== 'footnote-label'
+);
 const shouldShowTOC = filteredHeadings.length > 1;
 
 const minDepth = filteredHeadings.length > 0
   ? Math.min(...filteredHeadings.map(h => h.depth))
   : 2;
 
-let topCount = 0;
-const processedHeadings = filteredHeadings.map(h => {
-  const isTop = h.depth === minDepth;
-  if (isTop) topCount++;
-  const level = h.depth - minDepth + 1;
-  return { ...h, isTop, count: isTop ? topCount : 0, level };
-});
+const denseTocThreshold = 50;
+const density = filteredHeadings.length > denseTocThreshold ? 'dense' : undefined;
 ---
 
 {shouldShowTOC && (
-  <nav class="toc-nav" data-max-depth={maxDepth}>
-    <div class="toc-scroll-container" id="toc-scroll-container">
-      <div class="toc-content" id="toc-content-list">
-        {processedHeadings.map(h => (
-          <a
-            href={`#${h.slug}`}
-            class={`toc-item toc-level-${h.depth - minDepth}`}
-            data-heading={h.slug}
-            title={h.text}
-            aria-label={h.text}
-          >
-            <div class={`toc-badge ${h.isTop ? 'toc-badge-index' : ''}`}>
-              {h.isTop
-                ? String(h.count).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)])
-                : h.level === 2
-                  ? <span class="toc-badge-dot"></span>
-                  : <span class="toc-badge-dot toc-badge-dot-sm"></span>
-              }
-            </div>
-            <span class={`toc-label ${h.isTop ? 'toc-label-primary' : h.level === 2 ? 'toc-label-primary' : 'toc-label-secondary'}`}>{h.text}</span>
-          </a>
-        ))}
-        <div class="toc-active-indicator" id="toc-active-indicator"></div>
-      </div>
+  <div class="toc" data-layout="minimal" data-density={density}>
+    <nav id="toc-vertical" aria-label="Table of contents">
+      {filteredHeadings.map((h, idx) => (
+        <button
+          class={`toc-item depth-${h.depth - minDepth}`}
+          data-depth={h.depth - minDepth}
+          data-href={`#${h.slug}`}
+          data-for={h.slug}
+          data-excerpt={metaFor(h.text)?.excerpt || ''}
+          data-children={JSON.stringify(metaFor(h.text)?.children || [])}
+          tabindex={-1}
+          type="button"
+          style={`--animation-order: ${idx + 1}`}
+          aria-label={h.text}
+        >
+          <div class="fill"></div>
+        </button>
+      ))}
+    </nav>
+    <!-- Hover preview card (Codex-style): title + section excerpt + subsection chips -->
+    <div class="toc-card" aria-hidden="true">
+      <div class="toc-card-title"></div>
+      <div class="toc-card-excerpt"></div>
+      <div class="toc-card-footer"></div>
     </div>
-  </nav>
+  </div>
 )}
 
-<!-- Script extracted to /src/scripts/toc-client.ts and imported globally
-     from BaseLayout so it loads on every page (works around Astro+Swup
-     reloadScripts:false: per-component scripts that aren't on the initial page
-     never run after Swup nav). The init function no-ops when .toc-nav
-     is not in the DOM. -->
+<style is:global>
+  /* Global (not scoped): toc-client.ts toggles classes on <body>, and the
+     veil pseudo-element lives on body — unreachable from scoped styles. */
 
+  .toc[data-layout='minimal'] {
+    --toc-rail-width: 4.5rem;
+    --toc-label-offset: calc(var(--toc-rail-width) + 1.25rem);
+    --fill-width: 1rem;
+    --toc-scroll-buffer: 48px;
+    --toc-mask-buffer: 32px;
 
-<style>
-  /* ── Container — no card, matches fuwari's clean list ─────────────────── */
-  .toc-nav {
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  /* ── Scroll container — fade mask at top/bottom (fuwari toc-inner-wrapper) */
-  .toc-scroll-container {
-    position: relative;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-    padding: 1.5rem 0.125rem 1.5rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--color-primary-300) / 0.5) transparent;
-    mask-image: linear-gradient(
-      to bottom,
-      transparent,
-      black 1.5rem,
-      black calc(100% - 1.5rem),
-      transparent
-    );
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      transparent,
-      black 1.5rem,
-      black calc(100% - 1.5rem),
-      transparent
-    );
-  }
-  :global(.dark) .toc-scroll-container {
-    scrollbar-color: rgb(var(--color-primary-600) / 0.4) transparent;
-  }
-  .toc-scroll-container::-webkit-scrollbar { width: 4px; }
-  .toc-scroll-container::-webkit-scrollbar-track { background: transparent; }
-  .toc-scroll-container::-webkit-scrollbar-thumb {
-    background: rgb(var(--color-primary-300) / 0.5);
-    border-radius: 4px;
-  }
-  :global(.dark) .toc-scroll-container::-webkit-scrollbar-thumb {
-    background: rgb(var(--color-primary-600) / 0.4);
-  }
-
-  /* ── Content list ─────────────────────────────────────────────────────── */
-  .toc-content {
     display: flex;
     flex-direction: column;
-    gap: 0.28rem;
     position: relative;
+    width: var(--toc-rail-width);
     overflow: visible;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    contain: layout;
-    align-items: stretch;
-    padding: 0.125rem 0;
   }
 
-  /* ── Item ──────────────────────────────────────────────────────────────── */
-  .toc-item {
+  @keyframes toc-fill-expand {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  nav#toc-vertical {
+    --button-height: 0.6rem;
+
     display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    text-decoration: none;
-    color: inherit;
-    border-radius: var(--radius-md);
-    transition:
-      background-color 0.14s ease,
-      transform 0.14s ease,
-      color 0.14s ease;
-    width: 100%;
-    min-width: 0;
-    flex-shrink: 0;
-    max-width: 100%;
-    overflow: hidden;
-    box-sizing: border-box;
+    flex-direction: column;
     position: relative;
-    padding: 0.28rem 0.62rem;
-    min-height: 1.8rem;
+    cursor: pointer;
+    width: var(--toc-rail-width);
+    max-height: calc(100vh - 12rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    scroll-padding-block: var(--toc-scroll-buffer);
   }
-  .toc-item:hover {
-    background: rgb(var(--color-primary-100) / 0.84);
-    transform: translateX(1px);
+  nav#toc-vertical::-webkit-scrollbar { display: none; }
+
+  nav#toc-vertical.is-scrollable {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--toc-mask-buffer),
+      black calc(100% - var(--toc-mask-buffer)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--toc-mask-buffer),
+      black calc(100% - var(--toc-mask-buffer)),
+      transparent 100%
+    );
   }
-  :global(.dark) .toc-item:hover {
-    background: rgb(var(--color-primary-800) / 0.84);
+  nav#toc-vertical.is-scrollable.at-start {
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - var(--toc-mask-buffer)), transparent 100%);
+    mask-image: linear-gradient(to bottom, black calc(100% - var(--toc-mask-buffer)), transparent 100%);
+  }
+  nav#toc-vertical.is-scrollable.at-end {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black var(--toc-mask-buffer), black 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, black var(--toc-mask-buffer), black 100%);
+  }
+  nav#toc-vertical.is-scrollable.at-start.at-end {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
-  /* Indentation */
-  .toc-level-0 { padding-left: 0.62rem; }
-  .toc-level-1 { padding-left: 1.08rem; }
-  .toc-level-2 { padding-left: 1.62rem; }
+  nav#toc-vertical button.toc-item {
+    display: inline-flex;
+    flex: none;
+    border: none;
+    background: transparent;
+    height: var(--button-height);
+    min-block-size: var(--button-height);
+    max-width: var(--fill-width);
+    position: relative;
+    align-items: center;
+    padding: 0;
+    transform-origin: center;
+  }
 
-  /* ── Active indicator — fuwari style: no shadow, hover = dashed border ── */
-  .toc-active-indicator {
-    position: absolute;
-    left: 0;
-    right: 0;
-    background: rgb(var(--color-highlight-400) / 0.07);
-    border-radius: var(--radius-xs);
-    border: 1px dashed transparent;
+  /* Depth → line width: h2 longest, deeper headings shorter */
+  nav#toc-vertical button.toc-item.depth-1 { --fill-width: 0.7rem; }
+  nav#toc-vertical button.toc-item.depth-2,
+  nav#toc-vertical button.toc-item.depth-3,
+  nav#toc-vertical button.toc-item.depth-4 { --fill-width: 0.45rem; }
+
+  nav#toc-vertical button.toc-item > .fill {
+    background-color: rgb(var(--color-primary-900));
+    opacity: 0.3;
+    height: 3px;
+    width: 100%;
+    min-width: var(--fill-width);
+    transform: scaleX(0);
+    transform-origin: 0 0;
+    animation: toc-fill-expand 0.5s forwards;
+    animation-delay: calc((var(--animation-order) - 1) * 0.1s + 0.3s);
     transition:
-      top 0.18s ease,
-      height 0.18s ease,
-      opacity 0.14s ease,
-      background-color 0.14s ease,
-      border-color 0.14s ease;
-    z-index: -1;
-    pointer-events: none;
+      background-color 0.08s cubic-bezier(0.2, 0, 0, 1),
+      opacity 0.08s cubic-bezier(0.2, 0, 0, 1);
+    will-change: transform;
   }
-  :global(.dark) .toc-active-indicator {
-    background: rgb(var(--color-highlight-500) / 0.08);
-  }
-  /* Dashed border only after intentional mouse movement (JS adds .is-hovered) */
-  .toc-nav.is-hovered .toc-active-indicator {
-    background: rgb(var(--color-highlight-400) / 0.05);
-    border-color: rgb(var(--color-highlight-400) / 0.35);
-  }
-  :global(.dark) .toc-nav.is-hovered .toc-active-indicator {
-    border-color: rgb(var(--color-highlight-500) / 0.35);
+  .dark nav#toc-vertical button.toc-item > .fill {
+    background-color: rgb(var(--color-primary-100));
   }
 
-  /* ── Badge ─────────────────────────────────────────────────────────────── */
-  .toc-badge {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 1.6rem;
-    height: 1.6rem;
-    border-radius: var(--radius-xs);
-    font-size: 0.9rem;
-    font-weight: 700;
-    line-height: 1;
-  }
-  .toc-badge-index {
-    background: rgb(var(--color-highlight-100) / 0.6);
-    color: rgb(var(--color-highlight-700));
-    border: 1px solid rgb(var(--color-highlight-300) / 0.4);
-  }
-  :global(.dark) .toc-badge-index {
-    background: rgb(var(--color-highlight-900) / 0.35);
-    color: rgb(var(--color-highlight-300));
-    border-color: rgb(var(--color-highlight-700) / 0.4);
-  }
-  .toc-badge-dot {
-    display: block;
-    width: 0.42rem;
-    height: 0.42rem;
-    border-radius: 0;
-    transform: rotate(45deg);
-    background: rgb(var(--color-primary-300));
-    transition: background-color 0.14s ease, transform 0.14s ease;
-  }
-  :global(.dark) .toc-badge-dot {
-    background: rgb(var(--color-primary-600));
-  }
-  .toc-badge-dot-sm {
-    width: 0.28rem;
-    height: 0.28rem;
-    background: rgb(var(--color-primary-200));
-  }
-  :global(.dark) .toc-badge-dot-sm {
-    background: rgb(var(--color-primary-700));
+  /* No stagger on dense TOCs (50+ headings) */
+  .toc[data-layout='minimal'][data-density='dense'] nav#toc-vertical button.toc-item > .fill {
+    animation: none;
+    transform: scaleX(1);
   }
 
-  /* ── Active state ──────────────────────────────────────────────────────── */
-  .toc-item.visible .toc-label {
-    color: rgb(var(--color-highlight-600));
+  /* Heading currently on screen — gold, the scroll-tracking signal */
+  nav#toc-vertical button.toc-item.in-view > .fill {
+    background-color: rgb(var(--color-highlight-600));
+    opacity: 0.9;
+  }
+  .dark nav#toc-vertical button.toc-item.in-view > .fill {
+    background-color: rgb(var(--color-highlight-400));
+  }
+
+  /* Hover state: all lines wake up, nearest is fully dark */
+  .toc[data-layout='minimal'].is-hovering nav#toc-vertical button.toc-item > .fill {
+    opacity: 0.45;
+  }
+  .toc[data-layout='minimal'].is-hovering nav#toc-vertical button.toc-item.in-view > .fill {
+    opacity: 0.9;
+  }
+  .toc[data-layout='minimal'].is-hovering nav#toc-vertical button.toc-item.is-active > .fill {
+    background-color: rgb(var(--color-primary-900));
     opacity: 1;
   }
-  :global(.dark) .toc-item.visible .toc-label {
-    color: rgb(var(--color-highlight-400));
-  }
-  .toc-item.visible .toc-badge-dot,
-  .toc-item.visible .toc-badge-dot-sm {
-    background: rgb(var(--color-highlight-500));
-    transform: rotate(45deg) scale(1.15);
-  }
-  :global(.dark) .toc-item.visible .toc-badge-dot,
-  :global(.dark) .toc-item.visible .toc-badge-dot-sm {
-    background: rgb(var(--color-highlight-400));
-    transform: rotate(45deg) scale(1.15);
-  }
-  .toc-item.visible .toc-badge-index {
-    background: rgb(var(--color-highlight-100));
-    color: rgb(var(--color-highlight-600));
-  }
-  :global(.dark) .toc-item.visible .toc-badge-index {
-    background: rgb(var(--color-highlight-900) / 0.5);
-    color: rgb(var(--color-highlight-400));
+  .dark .toc[data-layout='minimal'].is-hovering nav#toc-vertical button.toc-item.is-active > .fill {
+    background-color: rgb(var(--color-primary-50));
   }
 
-  /* ── Label ─────────────────────────────────────────────────────────────── */
-  .toc-label {
+  /* Floating preview card — follows the cursor beside the rail (Codex-style) */
+  .toc[data-layout='minimal'] > .toc-card {
+    position: absolute;
+    top: 0;
+    left: var(--toc-label-offset);
+    width: max-content;
+    max-width: min(26rem, 44vw);
+    background: #ffffff;
+    border: 1px solid rgb(var(--color-primary-200) / 0.7);
+    border-radius: 1rem;
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.04),
+      0 8px 28px rgb(0 0 0 / 0.10);
+    padding: 0.8rem 1rem 0.75rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate3d(0, var(--toc-label-y, 0px), 0) translateY(-50%);
+    transform-origin: 0 50%;
+    transition: opacity 0.12s cubic-bezier(0.2, 0, 0, 1);
+    will-change: transform, opacity;
+    z-index: 60;
+  }
+  .dark .toc[data-layout='minimal'] > .toc-card {
+    background: rgb(var(--color-primary-900));
+    border-color: rgb(var(--color-primary-700) / 0.6);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.3),
+      0 8px 28px rgb(0 0 0 / 0.45);
+  }
+  .toc[data-layout='minimal'].is-hovering > .toc-card.is-visible {
+    opacity: 1;
+  }
+
+  .toc-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: rgb(var(--color-primary-900));
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .dark .toc-card-title { color: rgb(var(--color-primary-50)); }
+
+  .toc-card-excerpt {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: rgb(var(--color-primary-400));
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-wrap: pretty;
+  }
+  .dark .toc-card-excerpt { color: rgb(var(--color-primary-400)); }
+  .toc-card-excerpt:empty { display: none; }
+
+  .toc-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 0.55rem;
+    font-size: 0.8rem;
+    color: rgb(var(--color-primary-400));
+    min-width: 0;
+  }
+  .toc-card-footer:empty { display: none; }
+
+  .toc-card-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  .toc-card-chip svg {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    opacity: 0.75;
+  }
+  .toc-card-chip-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    min-width: 0;
-    flex: 1;
-    max-width: calc(100% - 2.4rem);
-    box-sizing: border-box;
-    font-size: 0.86rem;
-    line-height: 1.3;
-    letter-spacing: 0.01em;
+    max-width: 9rem;
   }
-  .toc-label-primary {
-    color: rgb(var(--color-primary-600));
+  .toc-card-more {
+    flex-shrink: 0;
   }
-  :global(.dark) .toc-label-primary {
-    color: rgb(var(--color-primary-300));
+
+  /* Page veil while hovering the rail — content dims/blurs behind the label */
+  body.toc-hovering::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    background: rgb(255 255 255 / 0.56);
   }
-  .toc-label-secondary {
-    color: rgb(var(--color-primary-400));
+  .dark body.toc-hovering::before {
+    background: rgb(var(--color-primary-950) / 0.56);
   }
-  :global(.dark) .toc-label-secondary {
-    color: rgb(var(--color-primary-500));
+  body.toc-hovering:not(.toc-scrolling)::before {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+  /* Rail (sticky left col) must sit above the veil */
+  body.toc-hovering .post-layout-left-col {
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    nav#toc-vertical button.toc-item > .fill {
+      animation: none;
+      transform: scaleX(1);
+    }
   }
 </style>

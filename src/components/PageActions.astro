@@ -35,10 +35,6 @@ const aiItems = [
 
 <aside class="post-actions-section" data-pagefind-ignore aria-label="Share and actions">
 
-  <div class="pa-divider">
-    <span class="pa-divider-label">Share this article</span>
-  </div>
-
   <div class="pa-btn-row">
 
     <!-- Share dropdown -->
@@ -84,39 +80,8 @@ const aiItems = [
 </aside>
 
 <style>
-  .post-actions-section {
-    margin-top: 3rem;
-  }
-
-  /* ── Divider ─────────────────────────────────────────────────── */
-  .pa-divider {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-  .pa-divider::before,
-  .pa-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgb(var(--color-primary-200) / 1);
-  }
-  :global(.dark) .pa-divider::before,
-  :global(.dark) .pa-divider::after {
-    background: rgb(var(--color-primary-700) / 1);
-  }
-  .pa-divider-label {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    color: rgb(var(--color-primary-400) / 1);
-  }
-  :global(.dark) .pa-divider-label {
-    color: rgb(var(--color-primary-500) / 1);
-  }
+  /* No margins/divider of its own — the colophon in PostLayout hosts this
+     inline with the document metadata. */
 
   /* ── Button row ──────────────────────────────────────────────── */
   .pa-btn-row {
@@ -235,46 +200,8 @@ const aiItems = [
   .pa-menu-item span { flex: 1; }
 </style>
 
-<script>
-  function initializePageActions() {
-    // ── Dropdowns ────────────────────────────────────────────────
-    document.querySelectorAll<HTMLElement>('.pa-dropdown').forEach((dropdown) => {
-      const id     = dropdown.dataset.dropdownId!;
-      const toggle = dropdown.querySelector<HTMLButtonElement>(`#pa-toggle-${id}`);
-      const menu   = dropdown.querySelector<HTMLElement>(`#pa-menu-${id}`);
-      if (!toggle || !menu) return;
+<!-- Behaviour lives in /src/scripts/page-actions-client.ts, loaded globally from
+     BaseLayout. A component-inline script only ships with pages that render the
+     component, so it never runs when a post is reached via Swup nav from a page
+     without it (Swup doesn't execute the fetched page's scripts). -->
 
-      const freshToggle = toggle.cloneNode(true) as HTMLButtonElement;
-      toggle.parentNode?.replaceChild(freshToggle, toggle);
-
-      freshToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const opening = !menu.classList.contains('is-open');
-        // close all
-        document.querySelectorAll('.pa-menu').forEach(m => m.classList.remove('is-open'));
-        document.querySelectorAll('.pa-dropdown-toggle').forEach(t =>
-          (t as HTMLButtonElement).setAttribute('aria-expanded', 'false'));
-        if (opening) {
-          menu.classList.add('is-open');
-          freshToggle.setAttribute('aria-expanded', 'true');
-        }
-      });
-    });
-
-    // outside click — deduplicated
-    if ((window as any)._paOutsideClick) {
-      document.removeEventListener('click', (window as any)._paOutsideClick);
-    }
-    const outsideClick = () => {
-      document.querySelectorAll('.pa-menu').forEach(m => m.classList.remove('is-open'));
-      document.querySelectorAll('.pa-dropdown-toggle').forEach(t =>
-        (t as HTMLButtonElement).setAttribute('aria-expanded', 'false'));
-    };
-    (window as any)._paOutsideClick = outsideClick;
-    document.addEventListener('click', outsideClick);
-  }
-
-  (window as any).initializePageActions = initializePageActions;
-  document.addEventListener('DOMContentLoaded', initializePageActions);
-  document.addEventListener('astro:page-load', initializePageActions);
-</script>

@@ -30,9 +30,6 @@ const {
     data-trailing-slashes={String(trailingSlashes)}
 ></graph-component>
 
-<script>
-    import { GraphComponent } from './graph-component';
-    if (!customElements.get('graph-component')) {
-        customElements.define('graph-component', GraphComponent);
-    }
-</script>
+<!-- Element registration lives in src/scripts/graph-client.ts (loaded by
+     BaseLayout on every page) — a per-page script here never executes when
+     the page is reached via Swup navigation (reloadScripts: false). -->

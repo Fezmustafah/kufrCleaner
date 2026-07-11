@@ -927,6 +927,99 @@ textarea {
   margin-bottom: 1rem;
 }
 
+/* ── Quotation callouts: de-carded ─────────────────────────────────────────
+ * Scripture/citation types (~70% of all callouts sitewide) drop the tinted
+ * card and become classical quotation blocks: left rule + attribution line.
+ * Color vars still come from [data-callout] rules above / callouts-custom.css.
+ * Alert types (note/warning/important/…) keep the card so they regain
+ * meaning by contrast.
+ */
+.callout[data-callout='quote'],
+.callout[data-callout='bible'],
+.callout[data-callout='quran'],
+.callout[data-callout='hadith'],
+.callout[data-callout='scholar'],
+.callout[data-callout='admission'],
+.callout[data-callout='cite'] {
+  border: none;
+  border-left: 3px solid var(--callout-color, rgb(var(--color-highlight-600)));
+  border-radius: 0;
+  background: transparent;
+  padding: 0.1rem 0 0.1rem 1.25rem;
+  margin: 1.4rem 0;
+}
+
+/* Attribution line: small-caps source label instead of a bold card title */
+.callout[data-callout='quote'] > .callout-title,
+.callout[data-callout='bible'] > .callout-title,
+.callout[data-callout='quran'] > .callout-title,
+.callout[data-callout='hadith'] > .callout-title,
+.callout[data-callout='scholar'] > .callout-title,
+.callout[data-callout='admission'] > .callout-title,
+.callout[data-callout='cite'] > .callout-title {
+  padding: 0 0 0.25rem;
+}
+
+.callout[data-callout='quote'] > .callout-title .callout-title-inner,
+.callout[data-callout='bible'] > .callout-title .callout-title-inner,
+.callout[data-callout='quran'] > .callout-title .callout-title-inner,
+.callout[data-callout='hadith'] > .callout-title .callout-title-inner,
+.callout[data-callout='scholar'] > .callout-title .callout-title-inner,
+.callout[data-callout='admission'] > .callout-title .callout-title-inner,
+.callout[data-callout='cite'] > .callout-title .callout-title-inner {
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.callout[data-callout='quote'] > .callout-title .callout-icon,
+.callout[data-callout='bible'] > .callout-title .callout-icon,
+.callout[data-callout='quran'] > .callout-title .callout-icon,
+.callout[data-callout='hadith'] > .callout-title .callout-icon,
+.callout[data-callout='scholar'] > .callout-title .callout-icon,
+.callout[data-callout='admission'] > .callout-title .callout-icon,
+.callout[data-callout='cite'] > .callout-title .callout-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.callout[data-callout='quote']:not(.is-collapsed) > .callout-content,
+.callout[data-callout='bible']:not(.is-collapsed) > .callout-content,
+.callout[data-callout='quran']:not(.is-collapsed) > .callout-content,
+.callout[data-callout='hadith']:not(.is-collapsed) > .callout-content,
+.callout[data-callout='scholar']:not(.is-collapsed) > .callout-content,
+.callout[data-callout='admission']:not(.is-collapsed) > .callout-content,
+.callout[data-callout='cite']:not(.is-collapsed) > .callout-content {
+  margin-bottom: 0.15rem;
+}
+
+/* ── Dialectic pair: objection vs response ─────────────────────────────────
+ * The site's argumentative structure made visible: objections are neutral
+ * grey, responses carry the highlight tint. Both keep the card form.
+ */
+.callout[data-callout='objection'] {
+  --callout-color:  rgb(var(--color-primary-500));
+  --callout-border: rgb(var(--color-primary-400) / 0.3);
+  --callout-bg:     rgb(var(--color-primary-500) / 0.06);
+}
+.dark .callout[data-callout='objection'] {
+  --callout-color:  rgb(var(--color-primary-400));
+  --callout-border: rgb(var(--color-primary-500) / 0.35);
+  --callout-bg:     rgb(var(--color-primary-500) / 0.10);
+}
+
+.callout[data-callout='response'] {
+  --callout-color:  rgb(var(--color-highlight-700));
+  --callout-border: rgb(var(--color-highlight-500) / 0.3);
+  --callout-bg:     rgb(var(--color-highlight-500) / 0.09);
+}
+.dark .callout[data-callout='response'] {
+  --callout-color:  rgb(var(--color-highlight-300));
+  --callout-border: rgb(var(--color-highlight-400) / 0.32);
+  --callout-bg:     rgb(var(--color-highlight-400) / 0.12);
+}
+
 /* Image Grid Layouts — build-time classes set by remark-image-grids */
 
 .prose .image-grid {
@@ -1374,11 +1467,10 @@ html.is-ready .transition-swup-fade {
   opacity: 1;
 }
 
-/* Ensure smooth transitions with hardware acceleration */
-#swup-container {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
+/* NOTE: no resting transform on #swup-container — a transform (even the old
+   translateZ(0) "hardware acceleration" hack) makes it the containing block
+   for position:fixed descendants, which breaks the viewport-fixed TOC rail.
+   transition.css still applies transforms during the 140ms nav animation. */
 
 /* TOC handling */
 #toc.toc-not-ready {
@@ -1421,10 +1513,8 @@ body {
 /* Lock scroll during transitions to prevent unwanted movement */
 /* Avoid global scroll locking during transitions; let Swup handle scroll */
 
-/* Keep footer and nav stable during transitions */
-footer, nav {
-  transform: translateZ(0);
-}
+/* NOTE: no translateZ(0) on footer/nav either — same containing-block trap
+   as #swup-container (breaks position:fixed/sticky descendants). */
 
 /* Header needs special handling to maintain sticky positioning */
 header {
@@ -1925,7 +2015,7 @@ svg:has(text:contains("mermaid version")) {
 
 /* ── Fuwari-compatible CSS vars ──────────────────────────────────────────── */
 :root {
-  --page-width: 82rem;
+  --page-width: 97rem;
   --primary: rgb(var(--color-highlight-600));
   --card-bg: rgb(var(--color-primary-50) / 0.82);   /* semi-transparent glass navbar */
   --btn-plain-bg-hover: rgb(var(--color-primary-100));
@@ -1936,6 +2026,10 @@ svg:has(text:contains("mermaid version")) {
   --radius-lg:    0.75rem;   /* prominent panels: tables, modals, sidebars */
   --radius-large: 0.5rem;    /* legacy alias → radius-md */
   --float-panel-bg: rgb(var(--color-primary-50) / 0.96);
+  /* App-shell chrome font (nav drawer, search palette, controls): a clean
+     system sans — the literary serifs (Lora/Cormorant) are for CONTENT. */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto,
+             'Helvetica Neue', Arial, sans-serif;
 }
 .dark {
   --primary: rgb(var(--color-highlight-400));
