@@ -75,8 +75,19 @@ window.addEventListener('pageshow', e => {
   if (e.persisted) { _annLastPath = ''; initAnnotations({ animate: true }); }
 });
 
+// Redraw with fresh colors on dark/light flips (class mutation) and palette
+// switches ('themechange' fires after updateThemeCSSVariables finishes, so the
+// new --ann-* values are already resolvable). Both can fire for one change —
+// coalesce so we only redraw once.
+let _annRedrawTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleAnnRedraw() {
+  clearTimeout(_annRedrawTimer);
+  _annRedrawTimer = setTimeout(() => initAnnotations({ animate: false }), 60);
+}
+window.addEventListener('themechange', scheduleAnnRedraw);
+
 let _annLastDark = document.documentElement.classList.contains('dark');
 new MutationObserver(() => {
   const isDark = document.documentElement.classList.contains('dark');
-  if (isDark !== _annLastDark) { _annLastDark = isDark; initAnnotations({ animate: false }); }
+  if (isDark !== _annLastDark) { _annLastDark = isDark; scheduleAnnRedraw(); }
 }).observe(document.documentElement, { attributeFilter: ['class'] });

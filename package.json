@@ -6,8 +6,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "cross-env ASTRO_CONTENT_COLLECTION_CACHE=false node scripts/setup-dev.mjs && node scripts/sync-images.js && node scripts/process-aliases.js && node scripts/generate-deployment-config.js && node scripts/generate-graph-data.js && node scripts/parse-bib.mjs && node scripts/generate-callout-css.js && node scripts/dev-with-port.js",
-    "build": "node scripts/sync-images.js && node scripts/process-aliases.js && node scripts/generate-deployment-config.js && node scripts/generate-graph-data.js --production && node scripts/parse-bib.mjs && node scripts/generate-callout-css.js && node scripts/cf-assets.js pre && astro build && node scripts/cf-assets.js post",
+    "build": "node scripts/sync-images.js && node scripts/process-aliases.js && node scripts/generate-deployment-config.js && node scripts/generate-graph-data.js --production && node scripts/parse-bib.mjs && node scripts/generate-callout-css.js && node scripts/prewarm-image-dims.mjs && node scripts/cf-assets.js pre && astro build && node scripts/cf-assets.js post",
     "parse-bib": "node scripts/parse-bib.mjs",
+    "prewarm-image-dims": "node scripts/prewarm-image-dims.mjs",
     "ai:index": "node scripts/ai-index.mjs",
     "ai:index:dry": "node scripts/ai-index.mjs --dry-run",
     "preview": "pnpm run build && node scripts/dev-with-port.js preview",

@@ -3,7 +3,7 @@ import type { GraphConfig } from '@/graph/config';
 import Graph from '@/graph/components/graph/Graph.astro';
 import '@/graph/graph.css';
 
-export type GraphMode = 'sidebar' | 'hero';
+export type GraphMode = 'sidebar' | 'hero' | 'showcase';
 
 interface Props {
     mode: GraphMode;
@@ -27,24 +27,28 @@ const sitemapUrl = `${base}graph/sitemap.json`;
 // label model: labels counter-scale by 1/k (screen-constant size), so
 // labelOpacityScale is retuned per mode around that.
 const BASE_CONFIG: Partial<GraphConfig> = {
-    // sidebar: depth=1 (direct neighbors only)
+    // sidebar/showcase: depth=1 (direct neighbors of currentSlug only)
     // hero: depth=-1 (full global graph on /graph-view/)
-    depth: mode === 'sidebar' ? 1 : -1,
-    scale: mode === 'sidebar' ? 1.0 : 1.1,
+    depth: mode === 'hero' ? -1 : 1,
+    scale: mode === 'hero' ? 1.1 : mode === 'showcase' ? 1.3 : 1.0,
 
     // Zoom-driven label opacity: getCurrentLabelOpacity(k) = max((k * labelOpacityScale - 1) / 0.9, 0)
-    // sidebar (initial scale 1.0, labelOpacityScale 2.0): (1.0 * 2.0 - 1) / 0.9 ≈ 1.11 → labels fully
-    //   visible at rest — small local graph, titles ARE the content.
+    // sidebar/showcase (initial scale 1.0, labelOpacityScale 2.0): (1.0 * 2.0 - 1) / 0.9 ≈ 1.11
+    //   → labels fully visible at rest — small local graph, titles ARE the content.
     // hero (labelOpacityScale 0.45): hidden until k ≈ 2.2 (1/0.45), fully opaque at
     //   k ≈ 4.2 ((1+0.9)/0.45) — labels are screen-constant size (renderer
     //   counter-scales by 1/k), so they only appear once the view is sparse
     //   enough for 1200+ titles not to smear into each other.
-    labelOpacityScale: mode === 'sidebar' ? 2.0 : 0.45,
+    // showcase: labels OFF at rest (a dozen long titles smear in a small card);
+    // hover names the neighborhood, zooming past k ≈ 1.4 brings them all in.
+    labelOpacityScale: mode === 'hero' ? 0.45 : mode === 'showcase' ? 0.7 : 2.0,
     renderExternal: false,
     tagRenderMode: 'node',
     actions: mode === 'sidebar'
         ? ['fullscreen', 'depth', 'reset-zoom', 'settings']
-        : ['reset-zoom', 'render-arrows', 'settings'],
+        : mode === 'showcase'
+            ? ['fullscreen', 'reset-zoom']
+            : ['reset-zoom', 'render-arrows', 'settings'],
 };
 
 const graphConfig = { ...BASE_CONFIG, ...configOverride } as GraphConfig;
@@ -62,6 +66,7 @@ const graphConfig = { ...BASE_CONFIG, ...configOverride } as GraphConfig;
 <style is:global>
 .slsg-wrapper { display: block; width: 100%; height: 100%; }
 
-.slsg-mode-sidebar { height: 220px; }
-.slsg-mode-hero    { width: 100vw; height: 100vh; }
+.slsg-mode-sidebar  { height: 220px; }
+.slsg-mode-hero     { width: 100vw; height: 100vh; }
+.slsg-mode-showcase { height: 100%; }
 </style>

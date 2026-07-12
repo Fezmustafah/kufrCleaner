@@ -162,6 +162,7 @@ function updateTocLabel(
   metric: TocButtonMetric,
   activeButton: HTMLButtonElement | null,
   labelY: number,
+  tocTop: number,
 ): HTMLButtonElement {
   const { button } = metric;
   const card = toc.querySelector<HTMLElement>('.toc-card');
@@ -171,11 +172,12 @@ function updateTocLabel(
     activeButton?.classList.remove('is-active');
     button.classList.add('is-active');
     fillTocCard(card, button, metric.label);
+    // offsetHeight forces layout — read once per content change, not per frame
+    card.dataset.half = String(card.offsetHeight / 2);
   }
 
   // Clamp so the card (translateY(-50%)-centred on the cursor) stays on screen
-  const tocTop = toc.getBoundingClientRect().top;
-  const half = card.offsetHeight / 2;
+  const half = Number(card.dataset.half) || 0;
   const minY = 12 + half - tocTop;
   const maxY = window.innerHeight - 12 - half - tocTop;
   const clampedY = Math.min(Math.max(labelY, minY), Math.max(minY, maxY));
@@ -267,7 +269,12 @@ function initializeTableOfContents() {
 
   let metrics = readTocButtonMetrics(buttons);
   let maxScale = readTocMaxScale(nav, metrics);
+  // The rail is fixed-positioned: its box only moves on resize, so these are
+  // cached here (refreshed by refreshTocGeometry) instead of re-read per
+  // scroll/hover frame — getBoundingClientRect forces a reflow whenever lazy
+  // images have dirtied layout, which is constant on image-heavy posts.
   let navViewportTop = nav.getBoundingClientRect().top;
+  let tocViewportTop = toc.getBoundingClientRect().top;
 
   let frame = 0;
   let currentMouseY = 0;
@@ -292,6 +299,7 @@ function initializeTableOfContents() {
 
   const refreshTocGeometry = () => {
     navViewportTop = nav.getBoundingClientRect().top;
+    tocViewportTop = toc.getBoundingClientRect().top;
     metrics = readTocButtonMetrics(buttons);
     maxScale = readTocMaxScale(nav, metrics);
     updateTocOverflow(nav);
@@ -357,7 +365,7 @@ function initializeTableOfContents() {
 
     const nearestMetric = nearestTocMetric(metrics, contentMouseY);
     if (nearestMetric) {
-      activeButton = updateTocLabel(toc, nearestMetric, activeButton, currentMouseY);
+      activeButton = updateTocLabel(toc, nearestMetric, activeButton, currentMouseY, tocViewportTop);
     }
 
     if (hovering && Math.abs(targetMouseY - currentMouseY) > tocHoverEpsilon) {
@@ -395,12 +403,25 @@ function initializeTableOfContents() {
     // Release when the "rest" scrolls up into the rail's own zone (the rail
     // is fixed-centered; mid-viewport alone can be unreachable when the
     // footnote section sits at the very end of a short document).
-    const railBottom = nav.getBoundingClientRect().bottom;
-    leftCol.classList.toggle('toc-released', limit < railBottom + 32);
+    // Rail bottom is read LIVE, not cached: during Swup's enter animation
+    // #swup-container carries a transform, which makes it the containing
+    // block for this fixed rail — any rect cached in that window is measured
+    // against the document-tall container and stays wrong forever. The read
+    // shares this frame's reflow with the boundary read above, so it's free.
+    leftCol.classList.toggle('toc-released', limit < nav.getBoundingClientRect().bottom + 32);
   };
 
+  // Scroll fires far more often than frames paint — coalesce the release
+  // check (a forced-reflow read) to once per frame.
+  let scrollFrame = false;
   const onPageScroll = () => {
-    updateTocRelease();
+    if (!scrollFrame) {
+      scrollFrame = true;
+      requestAnimationFrame(() => {
+        scrollFrame = false;
+        updateTocRelease();
+      });
+    }
     if (!hovering) return;
     setTocScrolling(true);
     if (scrollEndTimer !== 0) window.clearTimeout(scrollEndTimer);
@@ -463,6 +484,12 @@ function initializeTableOfContents() {
 
   updateTocRelease();
   requestAnimationFrame(refreshTocGeometry);
+  // init runs while Swup's 140ms enter transition still transforms
+  // #swup-container (see updateTocRelease) — re-measure after it settles.
+  window.setTimeout(() => {
+    refreshTocGeometry();
+    updateTocRelease();
+  }, 200);
   document.fonts.ready.then(() => requestAnimationFrame(refreshTocGeometry));
 }
 

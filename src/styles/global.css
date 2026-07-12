@@ -1082,7 +1082,12 @@ textarea {
 }
 
 .prose figure[data-img-w-caption] img {
-  width: auto;
+  /* No `width: auto` here: author CSS beats the width/height ATTRIBUTES the
+     markdown pipeline stamps on every image, and without those hints an
+     unloaded lazy image computes 0×0 — the whole page then shifts on every
+     image load (CLS), which broke hash anchoring and scroll targets.
+     Attr width capped by max-width gives the same rendered size, but
+     reserves the correct box before the file arrives. */
   max-width: 100%;
   height: auto;
   border-radius: 0.5rem;

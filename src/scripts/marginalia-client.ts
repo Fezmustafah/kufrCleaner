@@ -152,7 +152,8 @@ function initMarginalia() {
   // GFM footnote refs get a hover peek of their definition (aarnphm-style):
   // body refs + links inside margin notes; the hidden echo refs excluded.
   const fnRefs = Array.from(document.querySelectorAll<HTMLAnchorElement>(
-    '#post-content sup:not(.fn-echo) > a[data-footnote-ref], #post-content sup.note-fn-ref > a'
+    // .pl-read-page: the homepage reading-experience demo gets the same peek
+    '#post-content sup:not(.fn-echo) > a[data-footnote-ref], #post-content sup.note-fn-ref > a, .pl-read-page sup:not(.fn-echo) > a[data-footnote-ref]'
   ));
   if (!containers.length && !fnRefs.length) return;
 

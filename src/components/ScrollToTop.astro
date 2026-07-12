@@ -29,10 +29,50 @@ import Icon from './Icon.astro';
       bottomBtn!.classList.toggle('hidden', remaining < 300);
     }
 
-    topBtn.addEventListener('click', () =>
-      window.scrollTo({ top: 0, behavior: 'smooth' }));
-    bottomBtn.addEventListener('click', () =>
-      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
+    // A #hash in the URL makes Chrome re-anchor to that heading whenever late
+    // layout shifts (lazy images) happen — programmatic scrolls don't count as
+    // "user scrolled", so the ride down gets hijacked back to the anchor.
+    // Shed the fragment before scrolling.
+    function dropAnchor() {
+      if (location.hash)
+        history.replaceState(history.state, '', location.pathname + location.search);
+    }
+
+    topBtn.addEventListener('click', () => {
+      dropAnchor();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // "Bottom" is a moving target: lazy images inflate the page during the
+    // ride, so a single scrollTo lands at the stale height. Re-issue the
+    // scroll whenever it settles short, until the true bottom stops growing.
+    // Any user input (including clicking the top button) cancels the chase.
+    bottomBtn.addEventListener('click', () => {
+      dropAnchor();
+      let cancelled = false;
+      const cancel = () => { cancelled = true; };
+      ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(type =>
+        window.addEventListener(type, cancel, { once: true, passive: true }));
+
+      let lastY = -1, stillFrames = 0, hops = 0;
+      const glide = () => {
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+        const watch = () => {
+          if (cancelled) return;
+          const y = window.scrollY;
+          stillFrames = y === lastY ? stillFrames + 1 : 0;
+          lastY = y;
+          if (stillFrames > 8) {
+            const remaining = document.documentElement.scrollHeight - innerHeight - y;
+            if (remaining > 2 && hops++ < 6) glide();
+            return;
+          }
+          requestAnimationFrame(watch);
+        };
+        requestAnimationFrame(watch);
+      };
+      glide();
+    });
 
     let ticking = false;
     window.addEventListener('scroll', () => {

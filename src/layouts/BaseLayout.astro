@@ -53,9 +53,11 @@ if (shouldLoadLocalFonts()) {
 export interface Props {
   seoData: SEOData;
   bodyClass?: string;
+  /** Override the <main> max-width (the homepage works a wider canvas). */
+  mainWidth?: string;
 }
 
-const { seoData, bodyClass = '' } = Astro.props;
+const { seoData, bodyClass = '', mainWidth = siteConfig.layout.contentWidth } = Astro.props;
 
 const scrollbarClass = siteConfig.hideScrollBar ? 'scrollbar-hide' : 'show-scrollbars';
 
@@ -1216,7 +1218,7 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
   <Header />
 
   <!-- Main content -->
-  <main id="main-content" class="container mx-auto relative flex-1" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+  <main id="main-content" class="container mx-auto relative flex-1" style={`max-width: ${mainWidth}`}>
     <div id="swup-container" class="transition-swup-fade">
       <slot />
     </div>
@@ -1902,27 +1904,32 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
       // Scroll immediately
       targetElement.scrollIntoView();
 
-      // Watch prose images and re-scroll each time one finishes loading
+      // Watch prose images and re-scroll each time one finishes loading —
+      // but ONLY while the reader is still parked at the heading. Any user
+      // input disarms the re-anchor; so does the hash changing or being shed
+      // (the TOC pushes a new hash, the scroll-to-top/bottom buttons drop it)
+      // — otherwise lazy images loading during a scroll keep yanking the
+      // viewport back to the heading.
       const prose = document.querySelector('.prose');
       if (!prose) return;
 
-      const imgs = prose.querySelectorAll('img');
-      let pending = 0;
-      imgs.forEach(img => {
+      let armed = true;
+      const disarm = () => { armed = false; };
+      ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(type =>
+        window.addEventListener(type, disarm, { once: true, passive: true }));
+
+      const reanchor = () => {
+        if (!armed || window.location.hash !== hash) return;
+        targetElement.scrollIntoView();
+      };
+
+      prose.querySelectorAll('img').forEach(img => {
         if (!img.complete) {
-          pending++;
-          const done = () => {
-            pending--;
-            targetElement.scrollIntoView();
-          };
-          img.addEventListener('load', done, { once: true });
-          img.addEventListener('error', done, { once: true });
+          img.addEventListener('load', reanchor, { once: true });
+          img.addEventListener('error', reanchor, { once: true });
         }
       });
-
-      if (pending === 0) {
-        requestAnimationFrame(() => targetElement.scrollIntoView());
-      }
+      requestAnimationFrame(reanchor);
     }
 
 

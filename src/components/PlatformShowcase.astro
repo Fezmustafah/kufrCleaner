@@ -1,0 +1,504 @@
+---
+/**
+ * Platform discovery band — "Built for study".
+ *
+ * Obsidian.md-style feature grid: each card has heading + copy up top and a
+ * live demo panel bleeding off the card's bottom-right corner. Demos are the
+ * real machinery, not mockups:
+ *   1. Local graph — a real <SiteGraph mode="showcase"> of one example
+ *      article's neighborhood. Deferred: ships inside a <template>, mounted by
+ *      homepage-hero-client.ts via IntersectionObserver so PixiJS never taxes
+ *      initial homepage load.
+ *   2. Incoming links — the real backlinks of that same article, computed at
+ *      build time from the generated graph data.
+ *   3. Search — a seeded preview; clicking anywhere on it opens the real
+ *      SearchPalette (homepage-hero-client.ts).
+ *   4. Appearance — the drawer's palette swatches + light/dark/auto mode
+ *      control inline; both re-theme the whole site live.
+ *   5. Reading experience (full width) — an article fragment with a live
+ *      rough-notation highlight (real .rough-ann span, animated by the
+ *      globally-loaded annotations-client), margin note, and citation.
+ *
+ * Sits inside index.astro's .hp container and inherits its --hp-* tokens.
+ */
+import fs from 'node:fs';
+import { siteConfig, getThemeDisplayName } from '@/config';
+import { SWATCHES, swatchStyle } from '@/data/palette-swatches';
+import SiteGraph from '@/components/SiteGraph.astro';
+import Icon from '@/components/Icon.astro';
+
+interface Props { maxWidth?: string }
+const { maxWidth = siteConfig.layout.contentWidth } = Astro.props;
+
+const baseUrl = import.meta.env.BASE_URL;
+
+// ── Example article: the most-cited post + its citing posts, from graph data ──
+// generate-graph-data.js runs before dev/build, so the JSON always exists here.
+// The maxNodes cap keeps the most-connected posts, so the top target survives it.
+// The same article anchors BOTH the local-graph demo and the incoming-links demo.
+interface Mention { title: string; url: string }
+let backlinkDemo: { title: string; url: string; slug: string; count: number; mentions: Mention[] } | null = null;
+try {
+  const graphData = JSON.parse(
+    fs.readFileSync(new URL('../../public/graph/graph-data.json', import.meta.url), 'utf8'),
+  );
+  const byId: Record<string, any> = Object.fromEntries(graphData.nodes.map((n: any) => [n.id, n]));
+  // Distinct citing posts per target (a source may link the same target repeatedly)
+  const incoming: Record<string, Set<string>> = {};
+  for (const c of graphData.connections) {
+    const src = byId[c.source], tgt = byId[c.target];
+    if (src?.type === 'post' && tgt?.type === 'post' && c.source !== c.target) {
+      (incoming[c.target] ??= new Set()).add(c.source);
+    }
+  }
+  const top = Object.entries(incoming).sort((a, b) => b[1].size - a[1].size)[0];
+  if (top && top[1].size >= 3) {
+    const node = byId[top[0]];
+    backlinkDemo = {
+      title: node.title,
+      url: `${baseUrl}posts/${node.slug}/`,
+      slug: node.slug,
+      count: top[1].size,
+      mentions: [...top[1]].slice(0, 4).map((id) => ({
+        title: byId[id].title,
+        url: `${baseUrl}posts/${byId[id].slug}/`,
+      })),
+    };
+  }
+} catch { /* no graph data → graph + backlinks cards are omitted */ }
+
+// ── Palette demo: same choices as the drawer ──
+const themeChoices: string[] = (
+  Array.isArray(siteConfig.availableThemes)
+    ? siteConfig.availableThemes
+    : Object.keys(SWATCHES)
+).filter((t) => t in SWATCHES);
+
+const searchSeed = 'Did Islam spread by the sword?';
+---
+
+<section class="pl-band" aria-labelledby="pl-title">
+  <div class="pl-inner" style={`max-width: ${maxWidth}`}>
+    <div class="pl-head">
+      <span class="pl-eyebrow"><span aria-hidden="true">◆</span> How this site works</span>
+      <h2 class="pl-h2" id="pl-title">Built for study</h2>
+      <p class="pl-lede">
+        This isn't a feed of posts — it's a connected library. Everything below is live: try it.
+      </p>
+    </div>
+
+    <div class="pl-grid">
+      {backlinkDemo && (
+        <div class="pl-card">
+          <div class="pl-card-copy">
+            <h3 class="pl-h3">Graph</h3>
+            <p>
+              Every article has a neighborhood. This is the live map around
+              <a href={backlinkDemo.url}>{backlinkDemo.title}</a> — drag it, zoom it,
+              click a node to jump into that article.
+              <a class="pl-cta" href={`${baseUrl}graph-view/`}>See the whole library →</a>
+            </p>
+          </div>
+          <div class="pl-card-demo pl-demo-graph" id="hp-graph-slot">
+            <template id="hp-graph-tpl">
+              <SiteGraph mode="showcase" currentSlug={`posts/${backlinkDemo.slug}`} />
+            </template>
+            <noscript><a href={`${baseUrl}graph-view/`}>View the knowledge graph →</a></noscript>
+          </div>
+        </div>
+      )}
+
+      {backlinkDemo && (
+        <div class="pl-card">
+          <div class="pl-card-copy">
+            <h3 class="pl-h3">Incoming links</h3>
+            <p>
+              Every article knows who cites it. Its <em>Connections</em> panel lists
+              the articles linking back — one answer always leads to the next.
+              These are the {backlinkDemo.count} articles citing the same piece mapped above.
+            </p>
+          </div>
+          <div class="pl-card-demo pl-demo-pad">
+            <div class="pl-lm">
+              <div class="pl-lm-head">
+                <Icon name="link-2" size={16} />
+                <span>Connections</span>
+                <span class="pl-lm-count">({backlinkDemo.count})</span>
+              </div>
+              {backlinkDemo.mentions.map((m) => (
+                <a class="pl-lm-row" href={m.url}>
+                  <span>{m.title}</span>
+                  <Icon name="arrow-right" size={14} />
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div class="pl-card">
+        <div class="pl-card-copy">
+          <h3 class="pl-h3">Search</h3>
+          <p>
+            Heard a specific claim? Search the exact allegation — every word of
+            every article is indexed. Press <kbd class="pl-kbd">Ctrl</kbd><kbd class="pl-kbd">K</kbd>
+            anywhere on the site, or click below to try it.
+          </p>
+        </div>
+        <div class="pl-card-demo pl-demo-pad">
+          <button type="button" id="hp-search-demo" class="pl-sp" data-seed={searchSeed}
+                  aria-label={`Open search with the query: ${searchSeed}`}>
+            <span class="pl-sp-input">
+              <Icon name="search" size={15} />
+              <span class="pl-sp-q">{searchSeed}</span>
+              <kbd class="pl-kbd">⏎</kbd>
+            </span>
+            <span class="pl-sp-row">
+              <span class="pl-sp-title">Did Islam Spread by the <mark>Sword</mark>? What Historians Actually Say</span>
+              <span class="pl-sp-ex">…the legend of fanatical Muslims sweeping through the world, forcing Islam at the point of the <mark>sword</mark>…</span>
+            </span>
+            <span class="pl-sp-row">
+              <span class="pl-sp-title">Jizya</span>
+              <span class="pl-sp-ex">…protected peoples kept their faith under the covenant — no conversion by the <mark>sword</mark>…</span>
+            </span>
+            <span class="pl-sp-more">Open search <span aria-hidden="true">→</span></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="pl-card">
+        <div class="pl-card-copy">
+          <h3 class="pl-h3">Appearance</h3>
+          <p>
+            {themeChoices.length} hand-tuned palettes, each with light, dark, and
+            follow-the-system modes. Tap a swatch — the entire site re-inks itself
+            instantly, and your choice sticks. The same controls live in the menu on every page.
+          </p>
+        </div>
+        <div class="pl-card-demo pl-demo-pad">
+          <div id="hp-mode-demo" class="pl-mode" role="radiogroup" aria-label="Color mode">
+            <button class="pl-mode-btn" type="button" data-mode="light" role="radio" aria-checked="false">
+              <Icon name="sun" size={14} /><span>Light</span>
+            </button>
+            <button class="pl-mode-btn" type="button" data-mode="dark" role="radio" aria-checked="false">
+              <Icon name="moon" size={14} /><span>Dark</span>
+            </button>
+            <button class="pl-mode-btn" type="button" data-mode="auto" role="radio" aria-checked="false">
+              <Icon name="sun-moon" size={14} /><span>Auto</span>
+            </button>
+          </div>
+          <div id="hp-pal-demo" class="pl-pal" role="radiogroup" aria-label="Color palette"
+               data-default-theme={siteConfig.theme}>
+            {themeChoices.map((t) => (
+              <button class="pl-pal-btn" type="button" data-theme={t} role="radio"
+                      aria-checked={String(t === siteConfig.theme)} title={getThemeDisplayName(t)}>
+                <span class="pl-swatch" style={swatchStyle(t)} aria-hidden="true"></span>
+                <span class="pl-pal-name">{getThemeDisplayName(t)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Reading experience — its own band, room to breathe after the bento.
+     REAL apparatus markup, exactly as the remark pipeline emits it:
+     .footnote-container/.footnote (remark-marginalia — the global
+     marginalia-client wires hover cross-highlight, the <1100px popover, and
+     the footnote hover-peek; only the float positioning is
+     post-layout-coupled, so a scoped rule below places the note in this
+     surface's margin), .rough-ann (remark-annotations → live rough-notation),
+     .cite-ref (remark-citations), .callout (remark-callouts), and a real GFM
+     footnotes section (the site's bibliography pattern). ═══ -->
+<section class="rd-band" aria-labelledby="rd-title">
+  <div class="rd-inner">
+    <div class="rd-head">
+      <span class="pl-eyebrow"><span aria-hidden="true">◆</span> The reading experience</span>
+      <h2 class="pl-h2" id="rd-title">Built for close reading</h2>
+      <p class="pl-lede">
+        Long-form answers come with the scholar's toolkit: margin notes beside the text,
+        hand-drawn emphasis, scripture set apart, and every claim footnoted to its
+        source. All of it below is live — hover the ▪ marker and the footnote numbers.
+      </p>
+    </div>
+
+    <div class="rd-surface">
+      <article class="pl-read-page" aria-label="Example of the article reading experience">
+        <div class="pl-read-main">
+          <h4 class="pl-read-h">Did Islam spread by the sword?</h4>
+          <p class="pl-read-body">
+            The historian De Lacy O'Leary called forced
+            conversion<span class="footnote-container"><label for="mn-hp-demo" class="margin-toggle footnote-number">▪</label><input type="checkbox" id="mn-hp-demo" class="margin-toggle" /><span id="mn-note-hp-demo" class="footnote">Margin notes like this one sit beside the paragraph they answer — commentary without breaking the argument. On phones, tap the ▪ marker.</span></span>
+            <span class="rough-ann" data-ann-type="highlight">“one of the most fantastically absurd myths that historians have ever repeated”</span><sup><a href="#fn-hp-1" id="fnref-hp-1" data-footnote-ref aria-describedby="footnote-label">1</a></sup>
+            — a verdict the primary sources bear out. The Qurʼan itself rules the
+            method impossible:
+          </p>
+          <div class="callout" data-callout="quran">
+            <div class="callout-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="callout-icon"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M16 8.5c0-.83-.67-1.5-1.5-1.5-.28 0-.54.08-.76.22A1.5 1.5 0 0 0 11 8.5c0 1.2 1.5 2.5 2.25 3.09a.5.5 0 0 0 .57 0C14.5 11 16 9.7 16 8.5"/></svg>
+              <div class="callout-title-inner"><span>Quran 2:256</span></div>
+            </div>
+            <div class="callout-content"><div>
+              <p>“There is no compulsion in religion — the right way is clearly distinct from error.”</p>
+            </div></div>
+          </div>
+          <p class="pl-read-body">
+            Under Muslim rule, Jewish and Christian communities kept their courts,
+            churches, and scripture for centuries<sup><a href="#fn-hp-2" id="fnref-hp-2" data-footnote-ref aria-describedby="footnote-label">2</a></sup> —
+            the record of the conquered peoples themselves.
+          </p>
+
+          <!-- Bibliography: the site's real GFM footnotes section -->
+          <section data-footnotes class="footnotes rd-footnotes">
+            <h2 class="sr-only" id="footnote-label">Footnotes</h2>
+            <ol>
+              <li id="fn-hp-1">
+                <p>De Lacy O'Leary, <em>Islam at the Cross Roads</em>, London: Kegan Paul, Trench, Trubner &amp; Co., 1923, p. 8. <a href="#fnref-hp-1" data-footnote-backref aria-label="Back to reference 1" class="data-footnote-backref">↩</a></p>
+              </li>
+              <li id="fn-hp-2">
+                <p>Milka Levy-Rubin, <em>Non-Muslims in the Early Islamic Empire: From Surrender to Coexistence</em>, Cambridge University Press, 2011. <a href="#fnref-hp-2" data-footnote-backref aria-label="Back to reference 2" class="data-footnote-backref">↩</a></p>
+              </li>
+            </ol>
+          </section>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+  .pl-band {
+    position: relative;
+    left: 50%; right: 50%;
+    width: 100vw;
+    margin-left: -50vw; margin-right: -50vw;
+    padding-block: 6rem;
+    background: var(--hp-bg-inset);
+    border-block: 1px solid var(--hp-border);
+  }
+  .pl-inner { margin-inline: auto; padding-inline: 1rem; }
+  @media (min-width: 640px) { .pl-inner { padding-inline: 1.5rem; } }
+
+  .pl-head { margin-bottom: 3rem; max-width: 46rem; }
+  /* Matches .hp-eyebrow in index.astro — the bands speak in the sections' voice */
+  .pl-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: var(--font-prose, serif);
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--hp-accent);
+  }
+  /* Matches .hp-h2 in index.astro */
+  .pl-h2 {
+    margin-top: 0.375rem;
+    font-family: var(--font-heading, serif);
+    font-size: 1.75rem; line-height: 1.15; font-weight: 600;
+    color: var(--hp-text);
+  }
+  .pl-lede { margin-top: 0.625rem; color: var(--hp-muted); }
+  .pl-h3 { font-size: 1.25rem; font-weight: 650; color: var(--hp-text); margin-bottom: 0.5rem; }
+
+  /* ── Obsidian-style feature grid ── */
+  .pl-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+  @media (min-width: 880px) {
+    .pl-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
+  }
+  .pl-card {
+    display: flex; flex-direction: column;
+    background: var(--hp-bg-raise);
+    border: 1px solid var(--hp-border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  .pl-card-copy { padding: 1.5rem 1.5rem 1.25rem; }
+  @media (min-width: 640px) { .pl-card-copy { padding: 1.75rem 1.75rem 1.25rem; } }
+  .pl-card-copy p { color: var(--hp-muted); line-height: 1.6; }
+  .pl-card-copy a { color: var(--hp-accent); }
+  .pl-card-copy a:hover { text-decoration: underline; }
+  .pl-cta { display: inline-block; margin-left: 0.375rem; font-weight: 600; white-space: nowrap; }
+
+  /* Demo panel bleeding off the card's bottom-right corner */
+  .pl-card-demo {
+    flex: 1;
+    margin-left: 1.25rem;
+    margin-top: auto;
+    background: var(--hp-bg-inset);
+    border: 1px solid var(--hp-border);
+    border-right: 0; border-bottom: 0;
+    border-top-left-radius: 0.6rem;
+    min-height: 240px;
+    position: relative;
+  }
+  @media (min-width: 640px) { .pl-card-demo { margin-left: 2.5rem; } }
+  .pl-demo-pad { padding: 1.25rem 1.25rem 1.5rem; }
+  .pl-demo-graph { min-height: 320px; }
+  .pl-demo-graph noscript { display: flex; align-items: center; justify-content: center; height: 100%; }
+  /* graph.css sizes the component itself; the slot just provides the box */
+  .pl-demo-graph :global(.slsg-mode-showcase) { position: absolute; inset: 0; height: auto; }
+
+  .pl-kbd {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    color: var(--hp-meta);
+    background: var(--hp-bg-inset);
+    border: 1px solid var(--hp-border-strong);
+    border-bottom-width: 2px;
+    border-radius: 0.3rem;
+  }
+
+  /* Incoming-links demo — mirrors the post sidebar's Connections panel */
+  .pl-lm { display: grid; gap: 0.5rem; }
+  .pl-lm-head {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-weight: 600; font-size: 0.9375rem; color: var(--hp-text);
+    margin-bottom: 0.25rem;
+  }
+  .pl-lm-count { font-weight: 400; font-size: 0.8125rem; color: var(--hp-meta); }
+  .pl-lm-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem; font-weight: 500; color: var(--hp-text);
+    background: var(--hp-bg-raise);
+    border: 1px solid var(--hp-border);
+    border-radius: 0.5rem;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+  .pl-lm-row:hover { border-color: var(--hp-border-strong); color: var(--hp-accent); text-decoration: none; }
+  .pl-lm-row :global(svg) { flex-shrink: 0; opacity: 0.5; }
+
+  /* Search demo — a seeded preview; the whole panel opens the real palette */
+  .pl-sp {
+    display: grid; gap: 0.5rem; width: 100%;
+    text-align: left; cursor: pointer;
+    font-family: inherit;
+  }
+  .pl-sp:focus-visible { outline: 2px solid var(--hp-accent); outline-offset: 2px; border-radius: 0.5rem; }
+  .pl-sp-input {
+    display: flex; align-items: center; gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--hp-bg-raise);
+    border: 1px solid var(--hp-border-strong);
+    border-radius: 0.5rem;
+    color: var(--hp-text);
+    font-size: 0.9375rem;
+  }
+  .pl-sp-input :global(svg) { color: var(--hp-meta); flex-shrink: 0; }
+  .pl-sp-q { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl-sp-row {
+    display: grid; gap: 0.15rem;
+    padding: 0.55rem 0.75rem;
+    background: var(--hp-bg-raise);
+    border: 1px solid var(--hp-border);
+    border-radius: 0.5rem;
+    transition: border-color 150ms ease;
+  }
+  .pl-sp:hover .pl-sp-row { border-color: var(--hp-border-strong); }
+  .pl-sp-title { font-size: 0.875rem; font-weight: 600; color: var(--hp-text); }
+  .pl-sp-ex { font-size: 0.8125rem; color: var(--hp-muted); }
+  .pl-sp :global(mark) { background: rgb(var(--color-highlight-500) / 0.25); color: inherit; border-radius: 2px; padding: 0 1px; }
+  .pl-sp-more { font-size: 0.8125rem; font-weight: 600; color: var(--hp-accent); }
+
+  /* Appearance demo */
+  .pl-mode {
+    display: inline-flex; gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--hp-bg-raise);
+    border: 1px solid var(--hp-border);
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .pl-mode-btn {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem; font-weight: 550; color: var(--hp-muted);
+    font-family: var(--font-ui, inherit);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: color 150ms ease, background 150ms ease;
+  }
+  .pl-mode-btn:hover { color: var(--hp-text); }
+  .pl-mode-btn[aria-checked='true'] { background: var(--hp-bg-inset); color: var(--hp-accent); box-shadow: inset 0 0 0 1px var(--hp-border-strong); }
+  .pl-mode-btn:focus-visible { outline: 2px solid var(--hp-accent); outline-offset: 1px; }
+
+  .pl-pal { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.4rem; }
+  .pl-pal-btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.45rem 0.625rem;
+    font-size: 0.8125rem; font-weight: 500; color: var(--hp-text);
+    font-family: var(--font-ui, inherit);
+    background: var(--hp-bg-raise);
+    border: 1px solid var(--hp-border);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: border-color 150ms ease;
+    text-align: left;
+  }
+  .pl-pal-btn:hover { border-color: var(--hp-border-strong); }
+  .pl-pal-btn[aria-checked='true'] { border-color: var(--hp-accent); box-shadow: 0 0 0 1px var(--hp-accent); }
+  .pl-pal-btn:focus-visible { outline: 2px solid var(--hp-accent); outline-offset: 2px; }
+  .pl-swatch {
+    width: 1.05rem; height: 1.05rem; flex-shrink: 0;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  }
+  .pl-pal-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Reading band — full-bleed, plain page background (rhythm break after
+     the inset bento band), generous air. The apparatus inside is REAL
+     pipeline markup styled by the global marginalia.css / callouts CSS /
+     footnote rules — only layout shims live here. ── */
+  .rd-band {
+    position: relative;
+    left: 50%; right: 50%;
+    width: 100vw;
+    margin-left: -50vw; margin-right: -50vw;
+    padding-block: 6rem;
+  }
+  .rd-inner { margin-inline: auto; padding-inline: 1rem; max-width: 72rem; }
+  @media (min-width: 640px) { .rd-inner { padding-inline: 1.5rem; } }
+  .rd-head { margin-bottom: 3rem; max-width: 46rem; }
+  .rd-surface {
+    background: var(--hp-bg-raise);
+    border: 1px solid var(--hp-border);
+    border-radius: 0.75rem;
+    padding: clamp(1.5rem, 5vw, 4rem);
+  }
+  .pl-read-page { position: relative; }
+  .pl-read-h {
+    font-family: var(--font-heading, serif);
+    font-size: 1.5rem; font-weight: 700; color: var(--hp-text);
+    margin-bottom: 1rem;
+  }
+  .pl-read-main { max-width: 42rem; position: relative; }
+  .pl-read-body {
+    font-family: var(--font-prose, serif);
+    color: var(--hp-text); line-height: 1.8;
+  }
+  .pl-read-body + .pl-read-body { margin-top: 1rem; }
+  .pl-read-main :global(.callout) { margin-block: 1.25rem; }
+  /* ≥1100px the real .footnote is position:absolute, normally placed by
+     layoutMarginaliaFloats() against .post-layout-article — which doesn't
+     exist here, so place it in this surface's margin. Below 1100px the
+     global marginalia-client serves it as a hover/tap popover, unchanged. */
+  @media (min-width: 1100px) {
+    .pl-read-page :global(.footnote) { top: 3.5rem; left: calc(100% + 2.5rem); }
+  }
+  /* Bibliography: real GFM footnotes section — typographic shims only */
+  .rd-footnotes { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--hp-border); }
+  .rd-footnotes ol {
+    margin: 0; padding-left: 1.25rem;
+    display: grid; gap: 0.5rem;
+    font-size: 0.875rem; line-height: 1.6; color: var(--hp-muted);
+  }
+  .rd-footnotes p { margin: 0; }
+  .rd-footnotes :global(a[data-footnote-backref]) { color: var(--hp-accent); text-decoration: none; margin-left: 0.25rem; }
+  .pl-read-main :global(sup a[data-footnote-ref]) {
+    color: var(--hp-accent); font-weight: 600; text-decoration: none;
+    padding-inline: 0.1rem;
+  }
+  .pl-read-main :global(sup a[data-footnote-ref]):hover { text-decoration: underline; }
+</style>

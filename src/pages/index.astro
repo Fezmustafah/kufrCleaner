@@ -4,11 +4,14 @@ import { siteConfig } from '@/config';
 import { generateHomeSEO } from '@/utils/seo';
 import { shouldShowPost, sortPostsByDate, processPost, extractCategories, formatDateShort } from '@/utils/markdown';
 import { categoryDisplayName } from '@/utils/topics';
+import { getTagCloudItems } from '@/utils/tag-cloud-data';
+import TagCloud from '@/components/TagCloud.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Icon from '@/components/Icon.astro';
 import { optimizePostImagePath } from '@/utils/images';
 import HomepageHero from '@/components/HomepageHero.astro';
-import TopicTile from '@/components/TopicTile.astro';
+import TopicBanner from '@/components/TopicBanner.astro';
+import PlatformShowcase from '@/components/PlatformShowcase.astro';
 
 const baseUrl = import.meta.env.BASE_URL;
 
@@ -55,36 +58,52 @@ const categoryPostCounts = allCategories.reduce((acc: Record<string, number>, ca
   return acc;
 }, {} as Record<string, number>);
 
-// One-line topic descriptions (auto-config, code-maintained — no per-article curation).
-// Keyed by normalized category name; missing categories simply render name + count.
-const TOPIC_DESCRIPTIONS: Record<string, string> = {
-  'refutations': 'Point-by-point responses to the most frequently circulated polemics and criticisms of Islam.',
-  'christianity': 'Answering biblical criticism and missionary arguments.',
-  'atheism': 'Responding to secular and New-Atheist objections.',
-  'science and islam': 'The Quran, hadith, and modern science.',
-  'qadyanis': 'Responses to Ahmadiyya claims.',
-  'history': 'Setting the historical record straight.',
-  'hadiths science': 'Authenticity, isnād, and hadith criticism.',
-  'refuting shias': 'Responses to Shia theological claims.',
-  'islam': 'Foundational clarifications and first principles.',
-  'ﷺ': 'The life, character, and honour of the Prophet Muhammad ﷺ.',
-};
-
-// Bento topics — drop noise buckets, sort by count desc. First tile renders large.
+// Portal topics — drop noise buckets, sort by count desc. Rendered as a card
+// stack cycled client-side (the /posts/category/ index keeps the card bento).
 // (display name comes from the shared categoryDisplayName; URL keeps the raw value.)
 const TOPIC_NOISE = new Set(['', 'test', 'quranic refutations', 'islamic refutations']);
+
+// All-caps category names read as shouting at display size ("REFUTING SHIAS")
+const unshout = (s: string) =>
+  s === s.toUpperCase() ? s.toLowerCase().replace(/\b\p{L}/gu, (m) => m.toUpperCase()) : s;
+
+// One line of scent per portal — what a reader gets, not an inventory count.
+// Keyed by lowercase display name; portals without a line just show the name.
+const TOPIC_PROMISES: Record<string, string> = {
+  refutations: 'Every polemical claim against Islam, answered at length.',
+  christianity: 'Trinity, crucifixion, and the Bible’s textual history, examined.',
+  atheism: 'Responses to secular and rationalist objections.',
+  'science and islam': 'Cosmology, embryology, and the scientific-miracles debate.',
+  qadyanis: 'On Ahmadiyya claims of continued prophethood.',
+  history: 'How Islam actually spread — the sources, not the slogans.',
+  'prophet muhammad ﷺ': 'His life, marriages, and character — from the record.',
+  'hadiths science': 'Isnād, authentication, and the science of hadith criticism.',
+  hinduism: 'Dialogues with Vedic scripture and philosophy.',
+  'refuting shias': 'Sunni responses to Shia doctrinal claims.',
+  islam: 'Creed, practice, and first principles.',
+};
+
 const topics = allCategories
   .filter((c: string) => c && !TOPIC_NOISE.has(c.toLowerCase().trim()))
-  .map((c: string) => ({
-    name: c,
-    display: categoryDisplayName(c),
-    count: categoryPostCounts[c],
-    desc: TOPIC_DESCRIPTIONS[c.toLowerCase().trim()] || '',
-  }))
+  .map((c: string) => {
+    const display = unshout(categoryDisplayName(c));
+    return {
+      name: c,
+      display,
+      count: categoryPostCounts[c],
+      promise: TOPIC_PROMISES[display.toLowerCase()] ?? '',
+    };
+  })
   .sort((a, b) => b.count - a.count);
-// Same bento shape as the /posts/category/ index: top 2 render large, rest fill a 3-col grid.
-const featuredTopics = topics.slice(0, 2);
-const restTopics = topics.slice(2);
+
+// Concepts — the SAME tag-cloud items as /posts/tag/ (shared util: noise
+// filter, cleaned display titles, counts, URLs). The homepage cloud drops
+// single-article tags — over half the taxonomy is singletons that render
+// tiny and flatten the size signal; "All concepts" carries the full set.
+const tagItems = (await getTagCloudItems(isDev, baseUrl)).filter((t) => t.count >= 2);
+
+// Homepage works a wider canvas than article prose — sections are multi-column.
+const homeWidth = '72rem';
 
 // Common objections — question-titled posts that carry a rebuttal summary, most recent 5.
 const objections = sortedPosts
@@ -171,7 +190,7 @@ const structuredData = {
 };
 ---
 
-<BaseLayout seoData={seoData}>
+<BaseLayout seoData={seoData} mainWidth={homeWidth}>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
@@ -188,7 +207,7 @@ const structuredData = {
   <HomepageHero postCount={postCount} categoryCount={categoryCount} totalWords={totalWords} />
 
   <div class="py-8 relative">
-    <div class="hp mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+    <div class="hp mx-auto px-4 sm:px-6 lg:px-8" style={`max-width: ${homeWidth}`}>
 
       {onlyBlurbContent ? (
         <article class="bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 shadow-sm mt-10">
@@ -213,7 +232,8 @@ const structuredData = {
             </section>
           )}
 
-          <!-- ═══════════════════ 1 · LATEST (segmented) ═══════════════════ -->
+          <!-- ═══════ 1 · LATEST + COMMON OBJECTIONS (side by side) — content before containers ═══════ -->
+          <div class="hp-duo hp-duo--lead">
           {(newlyAdded.length > 0 || recentlyUpdated.length > 0) && (
             <section class="hp-sec hp-sec--first">
               <div class="hp-sechead">
@@ -253,49 +273,8 @@ const structuredData = {
             </section>
           )}
 
-          <!-- ═══════════════════ 2 · EXPLORE BY TOPIC (bento) ═══════════════════ -->
-          {siteConfig.postOptions.categories && topics.length > 0 && (
-            <section class="hp-sec">
-              <div class="hp-sechead">
-                <div>
-                  <span class="hp-eyebrow"><span aria-hidden="true">◆</span> By subject area</span>
-                  <h2 class="hp-h2">Explore by topic</h2>
-                </div>
-                <a class="hp-more" href={`${baseUrl}posts/category/`}>All topics →</a>
-              </div>
-              {featuredTopics.length > 0 && (
-                <div class="hp-topic-feat">
-                  {featuredTopics.map((t) => (
-                    <TopicTile
-                      href={`${baseUrl}posts/category/${encodeURIComponent(t.name)}/`}
-                      name={t.display}
-                      label={t.display}
-                      count={t.count}
-                      description={t.desc || null}
-                      large={true}
-                    />
-                  ))}
-                </div>
-              )}
-              {restTopics.length > 0 && (
-                <div class="hp-topic-rest">
-                  {restTopics.map((t) => (
-                    <TopicTile
-                      href={`${baseUrl}posts/category/${encodeURIComponent(t.name)}/`}
-                      name={t.display}
-                      label={t.display}
-                      count={t.count}
-                      description={t.desc || null}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-
-          <!-- ═══════════════════ 2 · COMMON OBJECTIONS (accordion) ═══════════════════ -->
           {objections.length > 0 && (
-            <section class="hp-sec">
+            <section class="hp-sec hp-sec--first">
               <div class="hp-sechead">
                 <div>
                   <span class="hp-eyebrow"><span aria-hidden="true">◆</span> Frequently raised objections</span>
@@ -322,44 +301,84 @@ const structuredData = {
               </div>
             </section>
           )}
+          </div>
 
-          <!-- ═══════════ 3 · FINDING YOUR WAY AROUND (guide, full-bleed band) ═══════════ -->
-          <section class="hp-band hp-guide">
-            <div class="hp-band-inner" style={`max-width: ${siteConfig.layout.contentWidth}`}>
+          <!-- ═══════ 2 · PORTALS + CONCEPTS (side by side) — browse the stacks ═══════ -->
+          <div class="hp-duo hp-duo--org">
+          {siteConfig.postOptions.categories && topics.length > 0 && (
+            <section class="hp-sec hp-sec--first">
               <div class="hp-sechead">
                 <div>
-                  <span class="hp-eyebrow"><span aria-hidden="true">◆</span> New here?</span>
-                  <h2 class="hp-h2">Finding your way around</h2>
+                  <span class="hp-eyebrow"><span aria-hidden="true">◆</span> Guided reading</span>
+                  <h2 class="hp-h2">Portals</h2>
+                  <p class="hp-sublede">Broad reading rooms — each portal gathers every article on one front under a single roof.</p>
+                </div>
+                <a class="hp-more" href={`${baseUrl}posts/category/`}>All portals →</a>
+              </div>
+              <!-- Portal card stack — bottom-anchored deck; "Next" slides the front
+                   card down and away while the row behind rises. Cycling logic lives
+                   in homepage-hero-client.ts (Swup-safe, like every homepage demo). -->
+              <div class="hp-stack" id="hp-portal-stack">
+                <div class="hp-stack-stage">
+                  {topics.map((t, i) => (
+                    <article class="hp-scard" data-idx={i}>
+                      <a
+                        class="hp-scard-media"
+                        href={`${baseUrl}posts/category/${encodeURIComponent(t.name)}/`}
+                        aria-label={`${t.display} — ${t.count.toLocaleString()} posts`}
+                        tabindex="-1"
+                      >
+                        <TopicBanner name={t.display} />
+                      </a>
+                      <div class="hp-scard-meta">
+                        <div class="hp-scard-txt">
+                          <span class="hp-scard-name">{t.display} <span class="hp-scard-n">· {t.count.toLocaleString()}</span></span>
+                          {t.promise && <span class="hp-scard-promise">{t.promise}</span>}
+                        </div>
+                        <a class="hp-scard-go" href={`${baseUrl}posts/category/${encodeURIComponent(t.name)}/`}>
+                          Enter
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true"><path d="M9.5 18L15.5 12L9.5 6" /></svg>
+                        </a>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <div class="hp-stack-bar">
+                  <button type="button" class="hp-stack-next" id="hp-stack-next" aria-label="Show next portal">
+                    Next portal
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true"><path d="M9.5 18L15.5 12L9.5 6" /></svg>
+                  </button>
+                </div>
+                <!-- Scannable index of the whole deck — a carousel has no
+                     information scent; clicking a name brings that card to
+                     the front, so the deck becomes a preview pane. -->
+                <div class="hp-stack-index" role="group" aria-label="All portals">
+                  {topics.map((t, i) => (
+                    <button type="button" data-goto={i} aria-pressed={i === 0 ? 'true' : 'false'}>{t.display}</button>
+                  ))}
                 </div>
               </div>
-              <div class="hp-guide-grid">
-                <a class="hp-guide-card" href={`${baseUrl}search/`}>
-                  <span class="hp-guide-ic"><Icon name="search" size={20} /></span>
-                  <h3>Search the library</h3>
-                  <p>Hit a specific claim? Search the exact allegation and jump straight to the response.</p>
-                  <span class="hp-guide-go" aria-hidden="true">→</span>
-                </a>
-                <a class="hp-guide-card" href={`${baseUrl}posts/category/`}>
-                  <span class="hp-guide-ic"><Icon name="grid-3x3" size={20} /></span>
-                  <h3>Browse by topic</h3>
-                  <p>Work through a subject area — Refutations, Christianity, Atheism, and more.</p>
-                  <span class="hp-guide-go" aria-hidden="true">→</span>
-                </a>
-                <a class="hp-guide-card" href={`${baseUrl}posts/tag/`}>
-                  <span class="hp-guide-ic"><Icon name="tag" size={20} /></span>
-                  <h3>Browse by tag</h3>
-                  <p>Zero in on a specific person, scripture, or concept across every article.</p>
-                  <span class="hp-guide-go" aria-hidden="true">→</span>
-                </a>
-                <a class="hp-guide-card" href={`${baseUrl}graph-view/`}>
-                  <span class="hp-guide-ic"><Icon name="share-2" size={20} /></span>
-                  <h3>See the graph</h3>
-                  <p>Explore how every topic and article connects across the wiki.</p>
-                  <span class="hp-guide-go" aria-hidden="true">→</span>
-                </a>
+            </section>
+          )}
+
+          {tagItems.length > 0 && (
+            <section class="hp-sec hp-sec--first hp-sec--stretch">
+              <div class="hp-sechead">
+                <div>
+                  <span class="hp-eyebrow"><span aria-hidden="true">◆</span> Cross-cutting ideas</span>
+                  <h2 class="hp-h2">Concepts</h2>
+                  <p class="hp-sublede">Tags follow a single idea — an ism, a method, a recurring motif — across every portal it appears in.</p>
+                </div>
+                <a class="hp-more" href={`${baseUrl}posts/tag/`}>All concepts →</a>
               </div>
-            </div>
-          </section>
+              <!-- The ACTUAL /posts/tag/ cloud (shared component, same data) -->
+              <TagCloud items={tagItems} minFont={13} maxFont={38} />
+            </section>
+          )}
+          </div>
+
+          <!-- ═══════════ 4 · PLATFORM DISCOVERY (live feature showcases) ═══════════ -->
+          <PlatformShowcase maxWidth={homeWidth} />
 
           <!-- ═══════════ CLOSING PULL-QUOTE ═══════════ -->
           <section class="hp-closer">
@@ -445,8 +464,8 @@ const structuredData = {
   }
 
   /* ── shared section head ── */
-  .hp-sec { margin-bottom: 3.5rem; }
-  .hp-sec--first { margin-top: 2.5rem; }
+  .hp-sec { margin-bottom: 5rem; }
+  .hp-sec--first { margin-top: 3rem; }
   .hp-sechead {
     display: flex;
     align-items: baseline;
@@ -486,12 +505,159 @@ const structuredData = {
   }
   .hp-more:hover { color: var(--hp-text); }
 
-  /* ── 1 · topic bento (shared TopicTile — matches /posts/category/ index) ── */
-  .hp-topic-feat { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
-  @media (min-width: 720px) { .hp-topic-feat { grid-template-columns: 1.9fr 1fr; } }
-  .hp-topic-rest { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-  @media (min-width: 520px) { .hp-topic-rest { grid-template-columns: repeat(2, 1fr); } }
-  @media (min-width: 900px) { .hp-topic-rest { grid-template-columns: repeat(3, 1fr); } }
+  /* ── 1 · portal card stack — bottom-anchored deck, front card exits downward ──
+     Depth is set per-card by homepage-hero-client.ts via --sy / --ss / z-index;
+     CSS only describes the card look and how transforms animate. */
+  .hp-stack { position: relative; }
+  .hp-stack-stage {
+    position: relative;
+    height: 348px; /* card 300 + rear-card rise 44 + 4px headroom — no trapped air */
+    overflow: hidden;
+  }
+  .hp-scard {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: min(32rem, calc(100% - 2rem));
+    height: 300px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--hp-border-strong);
+    border-bottom: none;
+    border-radius: 0.9rem 0.9rem 0 0;
+    background: var(--hp-bg-raise);
+    box-shadow: 0 -10px 30px -18px rgb(0 0 0 / 0.5);
+    transform: translate(-50%, var(--sy, -16px)) scale(var(--ss, 0.95));
+    opacity: var(--so, 0);
+    transition:
+      transform 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.45s ease;
+    will-change: transform;
+  }
+  .hp-scard.no-trans { transition: none; }
+  /* Pre-JS / no-JS resting state: top three visible in deck order */
+  .hp-scard:nth-child(1) { --sy: 12px; --ss: 1; --so: 1; z-index: 3; }
+  .hp-scard:nth-child(2) { z-index: 2; --so: 1; }
+  .hp-scard:nth-child(3) { --sy: -44px; --ss: 0.9; --so: 1; z-index: 1; }
+  .hp-scard-media {
+    position: relative;
+    display: block;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 0.65rem;
+    border: 1px solid var(--hp-border);
+  }
+  .hp-scard-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.8rem 0.7rem 1.2rem;
+  }
+  .hp-scard-txt { min-width: 0; }
+  .hp-scard-name {
+    display: block;
+    font-family: var(--font-heading, serif);
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--hp-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hp-scard-n {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--hp-muted);
+  }
+  .hp-scard-promise {
+    display: block;
+    margin-top: 0.25rem;
+    font-family: var(--font-prose, serif);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--hp-muted);
+    text-wrap: pretty;
+  }
+  .hp-scard-go {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.5rem 0.8rem 0.5rem 1rem;
+    border-radius: 9999px;
+    font-family: var(--font-ui, inherit);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: rgb(var(--color-primary-950));
+    background: var(--hp-accent);
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .hp-scard-go:hover { background: var(--hp-accent-soft); }
+  .hp-scard-go:active { transform: scale(0.97); }
+  .hp-stack-bar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: -1px;
+    padding: 1rem 0;
+    border-top: 1px solid var(--hp-border-strong);
+  }
+  .hp-stack-index {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem 0.4rem;
+    margin-top: 0.25rem;
+  }
+  .hp-stack-index button {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    background: transparent;
+    font-family: var(--font-ui, inherit);
+    font-size: 0.78rem;
+    color: var(--hp-muted);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .hp-stack-index button:hover { color: var(--hp-text); border-color: var(--hp-border); }
+  .hp-stack-index button[aria-pressed='true'] {
+    color: var(--hp-text);
+    background: var(--hp-bg-inset);
+    border-color: var(--hp-border-strong);
+  }
+  .hp-stack-index button:focus-visible {
+    outline: 2px solid rgb(var(--color-highlight-400));
+    outline-offset: 2px;
+  }
+  .hp-stack-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 0.9rem 0.5rem 1.1rem;
+    border: 1px solid var(--hp-border-strong);
+    border-radius: 0.6rem;
+    background: transparent;
+    font-family: var(--font-ui, inherit);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--hp-accent);
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.15s ease;
+  }
+  .hp-stack-next:hover { border-color: var(--hp-accent-soft); }
+  .hp-stack-next:active { transform: scale(0.98); }
+  .hp-stack-next:focus-visible {
+    outline: 2px solid rgb(var(--color-highlight-400));
+    outline-offset: 2px;
+  }
 
   /* ── 2 · accordion ── */
   .hp-alleg { border-top: 1px solid var(--hp-border); }
@@ -551,71 +717,52 @@ const structuredData = {
   .hp-band-inner { margin-inline: auto; padding-inline: 1rem; }
   @media (min-width: 640px) { .hp-band-inner { padding-inline: 1.5rem; } }
 
-  /* ── 3 · navigation guide (full-bleed shelf) ── */
-  .hp-guide {
-    padding-block: 3.25rem;
-    background: var(--hp-bg-inset);
-    border-block: 1px solid var(--hp-border);
-  }
-  .hp-guide-grid {
+  /* ── 1 · latest + objections side by side ── */
+  .hp-duo {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-top: 1.5rem;
+    grid-template-columns: 1fr;
+    column-gap: 4rem;
+    row-gap: 4rem;
+    margin-bottom: 6rem;
   }
-  @media (max-width: 900px) { .hp-guide-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 520px) { .hp-guide-grid { grid-template-columns: 1fr; } }
-  .hp-guide-card {
-    position: relative;
-    display: block;
-    padding: 1.4rem;
-    background: var(--hp-bg-raise);
-    border: 1px solid var(--hp-border);
-    border-radius: 0.6rem;
-    text-decoration: none;
-    transition: border-color 0.2s, transform 0.2s;
+  .hp-duo .hp-sec { margin-bottom: 0; }
+  .hp-duo .hp-sec--first { margin-top: 0; }
+  .hp-duo--lead { margin-top: 2rem; }
+  @media (min-width: 1024px) {
+    .hp-duo { grid-template-columns: 1fr 1fr; align-items: start; }
   }
-  .hp-guide-card:hover { border-color: var(--hp-accent-soft); transform: translateY(-2px); }
-  .hp-guide-ic {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    color: var(--hp-accent);
-    background: rgb(var(--color-highlight-500) / 0.12);
-    border: 1px solid rgb(var(--color-highlight-500) / 0.3);
-    margin-bottom: 0.9rem;
-  }
-  .hp-guide-card h3 {
-    font-family: var(--font-heading, serif);
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--hp-text);
-    margin: 0 0 0.35rem;
-    transition: color 0.2s;
-  }
-  .hp-guide-card:hover h3 { color: var(--hp-accent); }
-  .hp-guide-card p {
+
+  /* ── section sub-lede (portals / concepts explainer) ── */
+  .hp-sublede {
+    margin-top: 0.5rem;
+    max-width: 38rem;
     font-family: var(--font-prose, serif);
     font-size: 0.9rem;
     line-height: 1.55;
     color: var(--hp-muted);
-    margin: 0;
     text-wrap: pretty;
   }
-  .hp-guide-go {
-    position: absolute;
-    top: 1.4rem;
-    right: 1.4rem;
-    color: var(--hp-accent-soft);
-    font-size: 1.1rem;
-    opacity: 0;
-    transform: translateX(-4px);
-    transition: opacity 0.2s, transform 0.2s;
+
+  /* ── 3 · concepts: the shared TagCloud component (all viewports) ── */
+
+  /* Portals + Concepts duo: breaks out of the 72rem canvas to a wider band.
+     Columns stretch to equal height — the cloud fills whatever the portals
+     column sets. */
+  @media (min-width: 1024px) {
+    .hp-duo--org {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(100rem, calc(100vw - 4rem));
+      align-items: stretch;
+    }
+    .hp-sec--stretch { display: flex; flex-direction: column; }
+    .hp-sec--stretch :global(.tag-cloud-panel) {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
   }
-  .hp-guide-card:hover .hp-guide-go { opacity: 1; transform: none; }
 
   /* ── 4 · segmented latest ── */
   .hp-seg {
@@ -716,8 +863,7 @@ const structuredData = {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hp-latest a, .hp-chev, .hp-guide-card, .hp-guide-go { transition: none; }
-    .hp-guide-card:hover { transform: none; }
+    .hp-latest a, .hp-chev, .hp-stack-next, .hp-scard { transition: none; }
   }
 
   /* ══════════════ Section heading (legacy — used by blurb) ══════════════ */
@@ -793,28 +939,6 @@ const structuredData = {
   :global(html.dark) .hp-btn.primary:hover { background: rgb(var(--color-highlight-300)); border-color: rgb(var(--color-highlight-300)); }
 </style>
 
-<script>
-  function initHomeSections() {
-    // Segmented "Latest" toggle
-    const seg = document.querySelector('.hp-seg');
-    if (seg) {
-      seg.querySelectorAll('button').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-          btn.setAttribute('aria-pressed', 'true');
-          const isNew = (btn as HTMLElement).dataset.tab === 'new';
-          const nw = document.getElementById('hp-latest-new');
-          const up = document.getElementById('hp-latest-upd');
-          if (nw) nw.hidden = !isNew;
-          if (up) up.hidden = isNew;
-        });
-      });
-    }
-  }
-
-  // Initial load fires DOMContentLoaded only; Swup fires `swup:page:view` (once)
-  // per navigation. So: direct call wires the toggle on load, listener re-wires it
-  // after each swap (the segmented buttons are replaced with the swapped content).
-  initHomeSections();
-  document.addEventListener('swup:page:view', initHomeSections);
-</script>
+<!-- The segmented "Latest" toggle is wired in src/scripts/homepage-hero-client.ts
+     (loaded globally by BaseLayout) — a per-page script here never executes when
+     the homepage is reached via Swup navigation (reloadScripts: false). -->

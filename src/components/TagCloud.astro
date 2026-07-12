@@ -1,0 +1,103 @@
+---
+/**
+ * TagCloud — the word cloud from /posts/tag/, extracted for reuse (the
+ * homepage Concepts section shows the same cloud). Build-time spiral layout
+ * → static SVG, no client JS. Markup and styles moved verbatim from
+ * src/pages/posts/tag/index.astro.
+ */
+import { layoutTagCloud } from '@/utils/tag-cloud';
+import type { TagCloudItem } from '@/utils/tag-cloud-data';
+
+interface Props {
+  items: TagCloudItem[];
+  minFont?: number;
+  maxFont?: number;
+  /** Cap the rendered SVG width (small clouds blow up on wide canvases). */
+  maxWidth?: string;
+}
+const { items, minFont = 18, maxFont = 62, maxWidth } = Astro.props;
+
+const cloud = layoutTagCloud(
+  items.map((t) => ({ text: t.title, count: t.count, url: t.url })),
+  { minFont, maxFont },
+);
+---
+
+<section class="tag-cloud-panel" aria-label="Tag cloud">
+  <svg
+    class="tag-cloud"
+    viewBox={cloud.viewBox}
+    preserveAspectRatio="xMidYMid meet"
+    role="img"
+    aria-label={`Cloud of ${items.length} tags, sized by number of articles`}
+    style={maxWidth ? `max-width: ${maxWidth}` : undefined}
+  >
+    {cloud.words.map((w, i) => (
+      <a
+        href={w.url}
+        aria-label={`${w.text}, ${w.count} article${w.count === 1 ? '' : 's'}`}
+        style={`animation-delay:${Math.min(i * 0.018, 0.9).toFixed(3)}s`}
+      >
+        <title>{w.text} · {w.count} article{w.count === 1 ? '' : 's'}</title>
+        <text
+          class="cloud-word"
+          x={w.x}
+          y={w.y}
+          text-anchor="middle"
+          dominant-baseline="central"
+          style={`font-size:${w.size}px;--g:${w.weight.toFixed(3)}`}
+        >{w.text}</text>
+      </a>
+    ))}
+  </svg>
+</section>
+
+<style>
+  .tag-cloud-panel {
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 0.75rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    background:
+      radial-gradient(120% 120% at 50% 0%, rgb(var(--color-highlight-500) / 0.05), transparent 70%),
+      rgb(var(--color-primary-50) / 0.5);
+  }
+  :global(.dark) .tag-cloud-panel {
+    border-color: rgb(var(--color-primary-800));
+    background:
+      radial-gradient(120% 120% at 50% 0%, rgb(var(--color-highlight-500) / 0.08), transparent 70%),
+      rgb(var(--color-primary-900) / 0.35);
+  }
+  .tag-cloud { display: block; width: 100%; height: auto; overflow: visible; margin-inline: auto; }
+  /* Colour ramps continuously from muted ink (rare tags) to full gold (frequent
+     tags); --g is the 0..1 normalised post count, set per word. */
+  .cloud-word {
+    font-family: var(--font-heading, serif);
+    font-weight: 600;
+    fill: color-mix(in oklab, rgb(var(--color-highlight-500)) calc(var(--g, 0) * 100%), rgb(var(--color-primary-600)));
+    fill-opacity: calc(0.8 + var(--g, 0) * 0.2);
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: fill 0.15s ease, fill-opacity 0.15s ease, transform 0.18s ease;
+  }
+  :global(.dark) .cloud-word {
+    fill: color-mix(in oklab, rgb(var(--color-highlight-400)) calc(var(--g, 0) * 100%), rgb(var(--color-primary-300)));
+  }
+  .tag-cloud a { cursor: pointer; outline: none; animation: cloud-in 0.45s ease backwards; }
+  .tag-cloud a:hover .cloud-word,
+  .tag-cloud a:focus-visible .cloud-word {
+    fill: rgb(var(--color-highlight-600));
+    fill-opacity: 1;
+    transform: scale(1.1);
+    text-decoration: underline;
+  }
+  :global(.dark) .tag-cloud a:hover .cloud-word,
+  :global(.dark) .tag-cloud a:focus-visible .cloud-word {
+    fill: rgb(var(--color-highlight-300));
+  }
+  .tag-cloud a:focus-visible .cloud-word {
+    stroke: rgb(var(--color-highlight-500));
+    stroke-width: 0.4px;
+    paint-order: stroke;
+  }
+  @keyframes cloud-in { from { opacity: 0; } to { opacity: 1; } }
+</style>
