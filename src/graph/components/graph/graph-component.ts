@@ -58,6 +58,9 @@ export class GraphComponent extends HTMLElement {
 	/** True once teardown() has run — the component is dead and cannot be revived
 	 *  (renderer/simulator are constructed once, in the constructor). */
 	private destroyed: boolean = false;
+	private rendererMounted: boolean = false;
+	private sitemapLoaded: boolean = false;
+	private initFailed: boolean = false;
 
 	constructor() {
 		super();
@@ -69,6 +72,7 @@ export class GraphComponent extends HTMLElement {
 		try {
 			this.setConfigListener(this.dataset['config']);
 			this.sitemap = JSON.parse(this.dataset['sitemap'] || '{}');
+			this.sitemapLoaded = !this.dataset['sitemapUrl'] || Boolean(this.dataset['sitemap']);
 			this.trailingSlashes = this.dataset['trailingSlashes'] === 'true';
 			// NOTE: This ensures that the slug passed will always have the correct slash format (if using regular Graph.astro)
 			this.currentPage = setSlashes(this.dataset['slug'] || location.pathname, true, this.trailingSlashes)
@@ -127,8 +131,14 @@ export class GraphComponent extends HTMLElement {
 		this.simulator = new GraphSimulator(this);
 
 		this.renderer.mount(this.simulator, this.graphContainer)
-			.then(() => this.setup())
-			.catch((e) => this.handleInitFailure(e));
+			.then(() => {
+				this.rendererMounted = true;
+				if (this.sitemapLoaded) this.setup();
+			})
+			.catch((e) => {
+				this.initFailed = true;
+				this.handleInitFailure(e);
+			});
 		this.simulator.mount(this.renderer);
 
 		this.propertyObserver = new MutationObserver(mutations => {
@@ -154,6 +164,8 @@ export class GraphComponent extends HTMLElement {
 	 * intentional rather than broken.
 	 */
 	handleInitFailure(e: unknown) {
+		if (this.initFailed && this.querySelector('.slsg-graph-fallback')) return;
+		this.initFailed = true;
 		console.error('[STARLIGHT-SITE-GRAPH] graph failed to initialize:', e);
 		this.classList.remove('slsg-graph-skeleton');
 		this.placeholderContainer.style.display = 'none';
@@ -172,17 +184,28 @@ export class GraphComponent extends HTMLElement {
 		// A destroyed component cannot be revived (PixiJS app + observers are gone);
 		// Swup always creates a brand-new element for the next page, so this only
 		// guards against pathological re-insertion of a torn-down node.
-		if (this.destroyed) return;
+		if (this.destroyed || this.initFailed) return;
 		const sitemapUrl = this.dataset['sitemapUrl'];
 		if (sitemapUrl) {
-			this.sitemap = await fetch(sitemapUrl).then(r => r.json()).catch(() => ({}));
+			try {
+				const response = await fetch(sitemapUrl);
+				if (!response.ok) {
+					throw new Error(`Failed to fetch graph sitemap: ${response.status} ${response.statusText}`);
+				}
+				this.sitemap = await response.json();
+				this.sitemapLoaded = true;
+			} catch (e) {
+				if (this.isConnected && !this.destroyed) this.handleInitFailure(e);
+				return;
+			}
 			if (!this.isConnected || this.destroyed) return;
-			if (this.simulator?.mounted) {
+			if (this.rendererMounted) {
 				this.full_refresh();
 			}
 			// If not mounted yet, setup() will use this.sitemap when it runs
 		} else {
 			this.sitemap = JSON.parse(this.dataset['sitemap'] || '{}');
+			this.sitemapLoaded = true;
 		}
 	}
 
