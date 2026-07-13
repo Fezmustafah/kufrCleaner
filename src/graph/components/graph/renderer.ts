@@ -115,7 +115,10 @@ export class GraphRenderer {
 	}
 
 	destroy() {
-		this.app.destroy();
+		// app.init() may have rejected (WebGL/unsafe-eval) leaving a half-built
+		// Application whose destroy() throws "_cancelResize is not a function".
+		// teardown() must stay non-throwing so Swup navigation isn't broken.
+		try { this.app?.destroy(); } catch { /* app never fully initialized */ }
 		this.app = undefined!;
 		this.simulator = undefined!;
 		this.context = undefined!;

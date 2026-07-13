@@ -1,5 +1,5 @@
 ---
-import { siteConfig, getFontFamily, getGoogleFontsUrl, shouldLoadLocalFonts, shouldLoadCdnFonts, getFontDisplay, getThemeDisplayName } from '@/config';
+import { siteConfig, getFontFamily, getGoogleFontsUrl, shouldLoadCdnFonts, getFontDisplay, getThemeDisplayName } from '@/config';
 import type { SEOData } from '@/types';
 import { generateStructuredData, generateOrganizationSchema, generateWebsiteSchema, generateDefinedTermSchema } from '@/utils/seo';
 import Header from '@/components/Header.astro';
@@ -11,44 +11,32 @@ import Lightbox from '@/components/Lightbox.astro';
 import ImageGalleryManager from '@/components/ImageGalleryManager.astro';
 import '@/styles/global.css';
 
-// Import local fonts if configured
-if (shouldLoadLocalFonts()) {
-  // Inter
-  if (siteConfig.fonts.families.body === 'Inter' || siteConfig.fonts.families.heading === 'Inter') {
-    import('@fontsource/inter/300.css');
-    import('@fontsource/inter/400.css');
-    import('@fontsource/inter/500.css');
-    import('@fontsource/inter/600.css');
-    import('@fontsource/inter/700.css');
-  }
-  // Lora
-  if (siteConfig.fonts.families.body === 'Lora' || siteConfig.fonts.families.heading === 'Lora') {
-    import('@fontsource/lora/400.css');
-    import('@fontsource/lora/400-italic.css');
-    import('@fontsource/lora/500.css');
-    import('@fontsource/lora/600.css');
-    import('@fontsource/lora/700.css');
-    import('@fontsource/lora/700-italic.css');
-  }
-  // Cormorant Garamond
-  if (siteConfig.fonts.families.body === 'Cormorant Garamond' || siteConfig.fonts.families.heading === 'Cormorant Garamond') {
-    import('@fontsource/cormorant-garamond/300.css');
-    import('@fontsource/cormorant-garamond/400.css');
-    import('@fontsource/cormorant-garamond/400-italic.css');
-    import('@fontsource/cormorant-garamond/500.css');
-    import('@fontsource/cormorant-garamond/600.css');
-    import('@fontsource/cormorant-garamond/700.css');
-    import('@fontsource/cormorant-garamond/700-italic.css');
-  }
-  // JetBrains Mono
-  if (siteConfig.fonts.families.mono === 'JetBrains Mono') {
-    import('@fontsource/jetbrains-mono/300.css');
-    import('@fontsource/jetbrains-mono/400.css');
-    import('@fontsource/jetbrains-mono/500.css');
-    import('@fontsource/jetbrains-mono/600.css');
-    import('@fontsource/jetbrains-mono/700.css');
-  }
-}
+// Self-hosted fonts — MUST be static imports. Astro/Vite only emits a CSS
+// import's font-file (woff2) assets for STATIC imports; the previous
+// fire-and-forget dynamic import()s emitted the @font-face CSS but not the
+// font binaries, so every glyph 404'd in production (worked in `pnpm dev`).
+// Weights/families mirror src/config.ts: Lora (body), Cormorant Garamond
+// (heading), JetBrains Mono (mono). These always bundle; if you switch
+// config.fonts.source to "cdn" (adds a Google Fonts <link> below), drop these
+// to avoid double-loading.
+import '@fontsource/lora/400.css';
+import '@fontsource/lora/400-italic.css';
+import '@fontsource/lora/500.css';
+import '@fontsource/lora/600.css';
+import '@fontsource/lora/700.css';
+import '@fontsource/lora/700-italic.css';
+import '@fontsource/cormorant-garamond/300.css';
+import '@fontsource/cormorant-garamond/400.css';
+import '@fontsource/cormorant-garamond/400-italic.css';
+import '@fontsource/cormorant-garamond/500.css';
+import '@fontsource/cormorant-garamond/600.css';
+import '@fontsource/cormorant-garamond/700.css';
+import '@fontsource/cormorant-garamond/700-italic.css';
+import '@fontsource/jetbrains-mono/300.css';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
+import '@fontsource/jetbrains-mono/600.css';
+import '@fontsource/jetbrains-mono/700.css';
 
 export interface Props {
   seoData: SEOData;

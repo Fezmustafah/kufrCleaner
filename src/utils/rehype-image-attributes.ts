@@ -13,6 +13,7 @@ import sharp from 'sharp';
  */
 
 type Dims = { width: number; height: number };
+const CACHE_FAILURE_KEY = '__failures';
 
 // One probe per unique src per process — pages share the cache. Successful
 // remote probes persist to a COMMITTED file (like the generated
@@ -26,7 +27,7 @@ const dimsCache = new Map<string, Dims | null>();
 let diskCacheLoaded = false;
 let diskDirty = false;
 
-function readCacheFile(): Record<string, Dims> {
+function readCacheFile(): Record<string, any> {
   try {
     return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
   } catch {
@@ -37,7 +38,10 @@ function readCacheFile(): Record<string, Dims> {
 function loadDiskCache() {
   if (diskCacheLoaded) return;
   diskCacheLoaded = true;
-  for (const [k, v] of Object.entries(readCacheFile())) dimsCache.set(k, v);
+  for (const [k, v] of Object.entries(readCacheFile())) {
+    if (k === CACHE_FAILURE_KEY) continue;
+    if (v?.width && v?.height) dimsCache.set(k, v);
+  }
 }
 
 function saveDiskCache() {

@@ -22,6 +22,7 @@
  * Sits inside index.astro's .hp container and inherits its --hp-* tokens.
  */
 import fs from 'node:fs';
+import path from 'node:path';
 import { siteConfig, getThemeDisplayName } from '@/config';
 import { SWATCHES, swatchStyle } from '@/data/palette-swatches';
 import SiteGraph from '@/components/SiteGraph.astro';
@@ -40,7 +41,11 @@ interface Mention { title: string; url: string }
 let backlinkDemo: { title: string; url: string; slug: string; count: number; mentions: Mention[] } | null = null;
 try {
   const graphData = JSON.parse(
-    fs.readFileSync(new URL('../../public/graph/graph-data.json', import.meta.url), 'utf8'),
+    // process.cwd() (NOT new URL(import.meta.url)) — Vite rewrites
+    // new URL(..., import.meta.url) in the SSR build so the path breaks in
+    // `astro build`, the read throws, and this whole band silently vanishes.
+    // Matches PostLayout.astro's read of the same public/graph/ directory.
+    fs.readFileSync(path.join(process.cwd(), 'public', 'graph', 'graph-data.json'), 'utf8'),
   );
   const byId: Record<string, any> = Object.fromEntries(graphData.nodes.map((n: any) => [n.id, n]));
   // Distinct citing posts per target (a source may link the same target repeatedly)

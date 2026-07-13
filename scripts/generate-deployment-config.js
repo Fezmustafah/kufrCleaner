@@ -20,6 +20,15 @@ const DEPLOYMENT_PLATFORM = process.env.DEPLOYMENT_PLATFORM || getDeploymentPlat
 const DRY_RUN = process.argv.includes('--dry-run');
 const VALIDATE_ONLY = process.argv.includes('--validate');
 
+// ── Content-Security-Policy — THE single source of truth ────────────────────
+// Shipped as an HTTP header (dist/_headers on Cloudflare, platform config
+// elsewhere). Astro's `csp` config does NOT apply to this static build, so this
+// is the only CSP that reaches production — edit it here, nowhere else.
+//   'unsafe-eval'  : PixiJS (graph view) builds shader code with new Function().
+//   'unsafe-inline': inline <script>/<style> Astro emits.
+//   *.workers.dev  : AI-assistant Worker (see src/config); drop if unused.
+const CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://giscus.app https://platform.twitter.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://giscus.app https://*.workers.dev; frame-src 'self' https://www.youtube.com https://giscus.app https://platform.twitter.com; object-src 'none'; base-uri 'self';";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -366,7 +375,7 @@ function generateVercelConfig(redirects) {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://giscus.app https://platform.twitter.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://giscus.app; frame-src 'self' https://www.youtube.com https://giscus.app https://platform.twitter.com; object-src 'none'; base-uri 'self';"
+            value: CSP
           }
         ]
       }
@@ -608,7 +617,7 @@ async function writeGitHubPagesConfig(redirects) {
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Cross-Origin-Embedder-Policy: unsafe-none
   Cross-Origin-Opener-Policy: same-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://giscus.app https://platform.twitter.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://giscus.app; frame-src 'self' https://www.youtube.com https://giscus.app https://platform.twitter.com; object-src 'none'; base-uri 'self';
+  Content-Security-Policy: ${CSP}
 
 # PDF files - allow iframe embedding (override X-Frame-Options for PDFs)
 /*.pdf

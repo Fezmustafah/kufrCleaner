@@ -104,6 +104,11 @@ export class GraphComponent extends HTMLElement {
 
 		this.animator = new Animator<ReturnType<typeof animatables>>([]);
 		this.themeObserver = new MutationObserver(() => {
+			// Fires on every theme/class mutation (Swup toggles classes constantly).
+			// usedColors is only populated by a successful setup() — if init failed
+			// (e.g. WebGL/unsafe-eval), skip so we don't throw "not iterable" on
+			// every mutation and drown the console.
+			if (!this.usedColors) return;
 			this.colors = getGraphColors(this.graphContainer, this.usedColors, this.customColorMap);
 			for (const color of this.usedColors) {
 				const key = color.slice(0, color.indexOf('Color') + 5);

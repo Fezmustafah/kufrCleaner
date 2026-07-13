@@ -45,51 +45,10 @@ export default defineConfig({
   deployment: {
     platform: DEPLOYMENT_PLATFORM
   },
-  csp: {
-    scriptDirective: {
-      resources: [
-        "'self'",
-        "'unsafe-inline'",
-        "https://unpkg.com",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net",
-        "https://giscus.app",
-        "https://platform.twitter.com"
-      ]
-    },
-    styleDirective: {
-      resources: [
-        "'self'",
-        "'unsafe-inline'",
-        "https://fonts.googleapis.com",
-        "https://cdnjs.cloudflare.com"
-      ]
-    },
-    fontDirective: {
-      resources: [
-        "'self'",
-        "data:",
-        "https://fonts.gstatic.com",
-        "https://cdnjs.cloudflare.com"
-      ]
-    },
-    imgDirective: {
-      resources: ["'self'", "data:", "https:"]
-    },
-    connectDirective: {
-      // *.workers.dev = AI assistant Worker (ai-worker). If you move the Worker
-      // to a custom domain, add that origin here too.
-      resources: ["'self'", "https://giscus.app", "https://*.workers.dev"]
-    },
-    frameDirective: {
-      resources: [
-        "'self'",
-        "https://www.youtube.com",
-        "https://giscus.app",
-        "https://platform.twitter.com"
-      ]
-    }
-  },
+  // NOTE: Content-Security-Policy is NOT configured here. Astro's `csp` option
+  // does not apply to this static Cloudflare Workers build (it emits nothing).
+  // The live CSP ships as an HTTP header from dist/_headers — edit it in
+  // scripts/generate-deployment-config.js (the `CSP` constant).
   devToolbar: {
     enabled: true
   },

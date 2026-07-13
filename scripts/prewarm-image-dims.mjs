@@ -20,6 +20,8 @@ const TIMEOUT_MS = 10_000;
 const SPACING_MS = 100;
 const THROTTLE_PAUSE_MS = 10_000;
 const MAX_ATTEMPTS = 6;
+const FAILURE_KEY = '__failures';
+const FAILURE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 // ── collect absolute image URLs from all markdown ──
 const URL_RE = /https?:\/\/[^\s)"'\]<>]+\.(?:png|jpe?g|webp|gif|avif)/gi;
@@ -37,9 +39,20 @@ walk(CONTENT_DIR);
 
 let cache = {};
 try { cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')); } catch { /* first run */ }
+cache[FAILURE_KEY] ??= {};
 
-const todo = [...urls].filter((u) => !cache[u]);
-console.log(`[image-dims] ${urls.size} remote images referenced, ${todo.length} to probe`);
+const now = Date.now();
+const isKnown = (u) => {
+  if (cache[u]?.width && cache[u]?.height) return true;
+  const failedAt = cache[FAILURE_KEY]?.[u];
+  return typeof failedAt === 'number' && now - failedAt < FAILURE_TTL_MS;
+};
+
+const todo = [...urls].filter((u) => !isKnown(u));
+const recentFailures = Object.values(cache[FAILURE_KEY]).filter(
+  (failedAt) => typeof failedAt === 'number' && now - failedAt < FAILURE_TTL_MS,
+).length;
+console.log(`[image-dims] ${urls.size} remote images referenced, ${todo.length} to probe (${recentFailures} recent failures skipped)`);
 if (todo.length === 0) process.exit(0);
 
 // ── probe: dimensions live in the first bytes — 64 KB ranged fetch ──
@@ -77,11 +90,18 @@ async function worker() {
         pausedUntil = Math.max(pausedUntil, Date.now() + THROTTLE_PAUSE_MS);
         queue.push({ url: item.url, attempt: item.attempt + 1 });
       } else {
+        cache[FAILURE_KEY][item.url] = Date.now();
         done++; gaveUp++;
       }
     } else {
       done++;
-      if (dims) { cache[item.url] = dims; ok++; }
+      if (dims) {
+        cache[item.url] = dims;
+        delete cache[FAILURE_KEY][item.url];
+        ok++;
+      } else {
+        cache[FAILURE_KEY][item.url] = Date.now();
+      }
     }
     if (done > 0 && done % 500 === 0) {
       console.log(`[image-dims] ${done}/${todo.length} resolved (${ok} ok, ${gaveUp} gave up, ${queue.length} queued)`);
@@ -92,4 +112,4 @@ async function worker() {
 }
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 fs.writeFileSync(CACHE_FILE, JSON.stringify(cache));
-console.log(`[image-dims] done: ${ok}/${todo.length} new (${gaveUp} gave up), cache now ${Object.keys(cache).length} entries`);
+console.log(`[image-dims] done: ${ok}/${todo.length} new (${gaveUp} gave up), cache now ${Object.keys(cache).filter((k) => k !== FAILURE_KEY).length} entries`);
