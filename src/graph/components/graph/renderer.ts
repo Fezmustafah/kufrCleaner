@@ -128,6 +128,14 @@ export class GraphRenderer {
 	tick(ticker: PIXI.Ticker) {
 		this.context.animator.update(ticker.deltaMS);
 
+		// The ticker starts in mount() (right after app.init), but the simulator is
+		// only populated by initialize() inside setup() — deferred until the sitemap
+		// fetch resolves on the data-sitemap-url path (e.g. /graph-view/). Until then
+		// there is no container/nodes; skip the sim + draw so the loop doesn't read
+		// clientWidth off an undefined container. Optional-chain also covers a
+		// stray tick after teardown() nulls the simulator.
+		if (!this.simulator?.mounted) return;
+
 		if (!this.simulator.userZoomed) {
 			const updated = this.simulator.updateCenterTransform();
 			if (updated) {
