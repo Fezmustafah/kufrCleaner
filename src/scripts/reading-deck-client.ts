@@ -6,6 +6,12 @@ import {
 } from './reading-deck/history';
 import { attachReadingDeck, type ReadingDeckHandle } from './reading-deck';
 import type { DeckState } from './reading-deck/state';
+import { createDesktopTransformTransport } from './reading-deck/transports/desktop-transform';
+import { createMobileScrollSnapTransport } from './reading-deck/transports/mobile-scroll-snap';
+import type {
+  DeckTransport,
+  DeckTransportContext,
+} from './reading-deck/transports/transport';
 import type {
   CompiledReadingFeed as DeckFeedModel,
   FeedKind,
@@ -54,14 +60,8 @@ export class ReadingDeckController implements ReadingDeckHandle {
   private feed: FeedKind = 'slides';
   private current = 0;
   private finished = false;
-  private offsets: number[] = [];
-  private finishOffset = 0;
+  private transport: DeckTransport | null = null;
   private returnFocus: HTMLElement | null = null;
-  private wheelLockedUntil = 0;
-  private resizeFrame = 0;
-  private mobileScrollTimer = 0;
-  private mobileTouchActive = false;
-  private pendingMobileHapticIndex: number | null = null;
   private readonly storageKey: string;
 
   constructor(dialog: HTMLDialogElement) {
@@ -83,8 +83,8 @@ export class ReadingDeckController implements ReadingDeckHandle {
     this.abort.abort();
     this.unsubscribeHistory();
     this.unsubscribeViewport();
-    cancelAnimationFrame(this.resizeFrame);
-    window.clearTimeout(this.mobileScrollTimer);
+    this.transport?.destroy();
+    this.transport = null;
     try { this.haptics.destroy(); } catch { /* non-fatal */ }
     this.view.destroy();
   }
@@ -174,21 +174,17 @@ export class ReadingDeckController implements ReadingDeckHandle {
       this.requestClose();
     }, { signal });
     this.view.dialog.addEventListener('keydown', (event) => this.onKeydown(event), { signal });
-    this.bindMobileCarousel(signal);
-    this.bindPointerGestures(signal);
-    this.bindTrackpad(signal);
-
     this.unsubscribeViewport = this.viewport.subscribe((snapshot) => {
       const mobileChanged = snapshot.mobile !== this.viewportState.mobile;
       this.viewportState = snapshot;
       applyViewportCss(this.view.dialog, snapshot);
       if (mobileChanged) {
-        window.clearTimeout(this.mobileScrollTimer);
-        this.mobileTouchActive = false;
         this.view.track.scrollLeft = 0;
-        this.offsets = [];
+        this.syncFinishPlacement();
+        this.replaceTransport(snapshot.mobile);
+      } else {
+        this.transport?.reflow();
       }
-      this.scheduleMeasure();
     });
     this.unsubscribeHistory = this.deckHistory.subscribe(() => this.syncFromLocation());
   }
@@ -216,7 +212,6 @@ export class ReadingDeckController implements ReadingDeckHandle {
     }
 
     requestAnimationFrame(() => {
-      this.measure();
       this.place(false);
       if (targetId) this.restoreHeading(targetId);
       this.maybeShowSwipeHint();
@@ -259,10 +254,9 @@ export class ReadingDeckController implements ReadingDeckHandle {
     this.view.renderFeed(model, feed);
     this.view.renderCompletion(false, model, feed);
     this.syncFinishPlacement();
+    this.replaceTransport(this.viewportState.mobile);
     const preferred = requestedIndex ?? this.positions.get(feed) ?? 0;
     this.current = Math.min(Math.max(0, preferred), Math.max(0, model.cards.length - 1));
-    this.offsets = [];
-    this.finishOffset = 0;
     this.show(this.current, false, false, true, !targetId);
     queueMicrotask(() => {
       window.initializeWikilinks?.();
@@ -319,10 +313,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
     this.bindCurrentCardScroll();
     if (changed) this.dismissSwipeHint();
     if (updateHash && this.view.dialog.open && this.deckHistory.read()) this.updateLocationHash();
-    if (changed && haptic) {
-      if (this.viewportState.mobile && shouldPlace) this.pendingMobileHapticIndex = nextIndex;
-      else this.tick();
-    }
+    if (changed && haptic) this.tick();
   }
 
   private go(delta: number): void {
@@ -442,23 +433,6 @@ export class ReadingDeckController implements ReadingDeckHandle {
     return model.cards.length - 1;
   }
 
-  private measure(): void {
-    if (this.viewportState.mobile) {
-      this.offsets = [];
-      return;
-    }
-    const cards = this.feedCache.get(this.feed)?.cards || [];
-    const style = getComputedStyle(this.view.stage);
-    const contentWidth = this.view.stage.clientWidth
-      - Number.parseFloat(style.paddingLeft || '0')
-      - Number.parseFloat(style.paddingRight || '0');
-    const center = contentWidth / 2;
-    this.offsets = cards.map(({ element }) => center - (element.offsetLeft + element.offsetWidth / 2));
-    this.finishOffset = this.view.finish.parentElement === this.view.track
-      ? center - (this.view.finish.offsetLeft + this.view.finish.offsetWidth / 2)
-      : 0;
-  }
-
   private syncFinishPlacement(): void {
     const parent = this.viewportState.mobile ? this.view.stage : this.view.track;
     if (this.view.finish.parentElement !== parent) parent.appendChild(this.view.finish);
@@ -467,98 +441,40 @@ export class ReadingDeckController implements ReadingDeckHandle {
   private place(animate: boolean): void {
     const model = this.feedCache.get(this.feed);
     if (!model) return;
-    if (this.viewportState.mobile) {
-      const card = model.cards[this.current]?.element;
-      if (!card || card.parentElement !== this.view.track) return;
-      const left = card.offsetLeft - Math.max(0, (this.view.track.clientWidth - card.offsetWidth) / 2);
-      this.view.track.scrollTo({
-        left: Math.max(0, left),
-        behavior: animate && !this.viewportState.reducedMotion ? 'smooth' : 'auto',
-      });
-      this.scheduleMobileSettle();
-      return;
-    }
-    if (this.offsets.length !== model.cards.length) this.measure();
-    const offset = this.finished ? this.finishOffset : this.offsets[this.current] || 0;
-    if (!animate || this.viewportState.reducedMotion) {
-      const transition = this.view.track.style.transition;
-      this.view.track.style.transition = 'none';
-      this.view.track.style.transform = `translate3d(${Math.round(offset)}px, 0, 0)`;
-      void this.view.track.offsetWidth;
-      this.view.track.style.transition = transition;
-    } else {
-      this.view.track.style.transform = `translate3d(${Math.round(offset)}px, 0, 0)`;
-    }
+    const selected = this.finished && !this.viewportState.mobile ? model.cards.length : this.current;
+    this.transport?.present(selected, animate ? 'animate' : 'none');
   }
 
-  private scheduleMeasure(): void {
-    this.offsets = [];
-    if (this.resizeFrame) return;
-    this.resizeFrame = requestAnimationFrame(() => {
-      this.resizeFrame = 0;
-      if (!this.view.dialog.open) return;
-      this.syncFinishPlacement();
-      if (this.viewportState.mobile && this.mobileTouchActive) return;
-      this.measure();
-      this.place(false);
-    });
-  }
-
-  private bindMobileCarousel(signal: AbortSignal): void {
-    this.view.track.addEventListener('touchstart', () => {
-      if (!this.viewportState.mobile) return;
-      this.mobileTouchActive = true;
-      this.pendingMobileHapticIndex = null;
-      this.view.scrollShadow.hidden = true;
-      this.dismissSwipeHint();
-    }, { passive: true, signal });
-
-    const finishTouch = () => {
-      if (!this.viewportState.mobile) return;
-      this.mobileTouchActive = false;
-      this.scheduleMobileSettle();
-    };
-    this.view.track.addEventListener('touchend', finishTouch, { passive: true, signal });
-    this.view.track.addEventListener('touchcancel', finishTouch, { passive: true, signal });
-
-    this.view.track.addEventListener('scroll', () => {
-      if (!this.viewportState.mobile) return;
-      this.view.scrollShadow.hidden = true;
-      this.scheduleMobileSettle();
-    }, { passive: true, signal });
-  }
-
-  private scheduleMobileSettle(): void {
-    if (!this.viewportState.mobile) return;
-    window.clearTimeout(this.mobileScrollTimer);
-    this.mobileScrollTimer = window.setTimeout(() => this.settleMobileCarousel(), 120);
-  }
-
-  private settleMobileCarousel(): void {
-    if (!this.viewportState.mobile || this.mobileTouchActive) return;
-
+  private replaceTransport(mobile: boolean): void {
     const model = this.feedCache.get(this.feed);
     if (!model) return;
-    const center = this.view.track.scrollLeft + this.view.track.clientWidth / 2;
-    let nearestIndex = this.current;
-    let nearestDistance = Number.POSITIVE_INFINITY;
+    this.transport?.destroy();
+    this.transport = mobile
+      ? createMobileScrollSnapTransport({ onSettledHaptic: () => this.tick() })
+      : createDesktopTransformTransport();
+    this.transport.connect(this.transportContext(model, mobile));
+    this.place(false);
+  }
 
-    model.cards.forEach((card, index) => {
-      if (card.element.parentElement !== this.view.track) return;
-      const cardCenter = card.element.offsetLeft + card.element.offsetWidth / 2;
-      const distance = Math.abs(cardCenter - center);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = index;
-      }
-    });
-
-    const changed = nearestIndex !== this.current;
-    if (changed) this.show(nearestIndex, false, false, false);
-    else this.bindCurrentCardScroll();
-
-    if (changed || this.pendingMobileHapticIndex === nearestIndex) this.tick();
-    this.pendingMobileHapticIndex = null;
+  private transportContext(model: DeckFeedModel, mobile: boolean): DeckTransportContext {
+    const cards = model.cards.map((card) => card.element);
+    if (!mobile && this.view.finish.parentElement === this.view.track) cards.push(this.view.finish);
+    return {
+      stage: this.view.stage,
+      track: this.view.track,
+      cards,
+      selectedIndex: () => this.finished && !mobile ? model.cards.length : this.current,
+      reducedMotion: () => this.viewportState.reducedMotion,
+      requestMove: (delta) => this.go(delta),
+      reportSettled: (index) => {
+        if (index !== this.current) this.show(index, false, false, false);
+        else this.bindCurrentCardScroll();
+      },
+      dismissHint: () => {
+        this.view.scrollShadow.hidden = true;
+        this.dismissSwipeHint();
+      },
+    };
   }
 
   private restoreHeading(targetId: string): void {
@@ -785,98 +701,6 @@ export class ReadingDeckController implements ReadingDeckHandle {
     }
   }
 
-  private bindPointerGestures(signal: AbortSignal): void {
-    let live = false;
-    let axis: '' | 'x' | 'y' = '';
-    let pointerId = -1;
-    let startX = 0;
-    let startY = 0;
-    let lastX = 0;
-    let lastTime = 0;
-    let velocity = 0;
-    let baseOffset = 0;
-
-    const hasSelection = () => Boolean(window.getSelection?.()?.toString());
-
-    this.view.stage.addEventListener('pointerdown', (event) => {
-      if (this.viewportState.mobile) return;
-      const target = event.target as Element;
-      const mouseOnCard = event.pointerType === 'mouse' && Boolean(target.closest('.reading-deck-card'));
-      if (this.finished || event.button !== 0 || mouseOnCard || !this.view.indexOverlay.hidden || !this.view.sourceOverlay.hidden || !this.view.imageOverlay.hidden || hasSelection()) return;
-      live = true;
-      axis = '';
-      pointerId = event.pointerId;
-      startX = lastX = event.clientX;
-      startY = event.clientY;
-      lastTime = event.timeStamp;
-      velocity = 0;
-      if (this.offsets.length === 0) this.measure();
-      baseOffset = this.offsets[this.current] || 0;
-    }, { signal });
-
-    this.view.stage.addEventListener('pointermove', (event) => {
-      if (!live) return;
-      if (hasSelection()) { live = false; axis = ''; return; }
-      const dx = event.clientX - startX;
-      const dy = event.clientY - startY;
-      if (!axis) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
-      }
-      if (axis === 'x') {
-        event.preventDefault();
-        if (!this.view.stage.hasPointerCapture(pointerId)) this.view.stage.setPointerCapture(pointerId);
-        this.dismissSwipeHint();
-        const elapsed = event.timeStamp - lastTime;
-        if (elapsed > 0) velocity = (event.clientX - lastX) / elapsed;
-        lastX = event.clientX;
-        lastTime = event.timeStamp;
-        const model = this.feedCache.get(this.feed);
-        const atStart = this.current === 0 && dx > 0;
-        const atEnd = this.current === (model?.cards.length || 1) - 1 && dx < 0;
-        const drag = (atStart || atEnd) ? dx * 0.22 : dx;
-        this.view.stage.classList.add('is-dragging');
-        this.view.track.style.transition = 'none';
-        this.view.track.style.transform = `translate3d(${Math.round(baseOffset + drag)}px, 0, 0)`;
-      }
-    }, { signal });
-
-    const end = (cancelled = false) => {
-      if (!live) return;
-      live = false;
-      this.view.stage.classList.remove('is-dragging');
-      this.view.track.style.transition = '';
-      if (!cancelled && axis === 'x' && !hasSelection()) {
-        const distance = startX - lastX;
-        if (Math.abs(distance) >= 44 || Math.abs(velocity) >= 0.35) this.go(distance > 0 ? 1 : -1);
-        else this.place(true);
-      } else if (axis === 'x') {
-        this.place(true);
-      }
-      axis = '';
-      pointerId = -1;
-    };
-    this.view.stage.addEventListener('pointerup', () => end(false), { signal });
-    this.view.stage.addEventListener('pointercancel', () => end(true), { signal });
-  }
-
-  private bindTrackpad(signal: AbortSignal): void {
-    let accumulated = 0;
-    let lastWheelAt = 0;
-    this.view.stage.addEventListener('wheel', (event) => {
-      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
-      event.preventDefault();
-      const now = performance.now();
-      if (now - lastWheelAt > 180) accumulated = 0;
-      lastWheelAt = now;
-      if (now < this.wheelLockedUntil) return;
-      accumulated += event.deltaX;
-      if (Math.abs(accumulated) < 24) return;
-      this.wheelLockedUntil = now + 420;
-      this.go(accumulated > 0 ? 1 : -1);
-      accumulated = 0;
-    }, { passive: false, signal });
-  }
 }
 
 export function createReadingDeckController(dialog: HTMLDialogElement): ReadingDeckHandle {
