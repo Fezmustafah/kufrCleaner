@@ -6,6 +6,7 @@ import type {
 
 class DesktopTransformTransport implements DeckTransport {
   private context: DeckTransportContext | null = null;
+  private browser: Window | null = null;
   private abort: AbortController | null = null;
   private offsets: number[] = [];
   private resizeFrame = 0;
@@ -14,6 +15,7 @@ class DesktopTransformTransport implements DeckTransport {
   connect(context: DeckTransportContext): void {
     this.destroy();
     this.context = context;
+    this.browser = context.stage.ownerDocument.defaultView;
     this.abort = new AbortController();
     const { signal } = this.abort;
     this.bindPointer(signal);
@@ -42,7 +44,7 @@ class DesktopTransformTransport implements DeckTransport {
   reflow(): void {
     this.offsets = [];
     if (this.resizeFrame || !this.context) return;
-    this.resizeFrame = requestAnimationFrame(() => {
+    this.resizeFrame = (this.browser || window).requestAnimationFrame(() => {
       this.resizeFrame = 0;
       if (!this.context) return;
       this.measure();
@@ -53,11 +55,12 @@ class DesktopTransformTransport implements DeckTransport {
   destroy(): void {
     this.abort?.abort();
     this.abort = null;
-    if (this.resizeFrame) cancelAnimationFrame(this.resizeFrame);
+    if (this.resizeFrame) (this.browser || window).cancelAnimationFrame(this.resizeFrame);
     this.resizeFrame = 0;
     this.offsets = [];
     this.wheelLockedUntil = 0;
     this.context = null;
+    this.browser = null;
   }
 
   private measure(): void {
@@ -83,7 +86,7 @@ class DesktopTransformTransport implements DeckTransport {
     let lastTime = 0;
     let velocity = 0;
     let baseOffset = 0;
-    const hasSelection = () => Boolean(window.getSelection?.()?.toString());
+    const hasSelection = () => Boolean(this.browser?.getSelection?.()?.toString());
 
     context.stage.addEventListener('pointerdown', (event) => {
       if (!context.interactionEnabled()) return;

@@ -3,6 +3,7 @@ import type { ReadingDeckEffects } from '@/scripts/reading-deck/session';
 import { createTestDeckViewport } from '@/scripts/reading-deck/viewport';
 import {
   installReadingDeckFixture,
+  requiredDeckMarkup,
   resetReadingDeckFixture,
 } from '../../helpers/reading-deck-fixture';
 
@@ -225,5 +226,75 @@ describe('reading deck attachment', () => {
     dialog.querySelector<HTMLButtonElement>('[data-deck-next]')?.click();
     expect(effects.haptic).toHaveBeenCalledTimes(1);
     second?.destroy();
+  });
+
+  it('does not reopen after synchronous teardown of a direct hash attachment', async () => {
+    const dialog = installReadingDeckFixture();
+    const effects = createEffects();
+    window.history.replaceState(null, '', '/pilot/#slides-1');
+    const handle = deckModules.attachReadingDeck(document, {
+      effects,
+      viewport: createTestDeckViewport(),
+    });
+    handle?.destroy();
+    await Promise.resolve();
+    expect(dialog.open).toBe(false);
+    expect(dialog.querySelector('.reading-deck-card')).toBeNull();
+    expect(effects.initializeArticleEnhancements).not.toHaveBeenCalled();
+  });
+
+  it('destroys injected effects when malformed markup fails validation', () => {
+    document.body.innerHTML = '<dialog data-reading-deck></dialog>';
+    const effects = { ...createEffects(), destroy: vi.fn<() => void>() };
+    expect(deckModules.attachReadingDeck(document, { effects })).toBeNull();
+    expect(effects.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('preserves pathname storage keys when post id is absent', async () => {
+    const dialog = installReadingDeckFixture();
+    delete dialog.dataset.postId;
+    window.history.replaceState(null, '', '/fallback-article/');
+    const values = new Map<string, string>();
+    const storage = {
+      get length() { return values.size; },
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      key: (index: number) => [...values.keys()][index] ?? null,
+      removeItem: (key: string) => values.delete(key),
+      setItem: (key: string, value: string) => values.set(key, value),
+    } satisfies Storage;
+    const originalStorage = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', { configurable: true, value: storage });
+    storage.setItem('reading-deck:/fallback-article/', JSON.stringify({
+      feed: 'slides',
+      positions: { slides: 1 },
+    }));
+    try {
+      const handle = deckModules.attachReadingDeck(document);
+      document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
+      await flushDeckFrames();
+      expect(dialog.querySelectorAll('.reading-deck-card')[1]?.getAttribute('aria-hidden')).toBe('false');
+      handle?.destroy();
+    } finally {
+      if (originalStorage) Object.defineProperty(window, 'localStorage', originalStorage);
+      else Reflect.deleteProperty(window, 'localStorage');
+    }
+  });
+
+  it('compiles and renders within the supplied Document', async () => {
+    installReadingDeckFixture();
+    const isolated = document.implementation.createHTMLDocument('Isolated');
+    isolated.body.innerHTML = requiredDeckMarkup();
+    const effects = createEffects();
+    const handle = deckModules.attachReadingDeck(isolated, {
+      effects,
+      viewport: createTestDeckViewport(),
+    });
+    isolated.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
+    await flushDeckFrames();
+    expect(isolated.querySelector('dialog')?.querySelector('.reading-deck-card')).not.toBeNull();
+    expect(document.querySelector('dialog')?.querySelector('.reading-deck-card')).toBeNull();
+    expect(isolated.body.classList.contains('reading-deck-open')).toBe(true);
+    handle?.destroy();
   });
 });

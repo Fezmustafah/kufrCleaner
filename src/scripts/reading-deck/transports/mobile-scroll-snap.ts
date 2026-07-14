@@ -11,6 +11,7 @@ export interface MobileScrollSnapOptions {
 
 class MobileScrollSnapTransport implements DeckTransport {
   private context: DeckTransportContext | null = null;
+  private browser: Window | null = null;
   private abort: AbortController | null = null;
   private settleTimer = 0;
   private touchActive = false;
@@ -26,6 +27,7 @@ class MobileScrollSnapTransport implements DeckTransport {
   connect(context: DeckTransportContext): void {
     this.destroy();
     this.context = context;
+    this.browser = context.track.ownerDocument.defaultView;
     this.abort = new AbortController();
     const { signal } = this.abort;
     context.track.addEventListener('touchstart', () => {
@@ -33,7 +35,7 @@ class MobileScrollSnapTransport implements DeckTransport {
       this.userDriven = true;
       this.pendingProgrammaticIndex = null;
       context.dismissHint();
-      window.clearTimeout(this.settleTimer);
+      (this.browser || window).clearTimeout(this.settleTimer);
     }, { passive: true, signal });
     const finishTouch = () => {
       this.touchActive = false;
@@ -74,19 +76,20 @@ class MobileScrollSnapTransport implements DeckTransport {
   destroy(): void {
     this.abort?.abort();
     this.abort = null;
-    window.clearTimeout(this.settleTimer);
+    (this.browser || window).clearTimeout(this.settleTimer);
     this.settleTimer = 0;
     this.touchActive = false;
     this.userDriven = false;
     this.pendingProgrammaticIndex = null;
     this.pendingReflow = false;
     this.context = null;
+    this.browser = null;
   }
 
   private scheduleSettle(): void {
     if (this.touchActive || !this.context) return;
-    window.clearTimeout(this.settleTimer);
-    this.settleTimer = window.setTimeout(() => this.settle(), this.settleDelay);
+    (this.browser || window).clearTimeout(this.settleTimer);
+    this.settleTimer = (this.browser || window).setTimeout(() => this.settle(), this.settleDelay);
   }
 
   private settle(): void {

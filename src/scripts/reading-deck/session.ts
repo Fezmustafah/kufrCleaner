@@ -47,11 +47,18 @@ export class ReadingDeckSession {
     dialog: HTMLDialogElement,
     dependencies: ReadingDeckSessionDependencies,
   ): ReadingDeckSession {
-    return new ReadingDeckSession(dialog, dependencies);
+    try {
+      return new ReadingDeckSession(dialog, dependencies);
+    } catch (error) {
+      try { dependencies.effects.destroy?.(); } catch { /* non-fatal */ }
+      throw error;
+    }
   }
 
   private readonly abort = new AbortController();
   private readonly view: ReadingDeckView;
+  private readonly document: Document;
+  private readonly browser: Window;
   private readonly feedCache = new Map<FeedKind, DeckFeedModel>();
   private readonly deckHistory: DeckHistory;
   private readonly viewport: DeckViewport;
@@ -74,8 +81,10 @@ export class ReadingDeckSession {
     this.viewport = dependencies.viewport;
     this.effects = dependencies.effects;
     this.viewportState = this.viewport.snapshot();
+    this.document = dialog.ownerDocument;
+    this.browser = this.document.defaultView || window;
     this.view = ReadingDeckView.from(dialog);
-    this.storageKey = `reading-deck:${dialog.dataset.postId || 'current-post'}`;
+    this.storageKey = `reading-deck:${dialog.dataset.postId || this.browser.location.pathname}`;
 
     const saved = this.readSavedState();
     const savedFeed = saved.feed && this.supports(saved.feed) ? saved.feed : 'slides';
@@ -84,7 +93,9 @@ export class ReadingDeckSession {
     this.bind();
     const requested = this.deckHistory.read();
     if (requested && this.supports(requested.feed)) {
-      queueMicrotask(() => this.open(requested.feed, 'none', requested.index, requested.targetId));
+      queueMicrotask(() => {
+        if (!this.destroyed) this.open(requested.feed, 'none', requested.index, requested.targetId);
+      });
     }
   }
 
@@ -100,7 +111,7 @@ export class ReadingDeckSession {
     this.unsubscribeViewport();
     this.transport?.destroy();
     this.transport = null;
-    this.frames.forEach((frame) => cancelAnimationFrame(frame));
+    this.frames.forEach((frame) => this.browser.cancelAnimationFrame(frame));
     this.frames.clear();
     try { this.effects.destroy?.(); } catch { /* non-fatal */ }
     this.view.destroy();
@@ -109,88 +120,29 @@ export class ReadingDeckSession {
   private bind(): void {
     const { signal } = this.abort;
 
-    document.querySelectorAll<HTMLButtonElement>('[data-deck-open]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const feed = button.dataset.deckOpen as FeedKind;
+    this.view.bind({
+      open: (feed, trigger) => {
         if (!this.supports(feed)) return;
-        this.returnFocus = button;
+        this.returnFocus = trigger;
         this.open(feed, 'push');
-      }, { signal });
-    });
-
-    this.view.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-close]').forEach((button) => {
-      button.addEventListener('click', () => this.requestClose(), { signal });
-    });
-
-    this.view.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-feed]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const feed = button.dataset.deckFeed as FeedKind;
+      },
+      close: () => this.requestClose(),
+      switchFeed: (feed) => {
         if (feed !== this.feed && this.supports(feed)) this.switchFeed(feed);
-      }, { signal });
-    });
-
-    this.view.prev.addEventListener('click', () => this.go(-1), { signal });
-    this.view.next.addEventListener('click', () => this.go(1), { signal });
-
-    this.view.dialog.querySelector<HTMLButtonElement>('[data-deck-search]')
-      ?.addEventListener('click', () => this.effects.openSearch(), { signal });
-    this.view.dialog.querySelector<HTMLButtonElement>('[data-deck-menu]')
-      ?.addEventListener('click', () => this.effects.openMenu(), { signal });
-
-    this.view.progress.addEventListener('click', (event) => {
-      const button = (event.target as Element).closest<HTMLButtonElement>('[data-deck-progress-index]');
-      if (!button) return;
-      const index = Number(button.dataset.deckProgressIndex);
-      if (index === this.current) this.tick();
-      this.show(index, true, true);
-    }, { signal });
-
-    this.view.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-index-open]').forEach((button) => {
-      button.addEventListener('click', () => this.openIndex(button), { signal });
-    });
-    this.view.dialog.querySelector<HTMLButtonElement>('[data-deck-index-close]')
-      ?.addEventListener('click', () => this.closeOverlay(this.view.indexOverlay), { signal });
-    this.view.dialog.querySelector<HTMLButtonElement>('[data-deck-source-close]')
-      ?.addEventListener('click', () => this.closeOverlay(this.view.sourceOverlay), { signal });
-    this.view.dialog.querySelector<HTMLButtonElement>('[data-deck-image-close]')
-      ?.addEventListener('click', () => this.closeOverlay(this.view.imageOverlay), { signal });
-
-    this.view.indexList.addEventListener('click', (event) => {
-      const button = (event.target as Element).closest<HTMLButtonElement>('[data-card-index]');
-      if (!button) return;
-      this.closeOverlay(this.view.indexOverlay, false);
-      const index = Number(button.dataset.cardIndex);
-      if (index === this.current) this.tick();
-      this.show(index, true, true);
-      this.currentCard()?.focus({ preventScroll: true });
-    }, { signal });
-
-    [this.view.indexOverlay, this.view.imageOverlay].forEach((overlay) => {
-      overlay.addEventListener('click', (event) => {
-        if (event.target === overlay) this.closeOverlay(overlay);
-      }, { signal });
-    });
-
-    this.view.dialog.addEventListener('pointerdown', (event) => {
-      if (this.view.sourceOverlay.hidden) return;
-      const target = event.target as Element;
-      const activatesNote = Boolean(target.closest('a[data-deck-source-id], .footnote-number'));
-      if (!this.view.sourceOverlay.contains(target) && !activatesNote) this.closeOverlay(this.view.sourceOverlay, false);
-    }, { signal });
-
-    this.view.track.addEventListener('click', (event) => this.handleDeckAction(event), { signal });
-    this.view.finish.addEventListener('click', (event) => {
-      event.stopPropagation();
-      this.handleDeckAction(event);
-    }, { signal });
-    this.view.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-neighbor]').forEach((button) => {
-      button.addEventListener('click', () => this.go(Number(button.dataset.deckNeighbor)), { signal });
-    });
-    this.view.dialog.addEventListener('cancel', (event) => {
-      event.preventDefault();
-      this.requestClose();
-    }, { signal });
-    this.view.dialog.addEventListener('keydown', (event) => this.onKeydown(event), { signal });
+      },
+      move: (delta) => this.go(delta),
+      search: () => this.effects.openSearch(),
+      menu: () => this.effects.openMenu(),
+      select: (index, origin) => {
+        if (index === this.current) this.tick();
+        this.show(index, true, true);
+        if (origin === 'contents') this.currentCard()?.focus({ preventScroll: true });
+      },
+      openContents: (trigger) => this.openIndex(trigger),
+      action: (event) => this.handleDeckAction(event),
+      cancel: () => this.requestClose(),
+      keydown: (event) => this.onKeydown(event),
+    }, signal);
     this.unsubscribeViewport = this.viewport.subscribe((snapshot) => {
       const mobileChanged = snapshot.mobile !== this.viewportState.mobile;
       this.viewportState = snapshot;
@@ -272,30 +224,32 @@ export class ReadingDeckSession {
     this.syncFinishPlacement();
     this.replaceTransport(this.viewportState.mobile);
     this.show(this.current, false, false, true, !targetId);
-    queueMicrotask(() => this.effects.initializeArticleEnhancements());
+    queueMicrotask(() => {
+      if (!this.destroyed) this.effects.initializeArticleEnhancements();
+    });
   }
 
   private buildFeed(feed: FeedKind): DeckFeedModel {
     return compileReadingFeed(this.sourceFor(feed), {
       kind: feed,
-      title: this.view.dialog.dataset.postTitle || document.title,
+      title: this.view.dialog.dataset.postTitle || this.document.title,
       description: this.view.dialog.dataset.postDescription || '',
       coverImage: this.view.dialog.dataset.coverImage || null,
-      citationTemplate: document.querySelector<HTMLTemplateElement>('template[data-deck-citation-template]'),
+      citationTemplate: this.document.querySelector<HTMLTemplateElement>('template[data-deck-citation-template]'),
       cardHash: (kind, index) => this.hashFor(kind, index),
     });
   }
 
   private sourceFor(feed: FeedKind): HTMLElement {
     if (feed === 'slides') {
-      const article = document.querySelector<HTMLElement>('#post-content');
-      if (!article) return document.createElement('div');
+      const article = this.document.querySelector<HTMLElement>('#post-content');
+      if (!article) return this.document.createElement('div');
       return article.cloneNode(true) as HTMLElement;
     }
 
-    const template = document.querySelector<HTMLTemplateElement>('template[data-deck-source-template="tldr"]');
+    const template = this.document.querySelector<HTMLTemplateElement>('template[data-deck-source-template="tldr"]');
     const fragment = template?.content.cloneNode(true) as DocumentFragment | undefined;
-    return fragment?.querySelector<HTMLElement>('[data-deck-source-root]') || document.createElement('div');
+    return fragment?.querySelector<HTMLElement>('[data-deck-source-root]') || this.document.createElement('div');
   }
 
   private show(
@@ -386,12 +340,7 @@ export class ReadingDeckSession {
   }
 
   private syncNeighborControls(model: DeckFeedModel): void {
-    this.view.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-neighbor]').forEach((button) => {
-      const delta = Number(button.dataset.deckNeighbor);
-      button.hidden = delta < 0
-        ? !this.finished && this.current === 0
-        : this.finished || this.current > this.lastContentIndex(model);
-    });
+    this.view.renderNeighborControls(this.state, this.lastContentIndex(model));
   }
 
   private hashFor(feed: FeedKind, index: number): string {
@@ -404,7 +353,7 @@ export class ReadingDeckSession {
 
   private readSavedState(): SavedDeckState {
     try {
-      return JSON.parse(localStorage.getItem(this.storageKey) || '{}') as SavedDeckState;
+      return JSON.parse(this.browser.localStorage.getItem(this.storageKey) || '{}') as SavedDeckState;
     } catch {
       return {};
     }
@@ -412,7 +361,7 @@ export class ReadingDeckSession {
 
   private saveState(): void {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify({
+      this.browser.localStorage.setItem(this.storageKey, JSON.stringify({
         feed: this.feed,
         positions: this.state.positions,
       } satisfies SavedDeckState));
@@ -425,17 +374,16 @@ export class ReadingDeckSession {
 
   private maybeShowSwipeHint(): void {
     try {
-      if (localStorage.getItem(SWIPE_HINT_KEY)) return;
-      this.view.swipeHint.hidden = false;
+      if (this.browser.localStorage.getItem(SWIPE_HINT_KEY)) return;
+      this.view.showSwipeHint();
     } catch { /* show the harmless hint when storage is unavailable */
-      this.view.swipeHint.hidden = false;
+      this.view.showSwipeHint();
     }
   }
 
   private dismissSwipeHint(): void {
-    if (this.view.swipeHint.hidden) return;
-    this.view.swipeHint.hidden = true;
-    try { localStorage.setItem(SWIPE_HINT_KEY, '1'); } catch { /* ignore */ }
+    if (!this.view.hideSwipeHint()) return;
+    try { this.browser.localStorage.setItem(SWIPE_HINT_KEY, '1'); } catch { /* ignore */ }
   }
 
   private currentCard(): HTMLElement | null {
@@ -529,32 +477,11 @@ export class ReadingDeckSession {
   private openNotePopover(content: HTMLElement, trigger: HTMLElement): void {
     this.view.openSource(content, trigger);
     this.tick();
-
-    this.scheduleFrame(() => {
-      const anchor = trigger.getBoundingClientRect();
-      const popover = this.view.sourceOverlay;
-      const gap = 8;
-      const edge = 8;
-      const viewportWidth = this.viewportState.width;
-      const viewportHeight = this.viewportState.height;
-      const viewportLeft = this.viewportState.left;
-      const viewportTop = this.viewportState.top;
-      const width = popover.offsetWidth;
-      const height = popover.offsetHeight;
-      const left = Math.max(viewportLeft + edge, Math.min(anchor.left, viewportLeft + viewportWidth - width - edge));
-      const above = anchor.top - height - gap;
-      const top = above >= viewportTop + edge ? above : Math.min(anchor.bottom + gap, viewportTop + viewportHeight - height - edge);
-      popover.style.left = `${left}px`;
-      popover.style.top = `${Math.max(viewportTop + edge, top)}px`;
-    });
+    this.view.positionSourcePopover(trigger, this.viewportState);
   }
 
   private openImage(source: HTMLImageElement): void {
     this.view.openImage(source);
-  }
-
-  private closeOverlay(overlay: HTMLElement, restoreFocus = true): void {
-    this.view.closeSurface(overlay, restoreFocus);
   }
 
   private handleSourceLink(event: Event): void {
@@ -608,7 +535,7 @@ export class ReadingDeckSession {
   private async shareCurrentCard(): Promise<void> {
     const url = this.deckHistory.shareUrl(this.feed, this.current);
     const data = {
-      title: this.view.dialog.dataset.postTitle || document.title,
+      title: this.view.dialog.dataset.postTitle || this.document.title,
       text: this.currentCard()?.getAttribute('aria-label') || 'Open this reading card',
       url,
     };
@@ -618,18 +545,16 @@ export class ReadingDeckSession {
   }
 
   private onKeydown(event: KeyboardEvent): void {
-    if (!this.view.sourceOverlay.hidden && event.key === 'Escape') {
+    if (this.view.isSourceOpen() && event.key === 'Escape') {
       event.preventDefault();
-      this.closeOverlay(this.view.sourceOverlay);
+      this.view.closeSource();
       return;
     }
 
-    const overlay = this.view.activeBlockingSurface();
-
-    if (overlay) {
+    if (this.view.hasBlockingSurface()) {
       if (event.key === 'Escape') {
         event.preventDefault();
-        this.closeOverlay(overlay);
+        this.view.closeBlockingSurface();
       } else this.view.trapFocus(event);
       return;
     }
@@ -684,7 +609,7 @@ export class ReadingDeckSession {
   }
 
   private scheduleFrame(callback: () => void): void {
-    const frame = requestAnimationFrame(() => {
+    const frame = this.browser.requestAnimationFrame(() => {
       this.frames.delete(frame);
       if (!this.destroyed) callback();
     });

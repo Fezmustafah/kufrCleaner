@@ -44,7 +44,7 @@ describe('ReadingDeckView', () => {
     expect(model.cards[0].element.inert).toBe(true);
     expect(model.cards[0].element.getAttribute('aria-hidden')).toBe('true');
     expect(dialog.dataset.activeFeed).toBe('slides');
-    expect(view.indexList.querySelectorAll('[data-card-index]')).toHaveLength(2);
+    expect(dialog.querySelectorAll('[data-deck-index-list] [data-card-index]')).toHaveLength(2);
   });
 
   it('renders controls and Completion from state', () => {
@@ -55,29 +55,32 @@ describe('ReadingDeckView', () => {
 
     const state = { ...createDeckState('tldr'), open: true, current: 2, finished: false };
     view.renderNavigation(state, model);
-    expect(view.position.textContent).toBe('2 / 2');
-    expect(view.next.textContent).toContain('Finish');
+    expect(dialog.querySelector('[data-deck-position]')?.textContent).toBe('2 / 2');
+    expect(dialog.querySelector('[data-deck-next]')?.textContent).toContain('Finish');
 
     view.renderCompletion(true, model, 'tldr');
     expect(view.finish.dataset.deckFinishActive).toBe('true');
-    expect(view.position.textContent).toBe('Done');
-    expect(view.next.disabled).toBe(true);
+    expect(dialog.querySelector('[data-deck-position]')?.textContent).toBe('Done');
+    expect(dialog.querySelector<HTMLButtonElement>('[data-deck-next]')?.disabled).toBe(true);
   });
 
   it('closes every surface during teardown', () => {
     const dialog = installReadingDeckFixture();
     const view = ReadingDeckView.from(dialog);
-    view.indexOverlay.hidden = false;
-    view.sourceOverlay.hidden = false;
-    view.imageOverlay.hidden = false;
+    const indexOverlay = dialog.querySelector<HTMLElement>('[data-deck-index]')!;
+    const sourceOverlay = dialog.querySelector<HTMLElement>('[data-deck-source-panel]')!;
+    const imageOverlay = dialog.querySelector<HTMLElement>('[data-deck-image-panel]')!;
+    indexOverlay.hidden = false;
+    sourceOverlay.hidden = false;
+    imageOverlay.hidden = false;
     view.open();
 
     view.destroy();
 
     expect(dialog.open).toBe(false);
-    expect(view.indexOverlay.hidden).toBe(true);
-    expect(view.sourceOverlay.hidden).toBe(true);
-    expect(view.imageOverlay.hidden).toBe(true);
+    expect(indexOverlay.hidden).toBe(true);
+    expect(sourceOverlay.hidden).toBe(true);
+    expect(imageOverlay.hidden).toBe(true);
     expect(document.body.classList.contains('reading-deck-open')).toBe(false);
   });
 
@@ -91,8 +94,10 @@ describe('ReadingDeckView', () => {
     trigger.focus();
 
     view.openContents(trigger);
-    expect(document.activeElement).toBe(view.indexList.querySelector('[data-card-index]'));
-    view.closeSurface(view.indexOverlay);
+    expect(document.activeElement).toBe(
+      dialog.querySelector('[data-deck-index-list] [data-card-index]'),
+    );
+    view.closeTopSurface();
     expect(document.activeElement).toBe(trigger);
   });
 

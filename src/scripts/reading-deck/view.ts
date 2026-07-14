@@ -1,5 +1,20 @@
 import type { DeckState } from './state';
 import type { CompiledReadingFeed, FeedKind } from './types';
+import type { DeckViewportSnapshot } from './viewport';
+
+export interface ReadingDeckViewEvents {
+  open(feed: FeedKind, trigger: HTMLElement): void;
+  close(): void;
+  switchFeed(feed: FeedKind): void;
+  move(delta: -1 | 1): void;
+  search(): void;
+  menu(): void;
+  select(index: number, origin: 'progress' | 'contents'): void;
+  openContents(trigger: HTMLElement): void;
+  action(event: Event): void;
+  cancel(): void;
+  keydown(event: KeyboardEvent): void;
+}
 
 type RequiredDeckElements = {
   shell: HTMLElement;
@@ -64,29 +79,29 @@ export class ReadingDeckView {
     return new ReadingDeckView(dialog, elements as RequiredDeckElements);
   }
 
-  declare readonly shell: HTMLElement;
+  declare private readonly shell: HTMLElement;
   declare readonly stage: HTMLElement;
   declare readonly track: HTMLElement;
-  declare readonly progress: HTMLElement;
-  declare readonly status: HTMLElement;
-  declare readonly position: HTMLElement;
-  declare readonly cardTitle: HTMLElement;
-  declare readonly prev: HTMLButtonElement;
-  declare readonly next: HTMLButtonElement;
-  declare readonly modeLabel: HTMLElement;
-  declare readonly indexOverlay: HTMLElement;
-  declare readonly indexList: HTMLOListElement;
-  declare readonly sourceOverlay: HTMLElement;
-  declare readonly sourceContent: HTMLElement;
-  declare readonly imageOverlay: HTMLElement;
-  declare readonly image: HTMLImageElement;
-  declare readonly scrollShadow: HTMLElement;
-  declare readonly swipeHint: HTMLElement;
+  declare private readonly progress: HTMLElement;
+  declare private readonly status: HTMLElement;
+  declare private readonly position: HTMLElement;
+  declare private readonly cardTitle: HTMLElement;
+  declare private readonly prev: HTMLButtonElement;
+  declare private readonly next: HTMLButtonElement;
+  declare private readonly modeLabel: HTMLElement;
+  declare private readonly indexOverlay: HTMLElement;
+  declare private readonly indexList: HTMLOListElement;
+  declare private readonly sourceOverlay: HTMLElement;
+  declare private readonly sourceContent: HTMLElement;
+  declare private readonly imageOverlay: HTMLElement;
+  declare private readonly image: HTMLImageElement;
+  declare private readonly scrollShadow: HTMLElement;
+  declare private readonly swipeHint: HTMLElement;
   declare readonly finish: HTMLElement;
-  declare readonly finishTitle: HTMLElement;
-  declare readonly finishCopy: HTMLElement;
-  declare readonly finishPrimary: HTMLButtonElement;
-  declare readonly finishPrimaryLabel: HTMLElement;
+  declare private readonly finishTitle: HTMLElement;
+  declare private readonly finishCopy: HTMLElement;
+  declare private readonly finishPrimary: HTMLButtonElement;
+  declare private readonly finishPrimaryLabel: HTMLElement;
 
   private overlayReturnFocus: HTMLElement | null = null;
   private scrollCard: HTMLElement | null = null;
@@ -103,13 +118,72 @@ export class ReadingDeckView {
 
   open(): void {
     if (!this.dialog.open) this.dialog.show();
-    document.body.classList.add('reading-deck-open');
+    this.dialog.ownerDocument.body.classList.add('reading-deck-open');
   }
 
   close(): void {
     this.closeAllSurfaces(false);
     if (this.dialog.open) this.dialog.close();
-    document.body.classList.remove('reading-deck-open');
+    this.dialog.ownerDocument.body.classList.remove('reading-deck-open');
+  }
+
+  bind(events: ReadingDeckViewEvents, signal: AbortSignal): void {
+    this.dialog.ownerDocument.querySelectorAll<HTMLButtonElement>('[data-deck-open]').forEach((button) => {
+      button.addEventListener('click', () => events.open(button.dataset.deckOpen as FeedKind, button), { signal });
+    });
+    this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-close]').forEach((button) => {
+      button.addEventListener('click', events.close, { signal });
+    });
+    this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-feed]').forEach((button) => {
+      button.addEventListener('click', () => events.switchFeed(button.dataset.deckFeed as FeedKind), { signal });
+    });
+    this.prev.addEventListener('click', () => events.move(-1), { signal });
+    this.next.addEventListener('click', () => events.move(1), { signal });
+    this.dialog.querySelector<HTMLButtonElement>('[data-deck-search]')?.addEventListener('click', events.search, { signal });
+    this.dialog.querySelector<HTMLButtonElement>('[data-deck-menu]')?.addEventListener('click', events.menu, { signal });
+    this.progress.addEventListener('click', (event) => {
+      const button = (event.target as Element).closest<HTMLButtonElement>('[data-deck-progress-index]');
+      if (button) events.select(Number(button.dataset.deckProgressIndex), 'progress');
+    }, { signal });
+    this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-index-open]').forEach((button) => {
+      button.addEventListener('click', () => events.openContents(button), { signal });
+    });
+    this.dialog.querySelector<HTMLButtonElement>('[data-deck-index-close]')
+      ?.addEventListener('click', () => this.closeSurface(this.indexOverlay), { signal });
+    this.dialog.querySelector<HTMLButtonElement>('[data-deck-source-close]')
+      ?.addEventListener('click', () => this.closeSurface(this.sourceOverlay), { signal });
+    this.dialog.querySelector<HTMLButtonElement>('[data-deck-image-close]')
+      ?.addEventListener('click', () => this.closeSurface(this.imageOverlay), { signal });
+    this.indexList.addEventListener('click', (event) => {
+      const button = (event.target as Element).closest<HTMLButtonElement>('[data-card-index]');
+      if (!button) return;
+      this.closeSurface(this.indexOverlay, false);
+      events.select(Number(button.dataset.cardIndex), 'contents');
+    }, { signal });
+    [this.indexOverlay, this.imageOverlay].forEach((overlay) => {
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) this.closeSurface(overlay);
+      }, { signal });
+    });
+    this.dialog.addEventListener('pointerdown', (event) => {
+      if (this.sourceOverlay.hidden) return;
+      const target = event.target as Element;
+      const activatesNote = Boolean(target.closest('a[data-deck-source-id], .footnote-number'));
+      if (!this.sourceOverlay.contains(target) && !activatesNote) this.closeSurface(this.sourceOverlay, false);
+    }, { signal });
+    this.track.addEventListener('click', events.action, { signal });
+    this.finish.addEventListener('click', (event) => {
+      event.stopPropagation();
+      events.action(event);
+    }, { signal });
+    this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-neighbor]').forEach((button) => {
+      button.addEventListener('click', () => events.move(Number(button.dataset.deckNeighbor) < 0 ? -1 : 1), { signal });
+    });
+    this.dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      events.cancel();
+    }, { signal });
+    this.dialog.addEventListener('keydown', events.keydown, { signal });
   }
 
   renderFeed(feed: CompiledReadingFeed, kind: FeedKind): void {
@@ -210,7 +284,7 @@ export class ReadingDeckView {
     this.imageOverlay.querySelector<HTMLButtonElement>('[data-deck-image-close]')?.focus({ preventScroll: true });
   }
 
-  closeSurface(surface: HTMLElement, restoreFocus = true): void {
+  private closeSurface(surface: HTMLElement, restoreFocus = true): void {
     if (surface.hidden) return;
     surface.hidden = true;
     if (surface === this.sourceOverlay) {
@@ -240,7 +314,24 @@ export class ReadingDeckView {
     return !this.indexOverlay.hidden || !this.sourceOverlay.hidden || !this.imageOverlay.hidden;
   }
 
-  activeBlockingSurface(): HTMLElement | null {
+  hasBlockingSurface(): boolean {
+    return !this.indexOverlay.hidden || !this.imageOverlay.hidden;
+  }
+
+  isSourceOpen(): boolean {
+    return !this.sourceOverlay.hidden;
+  }
+
+  closeSource(): void {
+    this.closeSurface(this.sourceOverlay);
+  }
+
+  closeBlockingSurface(): void {
+    const surface = this.activeBlockingSurface();
+    if (surface) this.closeSurface(surface);
+  }
+
+  private activeBlockingSurface(): HTMLElement | null {
     return !this.indexOverlay.hidden
       ? this.indexOverlay
       : !this.imageOverlay.hidden
@@ -257,12 +348,12 @@ export class ReadingDeckView {
     if (!focusable.length) return false;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
+    if (event.shiftKey && this.dialog.ownerDocument.activeElement === first) {
       event.preventDefault();
       last.focus();
       return true;
     }
-    if (!event.shiftKey && document.activeElement === last) {
+    if (!event.shiftKey && this.dialog.ownerDocument.activeElement === last) {
       event.preventDefault();
       first.focus();
       return true;
@@ -272,6 +363,16 @@ export class ReadingDeckView {
 
   hideOverflow(): void {
     this.scrollShadow.hidden = true;
+  }
+
+  showSwipeHint(): void {
+    this.swipeHint.hidden = false;
+  }
+
+  hideSwipeHint(): boolean {
+    if (this.swipeHint.hidden) return false;
+    this.swipeHint.hidden = true;
+    return true;
   }
 
   setStatus(message: string): void {
@@ -286,9 +387,38 @@ export class ReadingDeckView {
     this.finishPrimary.focus({ preventScroll: true });
   }
 
+  renderNeighborControls(state: DeckState, lastIndex: number): void {
+    this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-neighbor]').forEach((button) => {
+      const delta = Number(button.dataset.deckNeighbor);
+      button.hidden = delta < 0
+        ? !state.finished && state.current === 0
+        : state.finished || state.current > lastIndex;
+    });
+  }
+
+  positionSourcePopover(trigger: HTMLElement, viewport: DeckViewportSnapshot): void {
+    this.scheduleFrame(() => {
+      const anchor = trigger.getBoundingClientRect();
+      const gap = 8;
+      const edge = 8;
+      const width = this.sourceOverlay.offsetWidth;
+      const height = this.sourceOverlay.offsetHeight;
+      const left = Math.max(viewport.left + edge, Math.min(
+        anchor.left,
+        viewport.left + viewport.width - width - edge,
+      ));
+      const above = anchor.top - height - gap;
+      const top = above >= viewport.top + edge
+        ? above
+        : Math.min(anchor.bottom + gap, viewport.top + viewport.height - height - edge);
+      this.sourceOverlay.style.left = `${left}px`;
+      this.sourceOverlay.style.top = `${Math.max(viewport.top + edge, top)}px`;
+    });
+  }
+
   restoreHeading(targetId: string): void {
     this.scheduleFrame(() => {
-      const target = document.getElementById(targetId);
+      const target = this.dialog.ownerDocument.getElementById(targetId);
       if (!target || !this.dialog.contains(target)) return;
       const card = target.closest<HTMLElement>('.reading-deck-card');
       if (!card) return;
@@ -327,7 +457,8 @@ export class ReadingDeckView {
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.frames.forEach((frame) => cancelAnimationFrame(frame));
+    const browser = this.dialog.ownerDocument.defaultView || window;
+    this.frames.forEach((frame) => browser.cancelAnimationFrame(frame));
     this.frames.clear();
     this.scrollCard?.removeEventListener('scroll', this.onCardScroll);
     this.scrollCard = null;
@@ -337,8 +468,8 @@ export class ReadingDeckView {
   private renderContents(feed: CompiledReadingFeed): void {
     this.indexList.replaceChildren(...feed.cards.flatMap((card, index) => {
       if (card.isCover) return [];
-      const item = document.createElement('li');
-      const button = document.createElement('button');
+      const item = this.dialog.ownerDocument.createElement('li');
+      const button = this.dialog.ownerDocument.createElement('button');
       button.type = 'button';
       button.dataset.cardIndex = String(index);
       button.textContent = card.title;
@@ -350,11 +481,11 @@ export class ReadingDeckView {
   private renderProgress(feed: CompiledReadingFeed): void {
     this.progress.replaceChildren(...feed.cards.flatMap((card, index) => {
       if (card.isCover) return [];
-      const button = document.createElement('button');
+      const button = this.dialog.ownerDocument.createElement('button');
       button.type = 'button';
       button.dataset.deckProgressIndex = String(index);
       button.setAttribute('aria-label', `Go to card ${index}: ${card.title}`);
-      const fill = document.createElement('span');
+      const fill = this.dialog.ownerDocument.createElement('span');
       fill.setAttribute('aria-hidden', 'true');
       button.appendChild(fill);
       return [button];
@@ -368,7 +499,8 @@ export class ReadingDeckView {
   }
 
   private scheduleFrame(callback: () => void): void {
-    const frame = requestAnimationFrame(() => {
+    const browser = this.dialog.ownerDocument.defaultView || window;
+    const frame = browser.requestAnimationFrame(() => {
       this.frames.delete(frame);
       if (!this.destroyed) callback();
     });
