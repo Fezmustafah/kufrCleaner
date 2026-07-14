@@ -1,20 +1,10 @@
 import { WebHaptics } from 'web-haptics';
+import { compileReadingFeed } from './reading-deck/feed';
 import { attachReadingDeck, type ReadingDeckHandle } from './reading-deck';
-
-type FeedKind = 'slides' | 'tldr';
-
-interface DeckCardModel {
-  element: HTMLElement;
-  title: string;
-  isCover?: boolean;
-  isTerminal?: boolean;
-}
-
-interface DeckFeedModel {
-  cards: DeckCardModel[];
-  sources: Map<string, HTMLElement>;
-  minutes: number;
-}
+import type {
+  CompiledReadingFeed as DeckFeedModel,
+  FeedKind,
+} from './reading-deck/types';
 
 interface DeckLocation {
   feed: FeedKind;
@@ -41,24 +31,6 @@ declare global {
 const DECK_CARD_HASH = /^#(slides|tldr)(?:-(\d+))?$/;
 const DECK_HEADING_HASH = /^#deck-(slides|tldr)-(\d+)-(.+)$/;
 const SWIPE_HINT_KEY = 'reading-deck-swipe-hint-seen';
-const SOURCE_HEADING = /^(?:sources?|source and notes|notes|footnotes|references|bibliography)$/i;
-const TOC_HEADING = /^(?:contents|table of contents|toc)$/i;
-
-function textWords(value: string): number {
-  return value.trim().split(/\s+/).filter(Boolean).length;
-}
-
-function cleanHeading(heading: Element | null, fallback: string): string {
-  if (!heading) return fallback;
-  const copy = heading.cloneNode(true) as HTMLElement;
-  copy.querySelectorAll('[data-role="anchor"], .heading-link').forEach((node) => node.remove());
-  return copy.textContent?.replace(/\s+/g, ' ').trim() || fallback;
-}
-
-function meaningfulNode(node: ChildNode): boolean {
-  if (node.nodeType === Node.TEXT_NODE) return Boolean(node.textContent?.trim());
-  return node.nodeType === Node.ELEMENT_NODE;
-}
 
 function decodeFragment(value: string): string {
   try {
@@ -109,6 +81,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
   private current = 0;
   private finished = false;
   private offsets: number[] = [];
+  private finishOffset = 0;
   private returnFocus: HTMLElement | null = null;
   private overlayReturnFocus: HTMLElement | null = null;
   private wheelLockedUntil = 0;
@@ -411,6 +384,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
     const preferred = requestedIndex ?? this.positions.get(feed) ?? 0;
     this.current = Math.min(Math.max(0, preferred), Math.max(0, model.cards.length - 1));
     this.offsets = [];
+    this.finishOffset = 0;
     this.modeLabel.textContent = feed === 'tldr' ? 'Quick read' : 'Deep read';
     this.dialog.dataset.activeFeed = feed;
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-feed]').forEach((button) => {
@@ -427,131 +401,14 @@ export class ReadingDeckController implements ReadingDeckHandle {
   }
 
   private buildFeed(feed: FeedKind): DeckFeedModel {
-    const source = this.sourceFor(feed);
-    const sources = new Map<string, HTMLElement>();
-    const minutes = Math.max(1, Math.ceil(textWords(source.textContent || '') / (feed === 'tldr' ? 240 : 210)));
-
-    source.querySelectorAll('script, style, .post-colophon, [data-pagefind-ignore]').forEach((node) => node.remove());
-
-    const sourceSections = Array.from(source.querySelectorAll<HTMLElement>('section[data-footnotes], .deck-citation-registry'));
-    const citationTemplate = document.querySelector<HTMLTemplateElement>('template[data-deck-citation-template]');
-    if (citationTemplate) {
-      const citationSection = citationTemplate.content.firstElementChild?.cloneNode(true) as HTMLElement | undefined;
-      if (citationSection) sourceSections.push(citationSection);
-    }
-
-    sourceSections.forEach((section) => {
-      if (section.isConnected || source.contains(section)) section.remove();
-      if (section.id) sources.set(section.id, section);
-      section.querySelectorAll<HTMLElement>('[id]').forEach((element) => sources.set(element.id, element));
+    return compileReadingFeed(this.sourceFor(feed), {
+      kind: feed,
+      title: this.dialog.dataset.postTitle || document.title,
+      description: this.dialog.dataset.postDescription || '',
+      coverImage: this.dialog.dataset.coverImage || null,
+      citationTemplate: document.querySelector<HTMLTemplateElement>('template[data-deck-citation-template]'),
+      cardHash: (kind, index) => this.hashFor(kind, index),
     });
-
-    const groups = this.groupSourceNodes(source);
-    const cards: DeckCardModel[] = [this.createCoverCard(feed, minutes)];
-    groups.forEach((group) => {
-      this.chunkGroup(group.nodes).forEach((chunk, chunkIndex) => {
-        const card = document.createElement('section');
-        card.className = 'reading-deck-card prose dark:prose-dark max-w-none';
-        card.tabIndex = -1;
-        card.setAttribute('role', 'group');
-        card.setAttribute('aria-roledescription', 'slide');
-        chunk.forEach((node) => card.appendChild(node));
-        const title = cleanHeading(card.querySelector('h2, h3'), chunkIndex ? `${group.title}, continued` : group.title);
-        cards.push({ element: card, title });
-      });
-    });
-
-    if (sourceSections.length) {
-      const sourceCard = document.createElement('section');
-      sourceCard.className = 'reading-deck-card prose dark:prose-dark max-w-none reading-deck-sources-card';
-      sourceCard.tabIndex = -1;
-      sourceCard.setAttribute('role', 'group');
-      sourceCard.setAttribute('aria-roledescription', 'slide');
-      const heading = document.createElement('h2');
-      heading.textContent = 'Sources';
-      sourceCard.appendChild(heading);
-      sourceSections.forEach((section) => {
-        section.querySelectorAll('[data-footnote-backref]').forEach((backref) => backref.remove());
-        const nestedHeading = section.querySelector(':scope > h2');
-        if (nestedHeading && cleanHeading(nestedHeading, '').match(SOURCE_HEADING)) nestedHeading.remove();
-        sourceCard.appendChild(section);
-      });
-      cards.push({ element: sourceCard, title: 'Sources' });
-    }
-
-    if (cards.length === 1) {
-      const fallback = document.createElement('section');
-      fallback.className = 'reading-deck-card prose dark:prose-dark max-w-none';
-      fallback.tabIndex = -1;
-      const heading = document.createElement('h2');
-      heading.textContent = 'Overview';
-      fallback.append(heading, ...Array.from(source.childNodes));
-      cards.splice(1, 0, { element: fallback, title: 'Overview' });
-    }
-
-    cards.push({ element: this.finish, title: 'Complete', isTerminal: true });
-
-    const contentTotal = cards.filter((card) => !card.isCover && !card.isTerminal).length;
-    cards.forEach((card, index) => {
-      if (card.isTerminal) {
-        card.element.setAttribute('aria-label', 'Reading complete');
-        return;
-      }
-      card.element.setAttribute('aria-label', card.isCover
-        ? `${feed === 'tldr' ? 'Quick read' : 'Deep read'} cover`
-        : `${card.title}, card ${index} of ${contentTotal}`);
-      this.namespaceCard(card.element, `${feed}-${index + 1}`, sources, this.hashFor(feed, index));
-      card.element.querySelectorAll<HTMLImageElement>('img:not(.reading-deck-cover-image)').forEach((image) => {
-        image.classList.add('reading-deck-zoomable');
-        image.tabIndex = 0;
-        image.setAttribute('role', 'button');
-        image.setAttribute('aria-label', image.alt ? `Expand image: ${image.alt}` : 'Expand image');
-      });
-    });
-
-    return { cards, sources, minutes };
-  }
-
-  private createCoverCard(feed: FeedKind, minutes: number): DeckCardModel {
-    const card = document.createElement('section');
-    card.className = 'reading-deck-card reading-deck-cover-card';
-    card.tabIndex = -1;
-    card.setAttribute('role', 'group');
-    card.setAttribute('aria-roledescription', 'slide');
-
-    const cover = this.dialog.dataset.coverImage;
-    if (cover) {
-      const image = document.createElement('img');
-      image.className = 'reading-deck-cover-image';
-      image.src = cover;
-      image.alt = '';
-      image.setAttribute('aria-hidden', 'true');
-      card.appendChild(image);
-    }
-
-    const veil = document.createElement('div');
-    veil.className = 'reading-deck-cover-veil';
-    const copy = document.createElement('div');
-    copy.className = 'reading-deck-cover-copy';
-    const mode = document.createElement('span');
-    mode.className = 'reading-deck-cover-mode';
-    mode.textContent = feed === 'tldr' ? 'Quick read' : 'Deep read';
-    const title = document.createElement('h2');
-    title.textContent = this.dialog.dataset.postTitle || 'Article';
-    const description = document.createElement('p');
-    description.textContent = this.dialog.dataset.postDescription || 'Read the argument one card at a time.';
-    const meta = document.createElement('p');
-    meta.className = 'reading-deck-cover-meta';
-    meta.textContent = `${minutes} min read`;
-    const start = document.createElement('button');
-    start.type = 'button';
-    start.className = 'reading-deck-cover-start';
-    start.dataset.deckAction = 'start';
-    start.innerHTML = '<span>Begin</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-    copy.append(mode, title, description, meta, start);
-    veil.appendChild(copy);
-    card.appendChild(veil);
-    return { element: card, title: 'Cover', isCover: true };
   }
 
   private sourceFor(feed: FeedKind): HTMLElement {
@@ -566,107 +423,9 @@ export class ReadingDeckController implements ReadingDeckHandle {
     return fragment?.querySelector<HTMLElement>('[data-deck-source-root]') || document.createElement('div');
   }
 
-  private groupSourceNodes(source: HTMLElement): Array<{ title: string; nodes: ChildNode[] }> {
-    const groups: Array<{ title: string; nodes: ChildNode[] }> = [];
-    let title = 'Overview';
-    let nodes: ChildNode[] = [];
-    let skippingNavigation = false;
-
-    const flush = () => {
-      if (nodes.some(meaningfulNode)) groups.push({ title, nodes });
-      nodes = [];
-    };
-
-    Array.from(source.childNodes).forEach((node) => {
-      if (!meaningfulNode(node)) return;
-      const element = node.nodeType === Node.ELEMENT_NODE ? node as HTMLElement : null;
-      const isH2 = element?.tagName === 'H2';
-      const heading = isH2 ? cleanHeading(element, '') : '';
-
-      if (isH2 && TOC_HEADING.test(heading)) {
-        flush();
-        skippingNavigation = true;
-        return;
-      }
-      if (isH2 && SOURCE_HEADING.test(heading)) {
-        flush();
-        skippingNavigation = true;
-        return;
-      }
-      if (isH2) {
-        if (skippingNavigation) skippingNavigation = false;
-        flush();
-        title = heading || 'Section';
-      }
-      if (!skippingNavigation) nodes.push(node);
-    });
-    flush();
-    return groups;
-  }
-
-  private chunkGroup(nodes: ChildNode[]): ChildNode[][] {
-    const total = textWords(nodes.map((node) => node.textContent || '').join(' '));
-    if (total <= 480) return [nodes];
-
-    const chunks: ChildNode[][] = [];
-    let chunk: ChildNode[] = [];
-    let words = 0;
-    const flush = () => {
-      if (chunk.length) chunks.push(chunk);
-      chunk = [];
-      words = 0;
-    };
-
-    nodes.forEach((node, index) => {
-      const element = node.nodeType === Node.ELEMENT_NODE ? node as HTMLElement : null;
-      const nodeWords = textWords(node.textContent || '');
-      const h3Boundary = element?.tagName === 'H3' && words >= 120;
-      const blockBoundary = words >= 380 && index > 0;
-      if (chunk.length && (h3Boundary || blockBoundary)) flush();
-      chunk.push(node);
-      words += nodeWords;
-    });
-    flush();
-
-    return chunks.length ? chunks : [[...nodes]];
-  }
-
-  private namespaceCard(
-    card: HTMLElement,
-    prefix: string,
-    sources: Map<string, HTMLElement>,
-    cardHash: string,
-  ): void {
-    const ids = new Map<string, string>();
-    card.querySelectorAll<HTMLElement>('[id]').forEach((element) => {
-      const oldId = element.id;
-      const nextId = `deck-${prefix}-${oldId}`;
-      ids.set(oldId, nextId);
-      element.id = nextId;
-    });
-
-    card.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((anchor) => {
-      const oldId = decodeFragment(anchor.getAttribute('href')!.slice(1));
-      if (sources.has(oldId)) {
-        anchor.dataset.deckSourceId = oldId;
-        anchor.href = cardHash;
-        anchor.setAttribute('data-no-swup', '');
-      } else if (ids.has(oldId)) {
-        anchor.href = `#${ids.get(oldId)}`;
-        anchor.setAttribute('data-no-swup', '');
-      }
-    });
-
-    card.querySelectorAll<HTMLElement>('.footnote-number').forEach((marker) => {
-      marker.tabIndex = 0;
-      marker.setAttribute('role', 'button');
-      marker.setAttribute('aria-label', 'Open margin note');
-    });
-  }
-
   private buildIndex(model: DeckFeedModel): void {
     this.indexList.replaceChildren(...model.cards.flatMap((card, index) => {
-      if (card.isCover || card.isTerminal) return [];
+      if (card.isCover) return [];
       const item = document.createElement('li');
       const button = document.createElement('button');
       button.type = 'button';
@@ -679,7 +438,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
 
   private buildProgress(model: DeckFeedModel): void {
     this.progress.replaceChildren(...model.cards.flatMap((card, index) => {
-      if (card.isCover || card.isTerminal) return [];
+      if (card.isCover) return [];
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.deckProgressIndex = String(index);
@@ -714,10 +473,6 @@ export class ReadingDeckController implements ReadingDeckHandle {
     this.saveState();
 
     model.cards.forEach((card, cardIndex) => {
-      if (card.isTerminal) {
-        card.element.dataset.deckDistance = String(Math.min(2, Math.abs(cardIndex - nextIndex)));
-        return;
-      }
       const active = cardIndex === nextIndex;
       card.element.dataset.deckDistance = String(Math.min(2, Math.abs(cardIndex - nextIndex)));
       card.element.toggleAttribute('inert', !active);
@@ -756,16 +511,17 @@ export class ReadingDeckController implements ReadingDeckHandle {
     const model = this.feedCache.get(this.feed);
     if (!model) return;
     this.finished = true;
-    const terminalIndex = model.cards.findIndex((card) => card.isTerminal);
     model.cards.forEach((card, cardIndex) => {
-      const terminal = Boolean(card.isTerminal);
-      card.element.dataset.deckDistance = String(Math.min(2, Math.abs(cardIndex - terminalIndex)));
-      card.element.inert = !terminal;
-      card.element.setAttribute('aria-hidden', String(!terminal));
+      card.element.dataset.deckDistance = String(Math.min(2, model.cards.length - cardIndex));
+      card.element.inert = true;
+      card.element.setAttribute('aria-hidden', 'true');
     });
     this.updateFinishContent(model);
     this.finish.hidden = false;
     this.finish.dataset.deckFinishActive = 'true';
+    this.finish.inert = false;
+    this.finish.setAttribute('aria-hidden', 'false');
+    this.finish.setAttribute('aria-label', 'Reading complete');
     this.stage.classList.add('is-finished');
     this.scrollShadow.hidden = true;
     this.position.textContent = 'Done';
@@ -805,8 +561,8 @@ export class ReadingDeckController implements ReadingDeckHandle {
 
   private syncUI(model: DeckFeedModel): void {
     const card = model.cards[this.current];
-    const contentTotal = model.cards.filter((item) => !item.isCover && !item.isTerminal).length;
-    const contentIndex = model.cards.slice(0, this.current + 1).filter((item) => !item.isCover && !item.isTerminal).length;
+    const contentTotal = model.cards.filter((item) => !item.isCover).length;
+    const contentIndex = model.cards.slice(0, this.current + 1).filter((item) => !item.isCover).length;
     this.position.textContent = card.isCover ? 'Ready' : `${contentIndex} / ${contentTotal}`;
     this.cardTitle.textContent = card.isCover ? 'Swipe to begin' : card.title;
     this.prev.disabled = this.current === 0;
@@ -906,16 +662,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
   }
 
   private lastContentIndex(model: DeckFeedModel): number {
-    const terminalIndex = model.cards.findIndex((card) => card.isTerminal);
-    return terminalIndex > 0 ? terminalIndex - 1 : model.cards.length - 1;
-  }
-
-  private visualIndex(model: DeckFeedModel): number {
-    if (this.finished && !this.mobileCompletion.matches) {
-      const terminalIndex = model.cards.findIndex((card) => card.isTerminal);
-      if (terminalIndex >= 0) return terminalIndex;
-    }
-    return this.current;
+    return model.cards.length - 1;
   }
 
   private measure(): void {
@@ -930,6 +677,9 @@ export class ReadingDeckController implements ReadingDeckHandle {
       - Number.parseFloat(style.paddingRight || '0');
     const center = contentWidth / 2;
     this.offsets = cards.map(({ element }) => center - (element.offsetLeft + element.offsetWidth / 2));
+    this.finishOffset = this.finish.parentElement === this.track
+      ? center - (this.finish.offsetLeft + this.finish.offsetWidth / 2)
+      : 0;
   }
 
   private syncFinishPlacement(): void {
@@ -941,7 +691,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
     const model = this.feedCache.get(this.feed);
     if (!model) return;
     if (this.mobileCompletion.matches) {
-      const card = model.cards[this.visualIndex(model)]?.element;
+      const card = model.cards[this.current]?.element;
       if (!card || card.parentElement !== this.track) return;
       const left = card.offsetLeft - Math.max(0, (this.track.clientWidth - card.offsetWidth) / 2);
       this.track.scrollTo({
@@ -952,7 +702,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
       return;
     }
     if (this.offsets.length !== model.cards.length) this.measure();
-    const offset = this.offsets[this.visualIndex(model)] || 0;
+    const offset = this.finished ? this.finishOffset : this.offsets[this.current] || 0;
     if (!animate || this.reduceMotion.matches) {
       const transition = this.track.style.transition;
       this.track.style.transition = 'none';
@@ -1017,7 +767,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
     let nearestDistance = Number.POSITIVE_INFINITY;
 
     model.cards.forEach((card, index) => {
-      if (card.isTerminal || card.element.parentElement !== this.track) return;
+      if (card.element.parentElement !== this.track) return;
       const cardCenter = card.element.offsetLeft + card.element.offsetWidth / 2;
       const distance = Math.abs(cardCenter - center);
       if (distance < nearestDistance) {

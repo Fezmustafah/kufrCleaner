@@ -9,8 +9,10 @@ export function requiredDeckMarkup(): string {
       <p id="introduction">Introduction copy.</p>
       <h2 id="first-heading">First heading</h2>
       <p>First section body.</p>
-      <h2 id="sources">Sources</h2>
-      <ol><li id="source-1">A source.</li></ol>
+      <section data-footnotes id="footnotes">
+        <h2 id="sources">Sources</h2>
+        <ol><li id="source-1">A source.</li></ol>
+      </section>
     </article>
     <template data-deck-source-template="tldr">
       <article data-deck-source-root>
