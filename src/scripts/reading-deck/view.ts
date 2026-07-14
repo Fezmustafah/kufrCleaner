@@ -91,6 +91,8 @@ export class ReadingDeckView {
   private overlayReturnFocus: HTMLElement | null = null;
   private scrollCard: HTMLElement | null = null;
   private readonly onCardScroll = () => this.updateOverflow();
+  private readonly frames = new Set<number>();
+  private destroyed = false;
 
   private constructor(
     readonly dialog: HTMLDialogElement,
@@ -186,7 +188,10 @@ export class ReadingDeckView {
     this.overlayReturnFocus = trigger;
     this.shell.inert = true;
     this.indexOverlay.hidden = false;
-    this.indexList.querySelector<HTMLButtonElement>('[aria-current="true"]')?.focus({ preventScroll: true });
+    const target = this.indexList.querySelector<HTMLButtonElement>('[aria-current="true"]')
+      || this.indexList.querySelector<HTMLButtonElement>('[data-card-index]')
+      || this.indexOverlay.querySelector<HTMLButtonElement>('[data-deck-index-close]');
+    target?.focus({ preventScroll: true });
   }
 
   openSource(content: HTMLElement, trigger: HTMLElement): void {
@@ -231,8 +236,58 @@ export class ReadingDeckView {
     return true;
   }
 
+  hasOpenSurface(): boolean {
+    return !this.indexOverlay.hidden || !this.sourceOverlay.hidden || !this.imageOverlay.hidden;
+  }
+
+  activeBlockingSurface(): HTMLElement | null {
+    return !this.indexOverlay.hidden
+      ? this.indexOverlay
+      : !this.imageOverlay.hidden
+        ? this.imageOverlay
+        : null;
+  }
+
+  trapFocus(event: KeyboardEvent): boolean {
+    if (event.key !== 'Tab') return false;
+    const root = this.activeBlockingSurface() || this.shell;
+    const focusable = Array.from(root.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+    )).filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+    if (!focusable.length) return false;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+      return true;
+    }
+    if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+      return true;
+    }
+    return false;
+  }
+
+  hideOverflow(): void {
+    this.scrollShadow.hidden = true;
+  }
+
+  setStatus(message: string): void {
+    this.status.textContent = message;
+  }
+
+  focusCloseButton(): void {
+    this.dialog.querySelector<HTMLButtonElement>('[data-deck-close]')?.focus({ preventScroll: true });
+  }
+
+  focusCompletion(): void {
+    this.finishPrimary.focus({ preventScroll: true });
+  }
+
   restoreHeading(targetId: string): void {
-    requestAnimationFrame(() => {
+    this.scheduleFrame(() => {
       const target = document.getElementById(targetId);
       if (!target || !this.dialog.contains(target)) return;
       const card = target.closest<HTMLElement>('.reading-deck-card');
@@ -255,7 +310,7 @@ export class ReadingDeckView {
     this.scrollShadow.hidden = true;
     card?.prepend(this.scrollShadow);
     card?.addEventListener('scroll', this.onCardScroll, { passive: true });
-    requestAnimationFrame(() => this.updateOverflow(finished));
+    this.scheduleFrame(() => this.updateOverflow(finished));
   }
 
   updateOverflow(finished = false): void {
@@ -270,6 +325,10 @@ export class ReadingDeckView {
   }
 
   destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.frames.forEach((frame) => cancelAnimationFrame(frame));
+    this.frames.clear();
     this.scrollCard?.removeEventListener('scroll', this.onCardScroll);
     this.scrollCard = null;
     this.close();
@@ -306,5 +365,13 @@ export class ReadingDeckView {
     this.closeSurface(this.indexOverlay, restoreFocus);
     this.closeSurface(this.sourceOverlay, restoreFocus);
     this.closeSurface(this.imageOverlay, restoreFocus);
+  }
+
+  private scheduleFrame(callback: () => void): void {
+    const frame = requestAnimationFrame(() => {
+      this.frames.delete(frame);
+      if (!this.destroyed) callback();
+    });
+    this.frames.add(frame);
   }
 }

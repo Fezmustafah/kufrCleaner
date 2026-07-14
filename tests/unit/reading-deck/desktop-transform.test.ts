@@ -26,6 +26,7 @@ function fixture(overrides: Partial<DeckTransportContext> = {}) {
     cards,
     selectedIndex: () => 1,
     reducedMotion: () => false,
+    interactionEnabled: () => true,
     requestMove,
     reportSettled: vi.fn(),
     dismissHint: vi.fn(),
@@ -77,6 +78,17 @@ describe('desktop transform transport', () => {
     stage.dispatchEvent(new WheelEvent('wheel', { deltaX: 14, deltaY: 1, cancelable: true }));
     expect(requestMove).toHaveBeenCalledOnce();
     expect(requestMove).toHaveBeenCalledWith(1);
+    transport.destroy();
+  });
+
+  it('ignores pointer gestures while orchestration disables interaction', () => {
+    const { context, stage, requestMove } = fixture({ interactionEnabled: () => false });
+    const transport = createDesktopTransformTransport();
+    transport.connect(context);
+    stage.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, pointerType: 'touch', button: 0, clientX: 300, clientY: 200 }));
+    stage.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 200 }));
+    stage.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, pointerType: 'touch', clientX: 200, clientY: 200 }));
+    expect(requestMove).not.toHaveBeenCalled();
     transport.destroy();
   });
 

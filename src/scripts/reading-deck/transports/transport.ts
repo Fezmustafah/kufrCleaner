@@ -6,6 +6,7 @@ export interface DeckTransportContext {
   cards: HTMLElement[];
   selectedIndex(): number;
   reducedMotion(): boolean;
+  interactionEnabled(): boolean;
   requestMove(delta: -1 | 1): void;
   reportSettled(index: number): void;
   dismissHint(): void;

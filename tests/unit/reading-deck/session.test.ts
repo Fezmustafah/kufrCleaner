@@ -1,4 +1,6 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ReadingDeckEffects } from '@/scripts/reading-deck/session';
+import { createTestDeckViewport } from '@/scripts/reading-deck/viewport';
 import {
   installReadingDeckFixture,
   resetReadingDeckFixture,
@@ -33,14 +35,7 @@ function installBrowserDoubles(): void {
 }
 
 async function loadDeckModules() {
-  const [{ attachReadingDeck }, client] = await Promise.all([
-    import('@/scripts/reading-deck'),
-    import('@/scripts/reading-deck-client'),
-  ]);
-  return {
-    attachReadingDeck,
-    createReadingDeckController: client.createReadingDeckController,
-  };
+  return import('@/scripts/reading-deck');
 }
 
 type DeckModules = Awaited<ReturnType<typeof loadDeckModules>>;
@@ -50,6 +45,16 @@ async function flushDeckFrames(): Promise<void> {
   await Promise.resolve();
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   await Promise.resolve();
+}
+
+function createEffects() {
+  return {
+    haptic: vi.fn<() => void>(),
+    initializeArticleEnhancements: vi.fn<() => void>(),
+    openSearch: vi.fn<() => void>(),
+    openMenu: vi.fn<() => void>(),
+    share: vi.fn(async () => 'copied' as const),
+  } satisfies ReadingDeckEffects;
 }
 
 describe('reading deck attachment', () => {
@@ -65,14 +70,14 @@ describe('reading deck attachment', () => {
   afterEach(resetReadingDeckFixture);
 
   it('returns null when the page has no Reading Deck', async () => {
-    const { attachReadingDeck, createReadingDeckController } = deckModules;
-    expect(attachReadingDeck(document, createReadingDeckController)).toBeNull();
+    const { attachReadingDeck } = deckModules;
+    expect(attachReadingDeck(document)).toBeNull();
   });
 
   it('attaches and destroys idempotently', async () => {
     installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = deckModules;
-    const handle = attachReadingDeck(document, createReadingDeckController);
+    const { attachReadingDeck } = deckModules;
+    const handle = attachReadingDeck(document);
 
     expect(handle).not.toBeNull();
     handle?.destroy();
@@ -82,16 +87,16 @@ describe('reading deck attachment', () => {
 
   it('rejects malformed markup without changing page state', async () => {
     document.body.innerHTML = '<dialog data-reading-deck></dialog>';
-    const { attachReadingDeck, createReadingDeckController } = deckModules;
+    const { attachReadingDeck } = deckModules;
 
-    expect(attachReadingDeck(document, createReadingDeckController)).toBeNull();
+    expect(attachReadingDeck(document)).toBeNull();
     expect(document.body.classList.contains('reading-deck-open')).toBe(false);
   });
 
   it('opens Deep Read and advances with Next', async () => {
     const dialog = installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = deckModules;
-    const handle = attachReadingDeck(document, createReadingDeckController);
+    const { attachReadingDeck } = deckModules;
+    const handle = attachReadingDeck(document);
 
     document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
     await flushDeckFrames();
@@ -110,8 +115,8 @@ describe('reading deck attachment', () => {
   it('restores direct heading locations', async () => {
     const dialog = installReadingDeckFixture();
     window.history.replaceState(null, '', '/pilot/#deck-slides-2-first-heading');
-    const { attachReadingDeck, createReadingDeckController } = deckModules;
-    const handle = attachReadingDeck(document, createReadingDeckController);
+    const { attachReadingDeck } = deckModules;
+    const handle = attachReadingDeck(document);
 
     await flushDeckFrames();
     expect(dialog.open).toBe(true);
@@ -123,8 +128,8 @@ describe('reading deck attachment', () => {
 
   it('restores independent Feed positions', async () => {
     const dialog = installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = deckModules;
-    const handle = attachReadingDeck(document, createReadingDeckController);
+    const { attachReadingDeck } = deckModules;
+    const handle = attachReadingDeck(document);
 
     document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
     await flushDeckFrames();
@@ -141,8 +146,8 @@ describe('reading deck attachment', () => {
 
   it('opens Contents and selects a Card with one haptic request', async () => {
     const dialog = installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = deckModules;
-    const handle = attachReadingDeck(document, createReadingDeckController);
+    const { attachReadingDeck } = deckModules;
+    const handle = attachReadingDeck(document);
 
     document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
     await flushDeckFrames();
@@ -160,8 +165,8 @@ describe('reading deck attachment', () => {
 
   it('enters Completion only after advancing beyond Sources', async () => {
     const dialog = installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = deckModules;
-    const handle = attachReadingDeck(document, createReadingDeckController);
+    const { attachReadingDeck } = deckModules;
+    const handle = attachReadingDeck(document);
 
     document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
     await flushDeckFrames();
@@ -174,5 +179,51 @@ describe('reading deck attachment', () => {
     expect(dialog.querySelector('[data-deck-position]')?.textContent).toBe('Done');
 
     handle?.destroy();
+  });
+
+  it('delegates site actions through injected effects', () => {
+    const dialog = installReadingDeckFixture();
+    const effects = createEffects();
+    const { attachReadingDeck } = deckModules;
+    const handle = attachReadingDeck(document, {
+      effects,
+      viewport: createTestDeckViewport(),
+    });
+
+    dialog.querySelector<HTMLButtonElement>('[data-deck-search]')?.click();
+    dialog.querySelector<HTMLButtonElement>('[data-deck-menu]')?.click();
+    expect(effects.openSearch).toHaveBeenCalledOnce();
+    expect(effects.openMenu).toHaveBeenCalledOnce();
+    handle?.destroy();
+  });
+
+  it('reuses each compiled Feed during one session', async () => {
+    const dialog = installReadingDeckFixture();
+    const { attachReadingDeck } = deckModules;
+    const handle = attachReadingDeck(document);
+    document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
+    await flushDeckFrames();
+    const firstSlidesCard = dialog.querySelector('.reading-deck-card');
+    dialog.querySelector<HTMLButtonElement>('[data-deck-feed="tldr"]')?.click();
+    dialog.querySelector<HTMLButtonElement>('[data-deck-feed="slides"]')?.click();
+    expect(dialog.querySelector('.reading-deck-card')).toBe(firstSlidesCard);
+    handle?.destroy();
+  });
+
+  it('leaves exactly one live session after reinitialization', async () => {
+    const dialog = installReadingDeckFixture();
+    const effects = createEffects();
+    const viewport = createTestDeckViewport();
+    const { attachReadingDeck } = deckModules;
+    const first = attachReadingDeck(document, { effects, viewport });
+    first?.destroy();
+    window.history.replaceState(null, '', '/');
+    const second = attachReadingDeck(document, { effects, viewport });
+    document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
+    await flushDeckFrames();
+    effects.haptic.mockClear();
+    dialog.querySelector<HTMLButtonElement>('[data-deck-next]')?.click();
+    expect(effects.haptic).toHaveBeenCalledTimes(1);
+    second?.destroy();
   });
 });

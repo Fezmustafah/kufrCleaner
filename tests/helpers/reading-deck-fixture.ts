@@ -35,7 +35,19 @@ export function requiredDeckMarkup(): string {
         <button data-deck-prev>Previous</button>
         <button data-deck-index-open>Contents</button>
         <button data-deck-next><span>Next</span></button>
-        <div data-deck-stage><div data-deck-track></div></div>
+        <div data-deck-stage>
+          <div data-deck-track></div>
+          <div data-deck-scroll-shadow hidden></div>
+          <div data-deck-swipe-hint hidden></div>
+          <section data-deck-finish hidden>
+            <h2 data-deck-finish-title></h2>
+            <p data-deck-finish-copy></p>
+            <button data-deck-finish-primary>
+              <span data-deck-finish-primary-label></span>
+            </button>
+          </section>
+        </div>
+      </div>
         <div data-deck-index hidden>
           <button data-deck-index-close>Close</button>
           <ol data-deck-index-list></ol>
@@ -48,16 +60,6 @@ export function requiredDeckMarkup(): string {
           <button data-deck-image-close>Close</button>
           <img data-deck-image alt="" />
         </div>
-        <div data-deck-scroll-shadow hidden></div>
-        <div data-deck-swipe-hint hidden></div>
-        <section data-deck-finish hidden>
-          <h2 data-deck-finish-title></h2>
-          <p data-deck-finish-copy></p>
-          <button data-deck-finish-primary>
-            <span data-deck-finish-primary-label></span>
-          </button>
-        </section>
-      </div>
     </dialog>`;
 }
 

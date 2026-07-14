@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ReadingDeckView } from '@/scripts/reading-deck/view';
 import type { CompiledReadingFeed } from '@/scripts/reading-deck/types';
 import { createDeckState } from '@/scripts/reading-deck/state';
@@ -79,5 +79,33 @@ describe('ReadingDeckView', () => {
     expect(view.sourceOverlay.hidden).toBe(true);
     expect(view.imageOverlay.hidden).toBe(true);
     expect(document.body.classList.contains('reading-deck-open')).toBe(false);
+  });
+
+  it('focuses the first Contents item from the cover and restores the trigger', () => {
+    const dialog = installReadingDeckFixture();
+    const view = ReadingDeckView.from(dialog);
+    const model = feed();
+    view.renderFeed(model, 'slides');
+    view.selectCard(0);
+    const trigger = dialog.querySelector<HTMLButtonElement>('[data-deck-index-open]')!;
+    trigger.focus();
+
+    view.openContents(trigger);
+    expect(document.activeElement).toBe(view.indexList.querySelector('[data-card-index]'));
+    view.closeSurface(view.indexOverlay);
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('cancels pending View frames during teardown', async () => {
+    const dialog = installReadingDeckFixture();
+    const view = ReadingDeckView.from(dialog);
+    const model = feed();
+    model.cards[1].element.innerHTML = '<h2 id="pending-heading">Pending</h2>';
+    model.cards[1].element.scrollTo = vi.fn();
+    view.renderFeed(model, 'slides');
+    view.restoreHeading('pending-heading');
+    view.destroy();
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    expect(model.cards[1].element.scrollTo).not.toHaveBeenCalled();
   });
 });

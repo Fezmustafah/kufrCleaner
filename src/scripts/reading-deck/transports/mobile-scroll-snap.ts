@@ -16,6 +16,7 @@ class MobileScrollSnapTransport implements DeckTransport {
   private touchActive = false;
   private userDriven = false;
   private pendingProgrammaticIndex: number | null = null;
+  private pendingReflow = false;
 
   constructor(
     private readonly settleDelay: number,
@@ -62,7 +63,11 @@ class MobileScrollSnapTransport implements DeckTransport {
   }
 
   reflow(): void {
-    if (this.touchActive || !this.context) return;
+    if (!this.context) return;
+    if (this.touchActive || this.userDriven || this.settleTimer) {
+      this.pendingReflow = true;
+      return;
+    }
     this.present(this.context.selectedIndex(), 'none');
   }
 
@@ -74,6 +79,7 @@ class MobileScrollSnapTransport implements DeckTransport {
     this.touchActive = false;
     this.userDriven = false;
     this.pendingProgrammaticIndex = null;
+    this.pendingReflow = false;
     this.context = null;
   }
 
@@ -86,6 +92,7 @@ class MobileScrollSnapTransport implements DeckTransport {
   private settle(): void {
     const context = this.context;
     if (!context || this.touchActive) return;
+    this.settleTimer = 0;
     const center = context.track.scrollLeft + context.track.clientWidth / 2;
     let nearest = context.selectedIndex();
     let distance = Number.POSITIVE_INFINITY;
@@ -106,6 +113,10 @@ class MobileScrollSnapTransport implements DeckTransport {
       if (this.userDriven) this.onSettledHaptic?.();
     }
     this.userDriven = false;
+    if (this.pendingReflow) {
+      this.pendingReflow = false;
+      this.present(context.selectedIndex(), 'none');
+    }
   }
 }
 

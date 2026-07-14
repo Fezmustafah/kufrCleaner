@@ -86,6 +86,7 @@ class DesktopTransformTransport implements DeckTransport {
     const hasSelection = () => Boolean(window.getSelection?.()?.toString());
 
     context.stage.addEventListener('pointerdown', (event) => {
+      if (!context.interactionEnabled()) return;
       const target = event.target as Element;
       const mouseOnCard = event.pointerType === 'mouse' && Boolean(target.closest('.reading-deck-card'));
       if (event.button !== 0 || mouseOnCard || hasSelection()) return;

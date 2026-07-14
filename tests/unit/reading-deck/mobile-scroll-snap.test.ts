@@ -30,6 +30,7 @@ function fixture() {
     cards,
     selectedIndex: () => selected,
     reducedMotion: () => false,
+    interactionEnabled: () => true,
     requestMove: vi.fn(),
     reportSettled,
     dismissHint: vi.fn(),
@@ -69,6 +70,26 @@ describe('mobile scroll snap transport', () => {
     vi.advanceTimersByTime(120);
     expect(reportSettled).toHaveBeenCalledWith(1);
     expect(onSettledHaptic).toHaveBeenCalledOnce();
+    transport.destroy();
+  });
+
+  it('defers reflow during post-touch WebKit momentum', () => {
+    vi.useFakeTimers();
+    const { context, track, reportSettled } = fixture();
+    const transport = createMobileScrollSnapTransport();
+    transport.connect(context);
+    track.dispatchEvent(new TouchEvent('touchstart'));
+    track.scrollLeft = 420;
+    track.dispatchEvent(new Event('scroll'));
+    track.dispatchEvent(new TouchEvent('touchend'));
+
+    transport.reflow();
+    expect(track.scrollLeft).toBe(420);
+    expect(track.scrollTo).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(120);
+    expect(reportSettled).toHaveBeenCalledWith(1);
+    expect(track.scrollLeft).toBe(420);
     transport.destroy();
   });
 
