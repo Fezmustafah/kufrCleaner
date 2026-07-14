@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   installReadingDeckFixture,
   resetReadingDeckFixture,
@@ -43,6 +43,9 @@ async function loadDeckModules() {
   };
 }
 
+type DeckModules = Awaited<ReturnType<typeof loadDeckModules>>;
+let deckModules: DeckModules;
+
 async function flushDeckFrames(): Promise<void> {
   await Promise.resolve();
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -50,6 +53,10 @@ async function flushDeckFrames(): Promise<void> {
 }
 
 describe('reading deck attachment', () => {
+  beforeAll(async () => {
+    deckModules = await loadDeckModules();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     installBrowserDoubles();
@@ -58,13 +65,13 @@ describe('reading deck attachment', () => {
   afterEach(resetReadingDeckFixture);
 
   it('returns null when the page has no Reading Deck', async () => {
-    const { attachReadingDeck, createReadingDeckController } = await loadDeckModules();
+    const { attachReadingDeck, createReadingDeckController } = deckModules;
     expect(attachReadingDeck(document, createReadingDeckController)).toBeNull();
   });
 
   it('attaches and destroys idempotently', async () => {
     installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = await loadDeckModules();
+    const { attachReadingDeck, createReadingDeckController } = deckModules;
     const handle = attachReadingDeck(document, createReadingDeckController);
 
     expect(handle).not.toBeNull();
@@ -75,7 +82,7 @@ describe('reading deck attachment', () => {
 
   it('rejects malformed markup without changing page state', async () => {
     document.body.innerHTML = '<dialog data-reading-deck></dialog>';
-    const { attachReadingDeck, createReadingDeckController } = await loadDeckModules();
+    const { attachReadingDeck, createReadingDeckController } = deckModules;
 
     expect(attachReadingDeck(document, createReadingDeckController)).toBeNull();
     expect(document.body.classList.contains('reading-deck-open')).toBe(false);
@@ -83,7 +90,7 @@ describe('reading deck attachment', () => {
 
   it('opens Deep Read and advances with Next', async () => {
     const dialog = installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = await loadDeckModules();
+    const { attachReadingDeck, createReadingDeckController } = deckModules;
     const handle = attachReadingDeck(document, createReadingDeckController);
 
     document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
@@ -103,7 +110,7 @@ describe('reading deck attachment', () => {
   it('restores direct heading locations', async () => {
     const dialog = installReadingDeckFixture();
     window.history.replaceState(null, '', '/pilot/#deck-slides-2-first-heading');
-    const { attachReadingDeck, createReadingDeckController } = await loadDeckModules();
+    const { attachReadingDeck, createReadingDeckController } = deckModules;
     const handle = attachReadingDeck(document, createReadingDeckController);
 
     await flushDeckFrames();
@@ -116,7 +123,7 @@ describe('reading deck attachment', () => {
 
   it('restores independent Feed positions', async () => {
     const dialog = installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = await loadDeckModules();
+    const { attachReadingDeck, createReadingDeckController } = deckModules;
     const handle = attachReadingDeck(document, createReadingDeckController);
 
     document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
@@ -134,7 +141,7 @@ describe('reading deck attachment', () => {
 
   it('opens Contents and selects a Card with one haptic request', async () => {
     const dialog = installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = await loadDeckModules();
+    const { attachReadingDeck, createReadingDeckController } = deckModules;
     const handle = attachReadingDeck(document, createReadingDeckController);
 
     document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
@@ -153,7 +160,7 @@ describe('reading deck attachment', () => {
 
   it('enters Completion only after advancing beyond Sources', async () => {
     const dialog = installReadingDeckFixture();
-    const { attachReadingDeck, createReadingDeckController } = await loadDeckModules();
+    const { attachReadingDeck, createReadingDeckController } = deckModules;
     const handle = attachReadingDeck(document, createReadingDeckController);
 
     document.querySelector<HTMLButtonElement>('[data-deck-open="slides"]')?.click();
