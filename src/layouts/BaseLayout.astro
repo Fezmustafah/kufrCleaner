@@ -1208,6 +1208,11 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
   <!-- Main content -->
   <main id="main-content" class="container mx-auto relative flex-1" style={`max-width: ${mainWidth}`}>
     <div id="swup-container" class="transition-swup-fade">
+      {/* #main-content is the persistent shell (it wraps #swup-container), so its
+          per-page inline max-width never updates on Swup nav. This marker rides
+          inside the swapped content so the client can re-apply the incoming
+          page's width — see syncMainWidth() in the page-load script below. */}
+      <span id="page-main-width" data-main-width={mainWidth} hidden></span>
       <slot />
     </div>
   </main>
@@ -1249,6 +1254,9 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     </script>
     <script>
       try { await import('../scripts/toc-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/reading-deck-client.ts'); } catch (_) {}
     </script>
     <script>
       try { await import('../scripts/posts-sort-client.ts'); } catch (_) {}
@@ -1521,8 +1529,20 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     // astro:page-load listeners. This listener handles BaseLayout-level globals only.
     // Single place for all global re-initialization. Fires on initial load + every Swup navigation.
     // Component-specific init (lightbox, graph, annotations, marginalia) lives in each component.
+    // #main-content wraps #swup-container, so Swup never swaps it — its per-page
+    // inline max-width (homepage 72rem vs post 55rem) goes stale on navigation,
+    // squishing the homepage to a post's width until reload. Re-apply the width
+    // the incoming page carries in #page-main-width (inside the swapped content).
+    function syncMainWidth() {
+      var marker = document.getElementById('page-main-width');
+      var mc = document.getElementById('main-content');
+      if (marker && mc && marker.dataset.mainWidth) mc.style.maxWidth = marker.dataset.mainWidth;
+    }
+
     document.addEventListener('astro:page-load', function () {
       var safe = function(fn) { try { fn(); } catch (e) { console.warn('[page-load]', e); } };
+
+      safe(syncMainWidth); // width first — TOC/graph/etc. below measure against it
 
       safe(() => {
         const theme = getThemeWithoutClearing();
@@ -1570,6 +1590,7 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     window.addEventListener('pageshow', (e) => {
       if (!e.persisted) return;
       setTimeout(() => {
+        syncMainWidth();
         window.initializeLinkedMentions?.();
         window.initializeWikilinks?.();
         window.initializeTableOfContents?.();

@@ -3,7 +3,10 @@ import { glob } from 'astro/loaders';
 
 // Define schema for blog posts
 const postsCollection = defineCollection({
-  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/posts' }),
+  loader: glob({
+    pattern: ['**/*.{md,mdx}', '!**/tldr.{md,mdx}'],
+    base: './src/content/posts',
+  }),
   schema: z.object({
     title: z.string().default('Untitled Post'),
     description: z.string().nullable().optional().default('No description provided'),
@@ -33,11 +36,24 @@ const postsCollection = defineCollection({
     modified: z.coerce.date().optional(),
     noIndex: z.boolean().optional(),
     category: z.string().nullable().optional(),
+    // Pilot opt-in for the full-article slide feed. TLDR availability is
+    // inferred separately from a sibling posts/<slug>/tldr.md entry.
+    deck: z.boolean().optional().default(false),
     // Optional Q&A pairs → emitted as FAQPage JSON-LD (featured-snippet eligible).
     faq: z.array(z.object({
       question: z.string(),
       answer: z.string(),
     })).nullable().optional(),
+  }),
+});
+
+// Separately authored short versions. These are rendered into the canonical
+// post page's deck and must never become standalone /posts/* routes.
+const tldrsCollection = defineCollection({
+  loader: glob({ pattern: '**/tldr.{md,mdx}', base: './src/content/posts' }),
+  schema: z.object({
+    title: z.string().optional(),
+    description: z.string().nullable().optional(),
   }),
 });
 
@@ -113,9 +129,9 @@ const categoriesCollection = defineCollection({
 // Export collections
 export const collections = {
   posts: postsCollection,
+  tldrs: tldrsCollection,
   pages: pagesCollection,
   special: specialCollection,
   tags: tagsCollection,
   categories: categoriesCollection,
 };
-

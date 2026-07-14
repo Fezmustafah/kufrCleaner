@@ -1,0 +1,1424 @@
+/* Reading deck — a theme-native, mobile-first folio rather than a separate app. */
+
+body.reading-deck-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.reading-deck-entry {
+  position: relative;
+  isolation: isolate;
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin: 0 0 2.25rem;
+  padding: 1rem 1.1rem 1rem 1.25rem;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-primary-200) / 0.75);
+  border-inline-start: 3px solid rgb(var(--color-highlight-500));
+  border-radius: 0.45rem;
+  background:
+    radial-gradient(circle at 0 50%, rgb(var(--color-highlight-400) / 0.12), transparent 46%),
+    rgb(var(--color-primary-50));
+}
+
+.reading-deck-ready .reading-deck-entry {
+  display: flex;
+}
+
+.dark .reading-deck-entry {
+  border-color: rgb(var(--color-primary-700) / 0.78);
+  border-inline-start-color: rgb(var(--color-highlight-400));
+  background:
+    radial-gradient(circle at 0 50%, rgb(var(--color-highlight-400) / 0.11), transparent 46%),
+    rgb(var(--color-primary-900));
+}
+
+.reading-deck-entry::after {
+  content: "";
+  position: absolute;
+  inset-block: 18%;
+  inset-inline-start: -1px;
+  width: 3px;
+  z-index: -1;
+  background: rgb(var(--color-highlight-300) / 0.75);
+  filter: blur(4px);
+}
+
+.reading-deck-entry-copy {
+  min-width: min(100%, 18rem);
+  flex: 1 1 19rem;
+}
+
+.reading-deck-entry-kicker,
+.reading-deck-mode,
+.reading-deck-overlay-panel > header span {
+  display: block;
+  margin-bottom: 0.18rem;
+  color: rgb(var(--color-highlight-700));
+  font-family: var(--font-heading);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.dark .reading-deck-entry-kicker,
+.dark .reading-deck-mode,
+.dark .reading-deck-overlay-panel > header span {
+  color: rgb(var(--color-highlight-300));
+}
+
+.reading-deck-entry p {
+  margin: 0;
+  color: rgb(var(--color-primary-650, var(--color-primary-600)));
+  font-family: var(--font-prose);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.dark .reading-deck-entry p {
+  color: rgb(var(--color-primary-300));
+}
+
+.reading-deck-entry-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.reading-deck-entry-actions button {
+  min-height: 2.55rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.35rem;
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.reading-deck-entry-actions button:hover {
+  transform: translateY(-1px);
+}
+
+.reading-deck-entry-actions button:focus-visible,
+.reading-deck button:focus-visible {
+  outline: 2px solid rgb(var(--color-highlight-500));
+  outline-offset: 3px;
+}
+
+.reading-deck-entry-primary {
+  border: 1px solid rgb(var(--color-highlight-700));
+  color: rgb(var(--color-primary-50));
+  background: rgb(var(--color-highlight-700));
+}
+
+.dark .reading-deck-entry-primary {
+  border-color: rgb(var(--color-highlight-300));
+  color: rgb(var(--color-primary-900));
+  background: rgb(var(--color-highlight-300));
+}
+
+.reading-deck-entry-secondary {
+  border: 1px solid rgb(var(--color-primary-300));
+  color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-50) / 0.55);
+}
+
+.dark .reading-deck-entry-secondary {
+  border-color: rgb(var(--color-primary-600));
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-800) / 0.7);
+}
+
+.reading-deck {
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  color: rgb(var(--color-primary-900));
+  background: rgb(var(--color-primary-100));
+}
+
+.dark .reading-deck {
+  color: rgb(var(--color-primary-50));
+  background: rgb(var(--color-primary-900));
+}
+
+.reading-deck::backdrop {
+  background: rgb(var(--color-primary-900) / 0.72);
+  backdrop-filter: blur(9px);
+}
+
+.reading-deck[open] {
+  animation: reading-deck-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes reading-deck-enter {
+  from { opacity: 0; transform: translateY(0.5rem) scale(0.995); }
+  to { opacity: 1; transform: none; }
+}
+
+.reading-deck-shell {
+  --deck-rail-height: 3.8rem;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% -20%, rgb(var(--color-highlight-400) / 0.11), transparent 35%),
+    linear-gradient(180deg, rgb(var(--color-primary-50)), rgb(var(--color-primary-100)));
+}
+
+.dark .reading-deck-shell {
+  background:
+    radial-gradient(circle at 50% -20%, rgb(var(--color-highlight-400) / 0.12), transparent 35%),
+    linear-gradient(180deg, rgb(var(--color-primary-900)), rgb(var(--color-primary-800)));
+}
+
+.reading-deck-topbar {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr) 2.6rem;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: calc(4.25rem + env(safe-area-inset-top, 0px));
+  padding: calc(0.65rem + env(safe-area-inset-top, 0px)) max(0.8rem, env(safe-area-inset-right, 0px)) 0.65rem max(0.8rem, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid rgb(var(--color-primary-200) / 0.8);
+  background: rgb(var(--color-primary-50) / 0.9);
+  backdrop-filter: blur(18px);
+}
+
+.dark .reading-deck-topbar {
+  border-bottom-color: rgb(var(--color-primary-700) / 0.8);
+  background: rgb(var(--color-primary-900) / 0.88);
+}
+
+.reading-deck-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.reading-deck-heading h2 {
+  max-width: 42rem;
+  margin: 0 auto;
+  overflow: hidden;
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: clamp(0.88rem, 2.5vw, 1.05rem);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reading-deck-icon-button {
+  display: inline-grid;
+  width: 2.55rem;
+  height: 2.55rem;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgb(var(--color-primary-250, var(--color-primary-300)) / 0.8);
+  border-radius: 50%;
+  color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-50) / 0.65);
+}
+
+.dark .reading-deck-icon-button {
+  border-color: rgb(var(--color-primary-650, var(--color-primary-600)) / 0.9);
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-800) / 0.75);
+}
+
+.reading-deck svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Compact sliding-thumb segmented control — sits in the top bar and IS the
+   mode indicator (the old separate band + duplicate eyebrow are gone). */
+.reading-deck-switcher {
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  align-self: center;
+  padding: 3px;
+  border: 1px solid rgb(var(--color-primary-200));
+  border-radius: 999px;
+  background: rgb(var(--color-primary-200) / 0.55);
+}
+
+.dark .reading-deck-switcher {
+  border-color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-800));
+}
+
+.reading-deck-switcher-thumb {
+  position: absolute;
+  z-index: -1;
+  inset: 3px auto 3px 3px;
+  width: calc(50% - 3px);
+  border-radius: 999px;
+  background: rgb(var(--color-primary-50));
+  box-shadow: 0 1px 4px rgb(var(--color-primary-900) / 0.12);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dark .reading-deck-switcher-thumb {
+  background: rgb(var(--color-primary-700));
+  box-shadow: 0 1px 5px rgb(var(--color-primary-900) / 0.38);
+}
+
+.reading-deck[data-active-feed="slides"] .reading-deck-switcher-thumb {
+  transform: translateX(100%);
+}
+
+.reading-deck-switcher button {
+  position: relative;
+  min-height: 1.85rem;
+  padding: 0.3rem 0.95rem;
+  border: 0;
+  border-radius: 999px;
+  color: rgb(var(--color-primary-500));
+  background: transparent;
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: color 200ms ease;
+}
+
+.reading-deck-switcher button[aria-pressed="true"] {
+  color: rgb(var(--color-primary-900));
+}
+
+.dark .reading-deck-switcher button {
+  color: rgb(var(--color-primary-400));
+}
+
+.dark .reading-deck-switcher button[aria-pressed="true"] {
+  color: rgb(var(--color-primary-50));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-deck-switcher-thumb { transition: none; }
+}
+
+.reading-deck-progress {
+  position: relative;
+  flex: 0 0 2px;
+  overflow: hidden;
+  background: rgb(var(--color-primary-300) / 0.42);
+}
+
+.dark .reading-deck-progress {
+  background: rgb(var(--color-primary-700) / 0.68);
+}
+
+.reading-deck-progress span {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgb(var(--color-highlight-600)), rgb(var(--color-highlight-300)));
+  box-shadow: 0 0 10px rgb(var(--color-highlight-400) / 0.65);
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reading-deck-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-block: clamp(0.55rem, 2vh, 1.15rem);
+  padding-inline: max(clamp(0.55rem, 2.2vw, 1.35rem), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  overflow: hidden;
+  touch-action: pan-y;
+  contain: layout style paint;
+}
+
+.reading-deck-track {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(0.55rem, 2.2vw, 1.35rem);
+  width: 100%;
+  height: 100%;
+  transform: translate3d(0, 0, 0);
+  transition: transform 390ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.reading-deck-card {
+  position: relative;
+  flex: 0 0 min(100%, 48rem);
+  height: 100%;
+  margin: 0;
+  padding: clamp(1.25rem, 4.6vw, 2.8rem) clamp(1.05rem, 5.2vw, 3.35rem) clamp(2.3rem, 5vw, 3.4rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgb(var(--color-primary-200) / 0.95);
+  border-radius: clamp(0.55rem, 2vw, 0.9rem);
+  color: rgb(var(--color-primary-800));
+  background: rgb(var(--color-primary-50));
+  box-shadow: 0 18px 46px rgb(var(--color-primary-900) / 0.12);
+  scrollbar-width: none;
+  touch-action: pan-y;
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100dvh;
+}
+
+.reading-deck-card::-webkit-scrollbar {
+  display: none;
+}
+
+.dark .reading-deck-card {
+  border-color: rgb(var(--color-primary-700));
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-900));
+  box-shadow: 0 20px 52px rgb(var(--color-primary-900) / 0.45);
+}
+
+.reading-deck-card::before {
+  display: none;
+}
+
+.dark .reading-deck-card::before {
+  color: rgb(var(--color-highlight-300));
+}
+
+.reading-deck-card :where(h2, h3) {
+  color: rgb(var(--color-primary-900));
+  font-family: var(--font-heading);
+  text-wrap: balance;
+}
+
+.dark .reading-deck-card :where(h2, h3) {
+  color: rgb(var(--color-primary-50));
+}
+
+.reading-deck-card > h2:first-of-type {
+  margin-top: 0;
+  font-size: clamp(1.72rem, 7.2vw, 3rem);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+.reading-deck-card :where(p, li, blockquote) {
+  font-family: var(--font-prose);
+  font-size: clamp(1rem, 2.7vw, 1.12rem);
+  line-height: 1.72;
+  text-wrap: pretty;
+}
+
+.reading-deck-card :where(img, video, iframe) {
+  max-width: 100%;
+  height: auto;
+}
+
+.reading-deck-card[aria-hidden="true"] {
+  pointer-events: none;
+}
+
+.reading-deck-controls {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, 0.55fr) minmax(12rem, 1.9fr) minmax(3.5rem, 0.55fr);
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  min-height: calc(var(--deck-rail-height) + env(safe-area-inset-bottom, 0px));
+  padding: 0.48rem max(0.6rem, env(safe-area-inset-right, 0px)) calc(0.48rem + env(safe-area-inset-bottom, 0px)) max(0.6rem, env(safe-area-inset-left, 0px));
+  border-top: 1px solid rgb(var(--color-primary-200) / 0.9);
+  background: rgb(var(--color-primary-50) / 0.92);
+  backdrop-filter: blur(18px);
+}
+
+.dark .reading-deck-controls {
+  border-top-color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-900) / 0.9);
+}
+
+.reading-deck-controls > button {
+  display: flex;
+  min-width: 0;
+  min-height: 2.85rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgb(var(--color-primary-200));
+  border-radius: 0.4rem;
+  color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-50));
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.dark .reading-deck-controls > button {
+  border-color: rgb(var(--color-primary-700));
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-800));
+}
+
+.reading-deck-controls > button:disabled {
+  opacity: 0.32;
+}
+
+.reading-deck-position {
+  flex-direction: column;
+  border-color: rgb(var(--color-highlight-500) / 0.55) !important;
+}
+
+.reading-deck-position span {
+  color: rgb(var(--color-highlight-700));
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+}
+
+.dark .reading-deck-position span {
+  color: rgb(var(--color-highlight-300));
+}
+
+.reading-deck-position small {
+  width: 100%;
+  overflow: hidden;
+  color: rgb(var(--color-primary-500));
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reading-deck-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  padding: max(1rem, env(safe-area-inset-top, 0px)) max(0.75rem, env(safe-area-inset-right, 0px)) max(1rem, env(safe-area-inset-bottom, 0px)) max(0.75rem, env(safe-area-inset-left, 0px));
+  place-items: end center;
+  background: rgb(var(--color-primary-900) / 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.reading-deck-overlay[hidden] {
+  display: none;
+}
+
+.reading-deck-overlay-panel {
+  width: min(100%, 42rem);
+  max-height: min(78dvh, 48rem);
+  padding: 1rem;
+  overflow: auto;
+  border: 1px solid rgb(var(--color-primary-200));
+  border-radius: 0.75rem;
+  color: rgb(var(--color-primary-800));
+  background: rgb(var(--color-primary-50));
+  box-shadow: 0 26px 70px rgb(var(--color-primary-900) / 0.3);
+}
+
+.dark .reading-deck-overlay-panel {
+  border-color: rgb(var(--color-primary-700));
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-900));
+}
+
+.reading-deck-overlay-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid rgb(var(--color-primary-200));
+}
+
+.dark .reading-deck-overlay-panel > header {
+  border-bottom-color: rgb(var(--color-primary-700));
+}
+
+.reading-deck-overlay-panel h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+}
+
+.reading-deck-overlay-panel ol {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.8rem 0 0;
+  list-style: none;
+  counter-reset: deck-card;
+}
+
+.reading-deck-overlay-panel li {
+  counter-increment: deck-card;
+}
+
+.reading-deck-overlay-panel li button {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  color: inherit;
+  background: transparent;
+  text-align: start;
+}
+
+.reading-deck-overlay-panel li button::before {
+  content: counter(deck-card, decimal-leading-zero);
+  color: rgb(var(--color-highlight-700));
+  font-family: var(--font-heading);
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+.dark .reading-deck-overlay-panel li button::before {
+  color: rgb(var(--color-highlight-300));
+}
+
+.reading-deck-overlay-panel li button[aria-current="true"] {
+  border-color: rgb(var(--color-highlight-500) / 0.55);
+  background: rgb(var(--color-highlight-400) / 0.08);
+}
+
+.reading-deck-source-panel {
+  place-self: center;
+}
+
+.reading-deck-source-panel [data-deck-source-content] {
+  padding-top: 0.75rem;
+}
+
+@media (max-width: 520px) {
+  .reading-deck-entry-actions,
+  .reading-deck-entry-actions button {
+    width: 100%;
+  }
+
+  .reading-deck-mode:not(.sr-only) {
+    display: none;
+  }
+
+  .reading-deck-controls > button:not(.reading-deck-position) > span:not([data-deck-position]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .reading-deck-overlay {
+    padding-inline: 0;
+    padding-bottom: 0;
+  }
+
+  .reading-deck-overlay-panel {
+    width: 100%;
+    max-height: 84dvh;
+    border-radius: 0.85rem 0.85rem 0 0;
+    border-inline: 0;
+    border-bottom: 0;
+  }
+}
+
+/* Affordance pass: compact site-aware chrome, story progress, cover/finish states,
+   and explicit scroll/drag feedback. */
+.reading-deck {
+  position: fixed;
+  z-index: 70;
+  overscroll-behavior: none;
+}
+
+.reading-deck-topbar {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: clamp(0.45rem, 1.5vw, 0.85rem);
+  min-height: calc(3.7rem + env(safe-area-inset-top, 0px));
+  padding: calc(0.45rem + env(safe-area-inset-top, 0px)) max(0.65rem, env(safe-area-inset-right, 0px)) 0.45rem max(0.65rem, env(safe-area-inset-left, 0px));
+}
+
+.reading-deck-back-button,
+.reading-deck-icon-button,
+.reading-deck-switcher button,
+.reading-deck-controls button,
+.reading-deck-progress button,
+.reading-deck-cover-start,
+.reading-deck-finish-actions button,
+.reading-deck-zoomable {
+  cursor: pointer;
+}
+
+.reading-deck-back-button {
+  display: inline-flex;
+  min-height: 2.45rem;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem 0.35rem 0.5rem;
+  border: 1px solid rgb(var(--color-primary-300) / 0.8);
+  border-radius: 999px;
+  color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-50) / 0.7);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dark .reading-deck-back-button {
+  border-color: rgb(var(--color-primary-700));
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-800) / 0.75);
+}
+
+.reading-deck-heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.45rem, 1.5vw, 0.9rem);
+}
+
+.reading-deck-heading h2 {
+  min-width: 0;
+  max-width: min(46rem, 48vw);
+  margin: 0;
+  flex: 0 1 auto;
+  font-size: clamp(0.76rem, 1.25vw, 0.95rem);
+  line-height: 1.1;
+}
+
+.reading-deck-switcher {
+  flex: 0 0 auto;
+}
+
+.reading-deck-switcher button {
+  min-height: 1.75rem;
+  padding: 0.24rem 0.72rem;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+}
+
+.deck-mode-short { display: none; }
+
+.reading-deck-site-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.reading-deck-icon-button {
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.reading-deck-progress {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.22rem;
+  min-height: 0.62rem;
+  padding: 0.2rem max(0.65rem, env(safe-area-inset-right, 0px)) 0.16rem max(0.65rem, env(safe-area-inset-left, 0px));
+  background: rgb(var(--color-primary-100) / 0.9);
+}
+
+.dark .reading-deck-progress {
+  background: rgb(var(--color-primary-900) / 0.9);
+}
+
+.reading-deck-progress button {
+  position: relative;
+  min-width: 0;
+  height: 0.24rem;
+  flex: 1 1 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(var(--color-primary-300) / 0.55);
+}
+
+.dark .reading-deck-progress button {
+  background: rgb(var(--color-primary-700) / 0.72);
+}
+
+.reading-deck-progress button > span {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  border-radius: inherit;
+  background: rgb(var(--color-highlight-500));
+  box-shadow: none;
+  transition: transform 220ms ease;
+}
+
+.reading-deck-progress button[data-complete] > span,
+.reading-deck-progress button[aria-current="step"] > span {
+  transform: scaleX(1);
+}
+
+.reading-deck-progress button[aria-current="step"] {
+  box-shadow: 0 0 0 1px rgb(var(--color-highlight-500) / 0.3);
+}
+
+.reading-deck-stage {
+  overscroll-behavior: none;
+  cursor: grab;
+}
+
+.reading-deck-stage.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.reading-deck-stage.is-dragging .reading-deck-track {
+  pointer-events: none;
+}
+
+.reading-deck-neighbor {
+  position: absolute;
+  z-index: 7;
+  top: 0;
+  bottom: 0;
+  width: max(0.5rem, calc((100% - min(100%, 48rem)) / 2));
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.reading-deck-neighbor[hidden] { display: none; }
+.reading-deck-neighbor--previous { left: 0; }
+.reading-deck-neighbor--next { right: 0; }
+
+.reading-deck-neighbor--previous:hover,
+.reading-deck-neighbor--previous:focus-visible {
+  background: linear-gradient(90deg, rgb(var(--color-highlight-500) / 0.08), transparent);
+}
+
+.reading-deck-neighbor--next:hover,
+.reading-deck-neighbor--next:focus-visible {
+  background: linear-gradient(270deg, rgb(var(--color-highlight-500) / 0.08), transparent);
+}
+
+.reading-deck-card {
+  cursor: auto;
+  transition: opacity 260ms ease, transform 320ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease;
+}
+
+.reading-deck-card[data-deck-distance="1"] {
+  opacity: 0.72;
+  transform: scale(0.975) translateY(0.2rem);
+}
+
+.reading-deck-card[data-deck-distance="2"] {
+  opacity: 0.42;
+  transform: scale(0.955) translateY(0.4rem);
+}
+
+.reading-deck-scroll-shadow {
+  position: absolute;
+  z-index: 8;
+  bottom: clamp(0.55rem, 2vh, 1.15rem);
+  left: 50%;
+  width: min(calc(100% - 2.7rem), 48rem);
+  height: clamp(3.5rem, 9vh, 5.5rem);
+  border-radius: 0 0 0.8rem 0.8rem;
+  pointer-events: none;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent, rgb(var(--color-primary-50) / 0.96));
+  -webkit-mask-image: linear-gradient(180deg, transparent, rgb(var(--color-primary-950)) 48%);
+  mask-image: linear-gradient(180deg, transparent, rgb(var(--color-primary-950)) 48%);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.reading-deck-scroll-shadow::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0.85rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-right: 1.5px solid rgb(var(--color-highlight-600));
+  border-bottom: 1.5px solid rgb(var(--color-highlight-600));
+  transform: translateX(-50%) rotate(45deg);
+  animation: reading-deck-scroll-breathe 1.8s ease-in-out infinite;
+}
+
+.reading-deck-scroll-shadow[hidden] { display: none; }
+
+.dark .reading-deck-scroll-shadow {
+  background: linear-gradient(180deg, transparent, rgb(var(--color-primary-900) / 0.96));
+}
+
+.dark .reading-deck-scroll-shadow::after {
+  border-color: rgb(var(--color-highlight-300));
+}
+
+@keyframes reading-deck-scroll-breathe {
+  0%, 100% { opacity: 0.45; translate: 0 0; }
+  50% { opacity: 1; translate: 0 0.28rem; }
+}
+
+.reading-deck-swipe-hint {
+  position: absolute;
+  z-index: 9;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: 1.1rem;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgb(var(--color-highlight-500) / 0.55);
+  border-radius: 999px;
+  color: rgb(var(--color-primary-50));
+  background: rgb(var(--color-highlight-700));
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 750;
+  box-shadow: 0 0.6rem 1.7rem rgb(var(--color-primary-900) / 0.22);
+  animation: reading-deck-hint 1.4s ease-in-out infinite;
+}
+
+.reading-deck-swipe-hint[hidden] { display: none; }
+
+@keyframes reading-deck-hint {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(0.35rem); }
+}
+
+.reading-deck-cover-card {
+  isolation: isolate;
+  display: grid;
+  padding: 0;
+  overflow: hidden;
+  color: rgb(var(--color-primary-50));
+  background:
+    radial-gradient(circle at 72% 18%, rgb(var(--color-highlight-500) / 0.22), transparent 34%),
+    linear-gradient(145deg, rgb(var(--color-primary-800)), rgb(var(--color-primary-950)));
+}
+
+.reading-deck-cover-card::before { display: none; }
+
+.reading-deck-cover-image,
+.reading-deck-cover-veil {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.reading-deck-cover-image {
+  z-index: 0;
+  object-fit: cover;
+}
+
+.reading-deck-cover-veil {
+  z-index: 1;
+  display: flex;
+  align-items: end;
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+  background: linear-gradient(180deg, rgb(var(--color-primary-900) / 0.12), rgb(var(--color-primary-900) / 0.94));
+}
+
+.reading-deck-cover-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 41rem;
+}
+
+.reading-deck-cover-mode {
+  display: inline-block;
+  margin-bottom: 0.8rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid rgb(var(--color-highlight-300) / 0.55);
+  border-radius: 999px;
+  color: rgb(var(--color-highlight-200));
+  background: rgb(var(--color-primary-900) / 0.5);
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.reading-deck-cover-card h2 {
+  margin: 0;
+  color: rgb(var(--color-primary-50));
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 6vw, 4rem);
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.reading-deck-cover-card p {
+  max-width: 35rem;
+  margin: 1rem 0 0;
+  color: rgb(var(--color-primary-200));
+  font-family: var(--font-prose);
+  font-size: clamp(0.95rem, 2vw, 1.12rem);
+  line-height: 1.55;
+}
+
+.reading-deck-cover-card .reading-deck-cover-meta {
+  color: rgb(var(--color-highlight-200));
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.reading-deck-cover-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.65rem;
+  margin-top: 1.15rem;
+  padding: 0.55rem 0.75rem 0.55rem 0.9rem;
+  border: 1px solid rgb(var(--color-highlight-300) / 0.58);
+  border-radius: 999px;
+  color: rgb(var(--color-primary-50));
+  background: rgb(var(--color-primary-900) / 0.45);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  font-weight: 800;
+  backdrop-filter: blur(12px);
+}
+
+.reading-deck-cover-start svg,
+.reading-deck-finish-actions svg,
+.reading-deck-finish-mark svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.reading-deck-cover-start svg {
+  transition: transform 180ms ease;
+}
+
+.reading-deck-cover-start:hover svg,
+.reading-deck-cover-start:focus-visible svg { transform: translateX(0.2rem); }
+
+.reading-deck-finish {
+  position: relative;
+  flex: 0 0 min(100%, 48rem);
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  border: 1px solid rgb(var(--color-primary-200) / 0.72);
+  border-radius: clamp(0.55rem, 2vw, 0.9rem);
+  background: rgb(var(--color-primary-100) / 0.4);
+  cursor: auto;
+  transition: opacity 260ms ease, transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reading-deck-finish[data-deck-distance="1"] {
+  opacity: 0.72;
+  transform: scale(0.975) translateY(0.2rem);
+}
+
+.reading-deck-finish[data-deck-distance="2"] {
+  opacity: 0.42;
+  transform: scale(0.955) translateY(0.4rem);
+}
+
+.dark .reading-deck-finish {
+  border-color: rgb(var(--color-primary-700) / 0.72);
+  background: rgb(var(--color-primary-800) / 0.34);
+}
+.reading-deck-finish[hidden] { display: none; }
+
+.reading-deck-finish-card {
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 32rem);
+  padding: clamp(1.35rem, 4vw, 2.15rem);
+  border: 1px solid rgb(var(--color-primary-300) / 0.86);
+  border-radius: 1rem;
+  color: rgb(var(--color-primary-800));
+  background: rgb(var(--color-primary-50) / 0.94);
+  box-shadow: 0 1rem 2.8rem rgb(var(--color-primary-900) / 0.14);
+  text-align: center;
+}
+
+.reading-deck-finish-card::before,
+.reading-deck-finish-card::after {
+  display: none;
+}
+
+.dark .reading-deck-finish-card {
+  border-color: rgb(var(--color-primary-700));
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-900) / 0.94);
+}
+
+.reading-deck-finish-mark {
+  display: grid;
+  width: 3.2rem;
+  height: 3.2rem;
+  place-items: center;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  color: rgb(var(--color-primary-50));
+  background: rgb(var(--color-highlight-700));
+}
+
+.dark .reading-deck-finish-mark {
+  color: rgb(var(--color-primary-900));
+  background: rgb(var(--color-highlight-300));
+}
+
+.reading-deck-finish-kicker {
+  color: rgb(var(--color-highlight-700));
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.dark .reading-deck-finish-kicker { color: rgb(var(--color-highlight-300)); }
+
+.reading-deck-finish-card h3 {
+  margin: 0.55rem 0 0;
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: clamp(1.55rem, 4vw, 2.25rem);
+  line-height: 1.05;
+}
+
+.reading-deck-finish-card > p {
+  max-width: 29rem;
+  margin: 0.85rem auto 0;
+  color: rgb(var(--color-primary-600));
+  font-family: var(--font-prose);
+  line-height: 1.6;
+}
+
+.dark .reading-deck-finish-card > p { color: rgb(var(--color-primary-300)); }
+
+.reading-deck-finish-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-top: 1.1rem;
+}
+
+.reading-deck-finish-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.55rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid rgb(var(--color-primary-300));
+  border-radius: 0.4rem;
+  color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-50));
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.dark .reading-deck-finish-actions button {
+  border-color: rgb(var(--color-primary-700));
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-800));
+}
+
+.reading-deck-finish-actions .reading-deck-finish-primary {
+  border-color: rgb(var(--color-highlight-700));
+  color: rgb(var(--color-primary-50));
+  background: rgb(var(--color-highlight-700));
+}
+
+.dark .reading-deck-finish-actions .reading-deck-finish-primary {
+  border-color: rgb(var(--color-highlight-300));
+  color: rgb(var(--color-primary-900));
+  background: rgb(var(--color-highlight-300));
+}
+
+.reading-deck-zoomable {
+  cursor: zoom-in;
+}
+
+.reading-deck-image-overlay {
+  z-index: 35;
+  place-items: center;
+  padding: clamp(0.75rem, 3vw, 2rem);
+}
+
+.reading-deck-image-overlay > img {
+  max-width: min(94vw, 76rem);
+  max-height: 88dvh;
+  object-fit: contain;
+  border-radius: 0.55rem;
+  box-shadow: 0 1.5rem 4rem rgb(var(--color-primary-900) / 0.45);
+}
+
+.reading-deck-image-close {
+  position: absolute;
+  top: max(0.75rem, env(safe-area-inset-top, 0px));
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+}
+
+.reading-deck-position {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem !important;
+  padding-inline: 0.85rem !important;
+  border-color: rgb(var(--color-highlight-500) / 0.65) !important;
+  background: linear-gradient(135deg, rgb(var(--color-highlight-500) / 0.14), rgb(var(--color-primary-50))) !important;
+  box-shadow: inset 0 0 0 1px rgb(var(--color-highlight-300) / 0.18), 0 0.35rem 1rem rgb(var(--color-primary-900) / 0.08);
+}
+
+.dark .reading-deck-position {
+  background: linear-gradient(135deg, rgb(var(--color-highlight-500) / 0.16), rgb(var(--color-primary-800))) !important;
+}
+
+.reading-deck-position-icon {
+  display: inline-grid;
+  width: 1.35rem;
+  gap: 0.19rem;
+}
+
+.reading-deck-position-icon i {
+  display: block;
+  height: 2px;
+  border-radius: 99px;
+  background: rgb(var(--color-highlight-600));
+}
+
+.dark .reading-deck-position-icon i { background: rgb(var(--color-highlight-300)); }
+
+.reading-deck-position-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 1 auto;
+  max-width: min(14rem, 72%);
+  line-height: 1.1;
+}
+
+.reading-deck-position-copy small {
+  display: block;
+  max-width: 100%;
+  margin-top: 0;
+  overflow: hidden;
+  color: rgb(var(--color-primary-500));
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reading-deck-position-copy small span {
+  color: inherit;
+  font-size: inherit;
+  letter-spacing: 0;
+}
+
+.reading-deck-index-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: min(78dvh, 48rem);
+  padding: 0;
+  overflow: hidden;
+}
+
+.reading-deck-index-panel > header {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  padding: 1rem 1rem 0.85rem;
+  background: rgb(var(--color-primary-50) / 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.dark .reading-deck-index-panel > header {
+  background: rgb(var(--color-primary-900) / 0.94);
+}
+
+.reading-deck-index-panel ol {
+  min-height: 0;
+  padding: 0.65rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.reading-deck-index-panel li button {
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.reading-deck-index-panel li button:hover,
+.reading-deck-index-panel li button:focus-visible {
+  border-color: rgb(var(--color-primary-300) / 0.8);
+  background: rgb(var(--color-primary-100) / 0.72);
+  transform: translateX(0.18rem);
+}
+
+.dark .reading-deck-index-panel li button:hover,
+.dark .reading-deck-index-panel li button:focus-visible {
+  border-color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-800) / 0.72);
+}
+
+@media (max-width: 720px) {
+  .reading-deck-back-button {
+    width: 2.35rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .reading-deck-back-button > span { display: none; }
+  .reading-deck-heading { gap: 0.35rem; }
+  .reading-deck-heading h2 { max-width: none; flex: 1 1 auto; font-size: 0.7rem; }
+  .deck-mode-wide { display: none; }
+  .deck-mode-short { display: inline; }
+  .reading-deck-switcher button { min-height: 1.65rem; padding-inline: 0.48rem; font-size: 0.62rem; }
+  .reading-deck-site-actions { gap: 0.2rem; }
+  .reading-deck-site-actions .reading-deck-icon-button { width: 2.2rem; height: 2.2rem; }
+  .reading-deck-stage {
+    padding-block: 0.42rem;
+    padding-inline: 0;
+  }
+  .reading-deck-track { gap: 0.25rem; }
+  .reading-deck-card {
+    flex-basis: calc(100% - 1rem);
+    padding: 1.15rem 0.9rem 2rem;
+    border-radius: 0.72rem;
+  }
+  .reading-deck-cover-veil { padding: 1.15rem; }
+  .reading-deck-cover-card h2 {
+    font-size: clamp(1.65rem, 8.6vw, 2.5rem);
+    line-height: 1.01;
+  }
+  .reading-deck-cover-card p:not(.reading-deck-cover-meta) {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.88rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+  .reading-deck-cover-start { margin-top: 0.85rem; }
+  .reading-deck-scroll-shadow {
+    bottom: 0.42rem;
+    width: calc(100% - 1rem);
+  }
+  .reading-deck-controls {
+    grid-template-columns: 3.25rem minmax(0, 2fr) 3.25rem;
+    gap: 0.32rem;
+    padding-inline: max(0.35rem, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  }
+  .reading-deck-position { padding-inline: 0.45rem !important; }
+  .reading-deck-position-copy { max-width: calc(100% - 2.2rem); }
+  .reading-deck-finish {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    width: auto;
+    height: auto;
+    padding: 1rem 0.7rem;
+    border: 0;
+    border-radius: 0;
+    background: rgb(var(--color-primary-100) / 0.36);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: opacity 180ms ease, visibility 180ms ease;
+  }
+  .dark .reading-deck-finish { background: rgb(var(--color-primary-950) / 0.4); }
+  .reading-deck-finish:not([data-deck-finish-active="true"]) {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .reading-deck-finish-card { padding: 1.45rem 1rem 1.2rem; }
+  .reading-deck-finish-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .reading-deck-finish-actions .reading-deck-finish-primary { grid-column: 1 / -1; }
+  .reading-deck-overlay[data-deck-index] {
+    padding: 0;
+    place-items: end stretch;
+  }
+  .reading-deck-index-panel {
+    width: 100%;
+    max-height: min(84dvh, 44rem);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 1rem 1rem 0 0;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .reading-deck-swipe-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-deck-swipe-hint { animation: none; }
+  .reading-deck-scroll-shadow::after { animation: none; }
+  .reading-deck-progress button > span { transition: none; }
+  .reading-deck-card { transition: none; }
+}
+
+@media (min-width: 760px) {
+  .reading-deck-stage {
+    padding-block: 1.25rem;
+  }
+
+  .reading-deck-overlay {
+    place-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-deck[open] {
+    animation: none;
+  }
+
+  .reading-deck-track,
+  .reading-deck-progress span,
+  .reading-deck-entry-actions button {
+    transition: none;
+  }
+}

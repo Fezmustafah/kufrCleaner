@@ -177,7 +177,7 @@ const currentTheme = siteConfig.theme in SWATCHES ? siteConfig.theme : themeChoi
     border-left-color: rgb(var(--color-primary-700) / 0.8);
     box-shadow: -16px 0 48px rgb(0 0 0 / 0.4);
   }
-  /* Header renders us inside #top-row (pointer-events: none) — restore input */
+  /* Closed drawers must not intercept the page; open drawers restore input. */
   .nav-drawer { pointer-events: none; }
   .nav-drawer.is-open { transform: translateX(0); pointer-events: auto; }
   @media (prefers-reduced-motion: reduce) {

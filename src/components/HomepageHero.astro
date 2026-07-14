@@ -191,17 +191,21 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     gap: 0.6rem;
     width: 100%;
     padding: 0.2rem 0.3rem 0.2rem 1rem;
-    background: rgb(0 0 0 / 0.3);
-    border: 1px solid rgb(var(--color-highlight-500) / 0.35);
-    border-radius: 0.6rem;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    /* Warm near-black (the hero bg tone) at higher opacity reads as a crisp
+       panel instead of a muddy translucent smudge over the busy image; the
+       shadow lifts it off the background. */
+    background: rgb(13 10 5 / 0.58);
+    border: 1px solid rgb(var(--color-highlight-500) / 0.45);
+    border-radius: 0.75rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 12px 36px rgb(0 0 0 / 0.42);
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   }
   .hero-search:focus-within {
     border-color: rgb(var(--color-highlight-400) / 0.9);
-    background: rgb(0 0 0 / 0.4);
-    box-shadow: 0 0 0 3px rgb(var(--color-highlight-500) / 0.16);
+    background: rgb(13 10 5 / 0.68);
+    box-shadow: 0 12px 36px rgb(0 0 0 / 0.42), 0 0 0 3px rgb(var(--color-highlight-500) / 0.18);
   }
   .hero-search-icon {
     color: rgb(var(--color-highlight-300));
@@ -245,10 +249,12 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
   }
   .hero-search-go {
     flex: none;
-    background: rgb(var(--color-highlight-600));
+    /* Gradient gold + glow so the CTA lifts off the warm background tones
+       instead of blending into them (flat highlight-600 read as muddy). */
+    background: linear-gradient(180deg, rgb(var(--color-highlight-500)), rgb(var(--color-highlight-600)));
     color: #fff;
     border: 0;
-    border-radius: 0.4rem;
+    border-radius: 0.55rem;
     padding: 0.7rem 1.15rem;
     font-family: var(--font-prose, serif);
     font-size: 0.95rem;
@@ -256,10 +262,14 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     letter-spacing: 0.02em;
     cursor: pointer;
     white-space: nowrap;
-    transition: background 0.2s;
+    box-shadow: 0 2px 14px rgb(var(--color-highlight-600) / 0.45);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.06s;
   }
-  .hero-search-go:hover { background: rgb(var(--color-highlight-700)); }
-  .hero-search-go:active { background: rgb(var(--color-highlight-800)); }
+  .hero-search-go:hover {
+    background: linear-gradient(180deg, rgb(var(--color-highlight-400)), rgb(var(--color-highlight-500)));
+    box-shadow: 0 4px 20px rgb(var(--color-highlight-500) / 0.55);
+  }
+  .hero-search-go:active { transform: translateY(1px); }
 
   /* ── Stats (count-up) ── */
   .hero-stats {
@@ -322,11 +332,18 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     50%       { transform: translateX(-50%) translateY(6px); }
   }
 
+  /* Stack below ~600px: the icon stays WITH the input on one row (a bare
+     flex-basis:100% input orphaned the icon on its own line), only the button
+     drops to a full-width row. Stacking this early also skips the cramped
+     481–560px zone where an inline input got squeezed to <200px. */
+  @media (max-width: 600px) {
+    .hero-search { flex-wrap: wrap; padding: 0.4rem 0.4rem 0.4rem 0.9rem; gap: 0.5rem 0.6rem; }
+    .hero-search input { flex: 1 1 0%; min-width: 0; padding: 0.55rem 0.25rem; }
+    .hero-search-go { flex: 1 0 100%; }
+  }
+
   @media (max-width: 480px) {
     .hero-section { padding: calc(3.5rem + 3rem) 1rem 2rem; }
-    .hero-search { flex-wrap: wrap; padding: 0.5rem; gap: 0.5rem; }
-    .hero-search input { flex-basis: 100%; padding: 0.5rem 0.25rem; }
-    .hero-search-go { width: 100%; }
     .hero-stats { gap: 1.5rem; }
   }
 

@@ -14,6 +14,7 @@ import Lightbox from '@/components/Lightbox.astro';
 import Icon from '@/components/Icon.astro';
 import ImageWrapper from '@/components/ImageWrapper.astro';
 import PageActions from '@/components/PageActions.astro';
+import ReadingDeck from '@/components/ReadingDeck.astro';
 import { devConfig } from '@/config/dev';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -84,6 +85,8 @@ const faqSchema = post.data.faq?.length
 // Get all posts for wikilink resolution
 const allPosts = await getCollection('posts');
 const visiblePosts = allPosts.filter(p => shouldShowPost(p, isDev));
+const allTldrs = await getCollection('tldrs');
+const tldr = allTldrs.find(entry => entry.id === `${post.id}/tldr`);
 
 // Process the post content and get processed data including word count
 const { Content, headings, wordCount, remarkPluginFrontmatter } = await processPost(post);
@@ -286,6 +289,8 @@ if (graphSidebarEnabled) {
 
             </div>
           </header>
+
+          <ReadingDeck post={post} tldr={tldr} />
 
         <!-- Article content -->
         <div class="prose dark:prose-dark max-w-none" id="post-content">

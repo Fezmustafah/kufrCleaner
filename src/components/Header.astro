@@ -71,10 +71,12 @@ const searchUrl = withBase('search/');
     </div>
   </div>
 
-  <!-- Drawer + scrim live OUTSIDE #navbar-wrapper: its auto-hide transform
-       would otherwise become the containing block for these fixed panels. -->
-  <NavDrawer links={links} />
 </div>
+
+<!-- Keep the fixed drawer outside #top-row as well as #navbar-wrapper. Both
+     elements establish stacking contexts below the reading deck; placing the
+     drawer here lets its own z-index correctly layer it above deck mode. -->
+<NavDrawer links={links} />
 
 <script>
 // The Header persists across Swup navigations; guard its one-time bindings below.
@@ -165,7 +167,7 @@ function loadNavScript() {
       scrim?.classList.toggle('is-open', open);
       drawer?.setAttribute('aria-hidden', String(!open));
       document.getElementById('nav-menu-switch')?.setAttribute('aria-expanded', String(open));
-      document.body.style.overflow = open ? 'hidden' : '';
+      document.body.style.overflow = open || document.body.classList.contains('reading-deck-open') ? 'hidden' : '';
       if (open) drawer?.focus();
       else {
         // Collapse the palette dropdown so the drawer reopens tidy

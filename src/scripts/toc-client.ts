@@ -309,11 +309,23 @@ function initializeTableOfContents() {
     if (frame === 0) frame = requestAnimationFrame(updateHover);
   };
 
+  // Re-read the rail's viewport box when a hover STARTS. The rail is
+  // position:fixed, so during Swup's enter-transform #swup-container is its
+  // containing block and getBoundingClientRect measures it against the
+  // document-tall container (~3000px off) — a value init/the rAF/fonts.ready
+  // re-measures can all cache while the transform is live. Reading live here is
+  // always correct because the rail only becomes hoverable AFTER the transform
+  // clears, so it no longer relies on the 200ms timer winning that race.
+  const refreshRailTop = () => {
+    navViewportTop = nav.getBoundingClientRect().top;
+    tocViewportTop = toc.getBoundingClientRect().top;
+  };
+
   const onMouseEnter = (evt: MouseEvent) => {
     hovering = true;
     toc.classList.add('is-hovering');
     document.body.classList.add('toc-hovering');
-    navViewportTop = nav.getBoundingClientRect().top;
+    refreshRailTop();
     targetMouseY = evt.clientY - navViewportTop;
     currentMouseY = targetMouseY;
     scheduleHover();
@@ -380,7 +392,7 @@ function initializeTableOfContents() {
       hovering = true;
       toc.classList.add('is-hovering');
       document.body.classList.add('toc-hovering');
-      navViewportTop = nav.getBoundingClientRect().top;
+      refreshRailTop();
     }
     targetMouseY = evt.clientY - navViewportTop;
     scheduleHover();
