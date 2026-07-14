@@ -21,6 +21,21 @@ const isDev = import.meta.env.DEV;
 const visiblePosts = allPosts.filter(post => shouldShowPost(post, isDev));
 const sortedPosts = sortPostsByDate(visiblePosts);
 
+// Pilot used by the homepage's interactive reading-deck showcase. Keep the
+// canonical article as the destination; the homepage only demonstrates the
+// navigation model and hands off to the real Deep read state via #slides.
+const DECK_SHOWCASE_ID = 'does-the-prophet-speak-only-by-revelation-refuting-the-alleged-contradiction-in-an-najm-53-34';
+const deckShowcasePost = sortedPosts.find(
+  (post) => post.id === DECK_SHOWCASE_ID && post.data.deck === true,
+);
+const deckShowcase = deckShowcasePost
+  ? {
+      title: deckShowcasePost.data.title,
+      description: deckShowcasePost.data.description || '',
+      url: `${baseUrl}posts/${deckShowcasePost.id}/#slides`,
+    }
+  : null;
+
 // Process posts for reading time and word count
 const processedPosts = await Promise.all(
   sortedPosts.map(async (post) => await processPost(post))
@@ -384,7 +399,7 @@ const structuredData = {
           </div>
 
           <!-- ═══════════ 4 · PLATFORM DISCOVERY (live feature showcases) ═══════════ -->
-          <PlatformShowcase maxWidth={homeWidth} />
+          <PlatformShowcase maxWidth={homeWidth} deckShowcase={deckShowcase} />
 
           <!-- ═══════════ CLOSING PULL-QUOTE ═══════════ -->
           <section class="hp-closer">
