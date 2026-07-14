@@ -75,3 +75,7 @@ r2-pdfs-missing.json
 /seo-priority.md
 /seo-priority.json
 /seo/
+
+# Playwright output
+/test-results/
+/playwright-report/
