@@ -1,16 +1,18 @@
 import { WebHaptics } from 'web-haptics';
 import { compileReadingFeed } from './reading-deck/feed';
+import {
+  createBrowserDeckHistory,
+  formatDeckHash,
+} from './reading-deck/history';
 import { attachReadingDeck, type ReadingDeckHandle } from './reading-deck';
 import type {
   CompiledReadingFeed as DeckFeedModel,
   FeedKind,
 } from './reading-deck/types';
-
-interface DeckLocation {
-  feed: FeedKind;
-  index: number | null;
-  targetId: string | null;
-}
+import {
+  applyViewportCss,
+  createBrowserDeckViewport,
+} from './reading-deck/viewport';
 
 interface SavedDeckState {
   feed?: FeedKind;
@@ -28,17 +30,7 @@ declare global {
   }
 }
 
-const DECK_CARD_HASH = /^#(slides|tldr)(?:-(\d+))?$/;
-const DECK_HEADING_HASH = /^#deck-(slides|tldr)-(\d+)-(.+)$/;
 const SWIPE_HINT_KEY = 'reading-deck-swipe-hint-seen';
-
-function decodeFragment(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
 
 function focusableWithin(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(
@@ -75,8 +67,11 @@ export class ReadingDeckController implements ReadingDeckHandle {
   private readonly feedCache = new Map<FeedKind, DeckFeedModel>();
   private readonly positions = new Map<FeedKind, number>();
   private readonly haptics = new WebHaptics({ debug: false, showSwitch: true });
-  private readonly reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  private readonly mobileCompletion = window.matchMedia('(max-width: 720px)');
+  private readonly deckHistory = createBrowserDeckHistory(window);
+  private readonly viewport = createBrowserDeckViewport(window);
+  private viewportState = this.viewport.snapshot();
+  private unsubscribeHistory: () => void = () => {};
+  private unsubscribeViewport: () => void = () => {};
   private feed: FeedKind = 'slides';
   private current = 0;
   private finished = false;
@@ -156,7 +151,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
     if (saved.positions?.tldr != null) this.positions.set('tldr', saved.positions.tldr);
 
     this.bind();
-    const requested = this.locationFromHash();
+    const requested = this.deckHistory.read();
     if (requested && this.supports(requested.feed)) {
       queueMicrotask(() => this.open(requested.feed, 'none', requested.index, requested.targetId));
     }
@@ -164,6 +159,8 @@ export class ReadingDeckController implements ReadingDeckHandle {
 
   destroy(): void {
     this.abort.abort();
+    this.unsubscribeHistory();
+    this.unsubscribeViewport();
     cancelAnimationFrame(this.resizeFrame);
     window.clearTimeout(this.mobileScrollTimer);
     try { this.haptics.destroy(); } catch { /* non-fatal */ }
@@ -260,45 +257,23 @@ export class ReadingDeckController implements ReadingDeckHandle {
     this.bindPointerGestures(signal);
     this.bindTrackpad(signal);
 
-    window.addEventListener('resize', () => this.scheduleMeasure(), { signal });
-    this.mobileCompletion.addEventListener('change', () => {
-      window.clearTimeout(this.mobileScrollTimer);
-      this.mobileTouchActive = false;
-      this.track.scrollLeft = 0;
-      this.offsets = [];
+    this.unsubscribeViewport = this.viewport.subscribe((snapshot) => {
+      const mobileChanged = snapshot.mobile !== this.viewportState.mobile;
+      this.viewportState = snapshot;
+      applyViewportCss(this.dialog, snapshot);
+      if (mobileChanged) {
+        window.clearTimeout(this.mobileScrollTimer);
+        this.mobileTouchActive = false;
+        this.track.scrollLeft = 0;
+        this.offsets = [];
+      }
       this.scheduleMeasure();
-    }, { signal });
-    window.visualViewport?.addEventListener('resize', () => this.syncVisualViewport(), { signal });
-    window.visualViewport?.addEventListener('scroll', () => this.syncVisualViewport(), { signal });
-    window.addEventListener('popstate', () => this.syncFromLocation(), { signal });
-    window.addEventListener('hashchange', () => this.syncFromLocation(), { signal });
+    });
+    this.unsubscribeHistory = this.deckHistory.subscribe(() => this.syncFromLocation());
   }
 
   private supports(feed: FeedKind): boolean {
     return this.dialog.dataset[feed === 'slides' ? 'hasSlides' : 'hasTldr'] === 'true';
-  }
-
-  private locationFromHash(): DeckLocation | null {
-    const headingMatch = window.location.hash.match(DECK_HEADING_HASH);
-    if (headingMatch) {
-      return {
-        feed: headingMatch[1] as FeedKind,
-        index: Math.max(0, Number(headingMatch[2]) - 1),
-        targetId: decodeFragment(window.location.hash.slice(1)),
-      };
-    }
-
-    const match = window.location.hash.match(DECK_CARD_HASH);
-    if (!match) return null;
-    return {
-      feed: match[1] as FeedKind,
-      index: match[2] == null ? null : Number(match[2]),
-      targetId: null,
-    };
-  }
-
-  private isDeckHash(): boolean {
-    return DECK_CARD_HASH.test(location.hash) || DECK_HEADING_HASH.test(location.hash);
   }
 
   private open(
@@ -313,15 +288,13 @@ export class ReadingDeckController implements ReadingDeckHandle {
       document.body.classList.add('reading-deck-open');
     }
 
-    this.syncVisualViewport();
+    this.viewportState = this.viewport.snapshot();
+    applyViewportCss(this.dialog, this.viewportState);
     this.renderFeed(feed, requestedIndex, targetId);
 
     if (historyMode !== 'none') {
-      const state = { ...(history.state || {}), readingDeck: true, readingDeckKind: feed };
-      const url = `${location.pathname}${location.search}${this.hashFor(feed, this.current)}`;
-      historyMode === 'push'
-        ? history.pushState(state, '', url)
-        : history.replaceState(state, '', url);
+      if (historyMode === 'push') this.deckHistory.push(feed, this.current);
+      else this.deckHistory.replace(feed, this.current);
     }
 
     requestAnimationFrame(() => {
@@ -334,15 +307,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
   }
 
   private requestClose(): void {
-    if ((history.state as Record<string, unknown> | null)?.readingDeck && this.isDeckHash()) {
-      history.back();
-      return;
-    }
-
-    if (this.isDeckHash()) {
-      history.replaceState({ ...(history.state || {}), readingDeck: false }, '', `${location.pathname}${location.search}`);
-    }
-    this.close();
+    if (this.deckHistory.close() === 'replace') this.close();
   }
 
   private close(): void {
@@ -356,7 +321,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
   }
 
   private syncFromLocation(): void {
-    const requested = this.locationFromHash();
+    const requested = this.deckHistory.read();
     if (requested && this.supports(requested.feed)) {
       this.open(requested.feed, 'none', requested.index, requested.targetId);
     } else if (this.dialog.open) {
@@ -367,8 +332,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
   private switchFeed(feed: FeedKind): void {
     this.positions.set(this.feed, this.current);
     this.renderFeed(feed);
-    const state = { ...(history.state || {}), readingDeckKind: feed };
-    history.replaceState(state, '', `${location.pathname}${location.search}${this.hashFor(feed, this.current)}`);
+    this.deckHistory.replace(feed, this.current);
     this.saveState();
     this.tick();
   }
@@ -484,9 +448,9 @@ export class ReadingDeckController implements ReadingDeckHandle {
     if (shouldPlace) this.place(animate);
     this.bindCurrentCardScroll();
     if (changed) this.dismissSwipeHint();
-    if (updateHash && this.dialog.open && this.locationFromHash()) this.updateLocationHash();
+    if (updateHash && this.dialog.open && this.deckHistory.read()) this.updateLocationHash();
     if (changed && haptic) {
-      if (this.mobileCompletion.matches && shouldPlace) this.pendingMobileHapticIndex = nextIndex;
+      if (this.viewportState.mobile && shouldPlace) this.pendingMobileHapticIndex = nextIndex;
       else this.tick();
     }
   }
@@ -594,12 +558,11 @@ export class ReadingDeckController implements ReadingDeckHandle {
   }
 
   private hashFor(feed: FeedKind, index: number): string {
-    return `#${feed}-${index}`;
+    return formatDeckHash(feed, index);
   }
 
   private updateLocationHash(): void {
-    const state = { ...(history.state || {}), readingDeckKind: this.feed };
-    history.replaceState(state, '', `${location.pathname}${location.search}${this.hashFor(this.feed, this.current)}`);
+    this.deckHistory.replace(this.feed, this.current);
   }
 
   private readSavedState(): SavedDeckState {
@@ -666,7 +629,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
   }
 
   private measure(): void {
-    if (this.mobileCompletion.matches) {
+    if (this.viewportState.mobile) {
       this.offsets = [];
       return;
     }
@@ -683,27 +646,27 @@ export class ReadingDeckController implements ReadingDeckHandle {
   }
 
   private syncFinishPlacement(): void {
-    const parent = this.mobileCompletion.matches ? this.stage : this.track;
+    const parent = this.viewportState.mobile ? this.stage : this.track;
     if (this.finish.parentElement !== parent) parent.appendChild(this.finish);
   }
 
   private place(animate: boolean): void {
     const model = this.feedCache.get(this.feed);
     if (!model) return;
-    if (this.mobileCompletion.matches) {
+    if (this.viewportState.mobile) {
       const card = model.cards[this.current]?.element;
       if (!card || card.parentElement !== this.track) return;
       const left = card.offsetLeft - Math.max(0, (this.track.clientWidth - card.offsetWidth) / 2);
       this.track.scrollTo({
         left: Math.max(0, left),
-        behavior: animate && !this.reduceMotion.matches ? 'smooth' : 'auto',
+        behavior: animate && !this.viewportState.reducedMotion ? 'smooth' : 'auto',
       });
       this.scheduleMobileSettle();
       return;
     }
     if (this.offsets.length !== model.cards.length) this.measure();
     const offset = this.finished ? this.finishOffset : this.offsets[this.current] || 0;
-    if (!animate || this.reduceMotion.matches) {
+    if (!animate || this.viewportState.reducedMotion) {
       const transition = this.track.style.transition;
       this.track.style.transition = 'none';
       this.track.style.transform = `translate3d(${Math.round(offset)}px, 0, 0)`;
@@ -721,7 +684,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
       this.resizeFrame = 0;
       if (!this.dialog.open) return;
       this.syncFinishPlacement();
-      if (this.mobileCompletion.matches && this.mobileTouchActive) return;
+      if (this.viewportState.mobile && this.mobileTouchActive) return;
       this.measure();
       this.place(false);
     });
@@ -729,7 +692,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
 
   private bindMobileCarousel(signal: AbortSignal): void {
     this.track.addEventListener('touchstart', () => {
-      if (!this.mobileCompletion.matches) return;
+      if (!this.viewportState.mobile) return;
       this.mobileTouchActive = true;
       this.pendingMobileHapticIndex = null;
       this.scrollShadow.hidden = true;
@@ -737,7 +700,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
     }, { passive: true, signal });
 
     const finishTouch = () => {
-      if (!this.mobileCompletion.matches) return;
+      if (!this.viewportState.mobile) return;
       this.mobileTouchActive = false;
       this.scheduleMobileSettle();
     };
@@ -745,20 +708,20 @@ export class ReadingDeckController implements ReadingDeckHandle {
     this.track.addEventListener('touchcancel', finishTouch, { passive: true, signal });
 
     this.track.addEventListener('scroll', () => {
-      if (!this.mobileCompletion.matches) return;
+      if (!this.viewportState.mobile) return;
       this.scrollShadow.hidden = true;
       this.scheduleMobileSettle();
     }, { passive: true, signal });
   }
 
   private scheduleMobileSettle(): void {
-    if (!this.mobileCompletion.matches) return;
+    if (!this.viewportState.mobile) return;
     window.clearTimeout(this.mobileScrollTimer);
     this.mobileScrollTimer = window.setTimeout(() => this.settleMobileCarousel(), 120);
   }
 
   private settleMobileCarousel(): void {
-    if (!this.mobileCompletion.matches || this.mobileTouchActive) return;
+    if (!this.viewportState.mobile || this.mobileTouchActive) return;
 
     const model = this.feedCache.get(this.feed);
     if (!model) return;
@@ -782,15 +745,6 @@ export class ReadingDeckController implements ReadingDeckHandle {
 
     if (changed || this.pendingMobileHapticIndex === nearestIndex) this.tick();
     this.pendingMobileHapticIndex = null;
-  }
-
-  private syncVisualViewport(): void {
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-    this.dialog.style.setProperty('--deck-viewport-top', `${viewport.offsetTop}px`);
-    this.dialog.style.setProperty('--deck-viewport-left', `${viewport.offsetLeft}px`);
-    this.dialog.style.setProperty('--deck-viewport-width', `${viewport.width}px`);
-    this.dialog.style.setProperty('--deck-viewport-height', `${viewport.height}px`);
   }
 
   private restoreHeading(targetId: string): void {
@@ -860,11 +814,10 @@ export class ReadingDeckController implements ReadingDeckHandle {
       const popover = this.sourceOverlay;
       const gap = 8;
       const edge = 8;
-      const viewport = window.visualViewport;
-      const viewportWidth = viewport?.width || window.innerWidth;
-      const viewportHeight = viewport?.height || window.innerHeight;
-      const viewportLeft = viewport?.offsetLeft || 0;
-      const viewportTop = viewport?.offsetTop || 0;
+      const viewportWidth = this.viewportState.width;
+      const viewportHeight = this.viewportState.height;
+      const viewportLeft = this.viewportState.left;
+      const viewportTop = this.viewportState.top;
       const width = popover.offsetWidth;
       const height = popover.offsetHeight;
       const left = Math.max(viewportLeft + edge, Math.min(anchor.left, viewportLeft + viewportWidth - width - edge));
@@ -916,8 +869,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
       event.preventDefault();
       const href = headingLink.getAttribute('href');
       if (!href) return;
-      const state = { ...(history.state || {}), readingDeck: true, readingDeckKind: this.feed };
-      history.replaceState(state, '', `${location.pathname}${location.search}${href}`);
+      this.deckHistory.replace(this.feed, this.current, href);
       this.syncFromLocation();
       this.tick();
       return;
@@ -948,7 +900,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
   }
 
   private async shareCurrentCard(): Promise<void> {
-    const url = `${location.origin}${location.pathname}${location.search}${this.hashFor(this.feed, this.current)}`;
+    const url = this.deckHistory.shareUrl(this.feed, this.current);
     const data = {
       title: this.dialog.dataset.postTitle || document.title,
       text: this.currentCard()?.getAttribute('aria-label') || 'Open this reading card',
@@ -1053,7 +1005,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
       event.preventDefault();
       const card = this.currentCard();
       const amount = Math.max(90, Math.round((card?.clientHeight || 400) * 0.25));
-      card?.scrollBy({ top: event.key === 'ArrowDown' ? amount : -amount, behavior: this.reduceMotion.matches ? 'auto' : 'smooth' });
+      card?.scrollBy({ top: event.key === 'ArrowDown' ? amount : -amount, behavior: this.viewportState.reducedMotion ? 'auto' : 'smooth' });
     }
   }
 
@@ -1071,7 +1023,7 @@ export class ReadingDeckController implements ReadingDeckHandle {
     const hasSelection = () => Boolean(window.getSelection?.()?.toString());
 
     this.stage.addEventListener('pointerdown', (event) => {
-      if (this.mobileCompletion.matches) return;
+      if (this.viewportState.mobile) return;
       const target = event.target as Element;
       const mouseOnCard = event.pointerType === 'mouse' && Boolean(target.closest('.reading-deck-card'));
       if (this.finished || event.button !== 0 || mouseOnCard || !this.indexOverlay.hidden || !this.sourceOverlay.hidden || !this.imageOverlay.hidden || hasSelection()) return;
