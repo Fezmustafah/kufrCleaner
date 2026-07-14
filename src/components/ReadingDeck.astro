@@ -192,20 +192,17 @@ const citationText = (ref: Record<string, unknown>) => [
         </div>
       </section>
 
-      <section class="reading-deck-overlay" data-deck-source-panel hidden role="dialog" aria-modal="true" aria-labelledby="reading-deck-source-title">
-        <div class="reading-deck-overlay-panel reading-deck-source-panel">
-          <header>
-            <div>
-              <span>Source note</span>
-              <h3 id="reading-deck-source-title">Reference</h3>
-            </div>
-            <button type="button" class="reading-deck-icon-button" data-deck-source-close aria-label="Close source note">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-            </button>
-          </header>
-          <div class="prose dark:prose-dark" data-deck-source-content></div>
-        </div>
-      </section>
+      <aside
+        class="reading-deck-note-popover"
+        data-deck-source-panel
+        hidden
+        role="dialog"
+        aria-modal="false"
+        aria-label="Reference note"
+        tabindex="-1"
+      >
+        <div class="prose dark:prose-dark" data-deck-source-content></div>
+      </aside>
 
       <section class="reading-deck-overlay reading-deck-image-overlay" data-deck-image-panel hidden role="dialog" aria-modal="true" aria-label="Expanded image">
         <button type="button" class="reading-deck-icon-button reading-deck-image-close" data-deck-image-close aria-label="Close expanded image">

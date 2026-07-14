@@ -18,6 +18,7 @@ interface DeckFeedModel {
 interface DeckLocation {
   feed: FeedKind;
   index: number | null;
+  targetId: string | null;
 }
 
 interface SavedDeckState {
@@ -36,7 +37,8 @@ declare global {
   }
 }
 
-const DECK_HASH = /^#(slides|tldr)(?:-(\d+))?$/;
+const DECK_CARD_HASH = /^#(slides|tldr)(?:-(\d+))?$/;
+const DECK_HEADING_HASH = /^#deck-(slides|tldr)-(\d+)-(.+)$/;
 const SWIPE_HINT_KEY = 'reading-deck-swipe-hint-seen';
 const SOURCE_HEADING = /^(?:sources?|source and notes|notes|footnotes|references|bibliography)$/i;
 const TOC_HEADING = /^(?:contents|table of contents|toc)$/i;
@@ -99,7 +101,7 @@ class ReadingDeckController {
   private readonly finishPrimaryLabel: HTMLElement;
   private readonly feedCache = new Map<FeedKind, DeckFeedModel>();
   private readonly positions = new Map<FeedKind, number>();
-  private readonly haptics = new WebHaptics({ debug: false, showSwitch: false });
+  private readonly haptics = new WebHaptics({ debug: false, showSwitch: true });
   private readonly reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   private readonly mobileCompletion = window.matchMedia('(max-width: 720px)');
   private feed: FeedKind = 'slides';
@@ -110,6 +112,9 @@ class ReadingDeckController {
   private overlayReturnFocus: HTMLElement | null = null;
   private wheelLockedUntil = 0;
   private resizeFrame = 0;
+  private mobileScrollTimer = 0;
+  private mobileTouchActive = false;
+  private pendingMobileHapticIndex: number | null = null;
   private scrollCard: HTMLElement | null = null;
   private readonly storageKey: string;
   private readonly onCardScroll = () => this.updateScrollShadow();
@@ -179,13 +184,14 @@ class ReadingDeckController {
     this.bind();
     const requested = this.locationFromHash();
     if (requested && this.supports(requested.feed)) {
-      queueMicrotask(() => this.open(requested.feed, 'none', requested.index));
+      queueMicrotask(() => this.open(requested.feed, 'none', requested.index, requested.targetId));
     }
   }
 
   destroy(): void {
     this.abort.abort();
     cancelAnimationFrame(this.resizeFrame);
+    window.clearTimeout(this.mobileScrollTimer);
     try { this.haptics.destroy(); } catch { /* non-fatal */ }
     if (this.dialog.open) this.dialog.close();
     document.body.classList.remove('reading-deck-open');
@@ -224,7 +230,10 @@ class ReadingDeckController {
 
     this.progress.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLButtonElement>('[data-deck-progress-index]');
-      if (button) this.show(Number(button.dataset.deckProgressIndex), true, true);
+      if (!button) return;
+      const index = Number(button.dataset.deckProgressIndex);
+      if (index === this.current) this.tick();
+      this.show(index, true, true);
     }, { signal });
 
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-index-open]').forEach((button) => {
@@ -241,15 +250,24 @@ class ReadingDeckController {
       const button = (event.target as Element).closest<HTMLButtonElement>('[data-card-index]');
       if (!button) return;
       this.closeOverlay(this.indexOverlay, false);
-      this.show(Number(button.dataset.cardIndex), true);
+      const index = Number(button.dataset.cardIndex);
+      if (index === this.current) this.tick();
+      this.show(index, true, true);
       this.currentCard()?.focus({ preventScroll: true });
     }, { signal });
 
-    [this.indexOverlay, this.sourceOverlay, this.imageOverlay].forEach((overlay) => {
+    [this.indexOverlay, this.imageOverlay].forEach((overlay) => {
       overlay.addEventListener('click', (event) => {
         if (event.target === overlay) this.closeOverlay(overlay);
       }, { signal });
     });
+
+    this.dialog.addEventListener('pointerdown', (event) => {
+      if (this.sourceOverlay.hidden) return;
+      const target = event.target as Element;
+      const activatesNote = Boolean(target.closest('a[data-deck-source-id], .footnote-number'));
+      if (!this.sourceOverlay.contains(target) && !activatesNote) this.closeOverlay(this.sourceOverlay, false);
+    }, { signal });
 
     this.track.addEventListener('click', (event) => this.handleDeckAction(event), { signal });
     this.finish.addEventListener('click', (event) => {
@@ -264,11 +282,20 @@ class ReadingDeckController {
       this.requestClose();
     }, { signal });
     this.dialog.addEventListener('keydown', (event) => this.onKeydown(event), { signal });
+    this.bindMobileCarousel(signal);
     this.bindPointerGestures(signal);
     this.bindTrackpad(signal);
 
     window.addEventListener('resize', () => this.scheduleMeasure(), { signal });
-    this.mobileCompletion.addEventListener('change', () => this.scheduleMeasure(), { signal });
+    this.mobileCompletion.addEventListener('change', () => {
+      window.clearTimeout(this.mobileScrollTimer);
+      this.mobileTouchActive = false;
+      this.track.scrollLeft = 0;
+      this.offsets = [];
+      this.scheduleMeasure();
+    }, { signal });
+    window.visualViewport?.addEventListener('resize', () => this.syncVisualViewport(), { signal });
+    window.visualViewport?.addEventListener('scroll', () => this.syncVisualViewport(), { signal });
     window.addEventListener('popstate', () => this.syncFromLocation(), { signal });
     window.addEventListener('hashchange', () => this.syncFromLocation(), { signal });
   }
@@ -278,22 +305,42 @@ class ReadingDeckController {
   }
 
   private locationFromHash(): DeckLocation | null {
-    const match = window.location.hash.match(DECK_HASH);
+    const headingMatch = window.location.hash.match(DECK_HEADING_HASH);
+    if (headingMatch) {
+      return {
+        feed: headingMatch[1] as FeedKind,
+        index: Math.max(0, Number(headingMatch[2]) - 1),
+        targetId: decodeFragment(window.location.hash.slice(1)),
+      };
+    }
+
+    const match = window.location.hash.match(DECK_CARD_HASH);
     if (!match) return null;
     return {
       feed: match[1] as FeedKind,
       index: match[2] == null ? null : Number(match[2]),
+      targetId: null,
     };
   }
 
-  private open(feed: FeedKind, historyMode: 'push' | 'replace' | 'none', requestedIndex: number | null = null): void {
+  private isDeckHash(): boolean {
+    return DECK_CARD_HASH.test(location.hash) || DECK_HEADING_HASH.test(location.hash);
+  }
+
+  private open(
+    feed: FeedKind,
+    historyMode: 'push' | 'replace' | 'none',
+    requestedIndex: number | null = null,
+    targetId: string | null = null,
+  ): void {
     if (!this.supports(feed)) return;
     if (!this.dialog.open) {
       this.dialog.show();
       document.body.classList.add('reading-deck-open');
     }
 
-    this.renderFeed(feed, requestedIndex);
+    this.syncVisualViewport();
+    this.renderFeed(feed, requestedIndex, targetId);
 
     if (historyMode !== 'none') {
       const state = { ...(history.state || {}), readingDeck: true, readingDeckKind: feed };
@@ -306,18 +353,19 @@ class ReadingDeckController {
     requestAnimationFrame(() => {
       this.measure();
       this.place(false);
+      if (targetId) this.restoreHeading(targetId);
       this.maybeShowSwipeHint();
       this.dialog.querySelector<HTMLButtonElement>('[data-deck-close]')?.focus({ preventScroll: true });
     });
   }
 
   private requestClose(): void {
-    if ((history.state as Record<string, unknown> | null)?.readingDeck && DECK_HASH.test(location.hash)) {
+    if ((history.state as Record<string, unknown> | null)?.readingDeck && this.isDeckHash()) {
       history.back();
       return;
     }
 
-    if (DECK_HASH.test(location.hash)) {
+    if (this.isDeckHash()) {
       history.replaceState({ ...(history.state || {}), readingDeck: false }, '', `${location.pathname}${location.search}`);
     }
     this.close();
@@ -336,7 +384,7 @@ class ReadingDeckController {
   private syncFromLocation(): void {
     const requested = this.locationFromHash();
     if (requested && this.supports(requested.feed)) {
-      this.open(requested.feed, 'none', requested.index);
+      this.open(requested.feed, 'none', requested.index, requested.targetId);
     } else if (this.dialog.open) {
       this.close();
     }
@@ -351,7 +399,7 @@ class ReadingDeckController {
     this.tick();
   }
 
-  private renderFeed(feed: FeedKind, requestedIndex: number | null = null): void {
+  private renderFeed(feed: FeedKind, requestedIndex: number | null = null, targetId: string | null = null): void {
     this.hideFinish(false);
     this.feed = feed;
     const model = this.feedCache.get(feed) || this.buildFeed(feed);
@@ -369,7 +417,7 @@ class ReadingDeckController {
     });
     this.buildProgress(model);
     this.buildIndex(model);
-    this.show(this.current, false);
+    this.show(this.current, false, false, true, !targetId);
     queueMicrotask(() => {
       window.initializeWikilinks?.();
       window.initializeAnnotations?.({ animate: false });
@@ -451,7 +499,7 @@ class ReadingDeckController {
       card.element.setAttribute('aria-label', card.isCover
         ? `${feed === 'tldr' ? 'Quick read' : 'Deep read'} cover`
         : `${card.title}, card ${index} of ${contentTotal}`);
-      this.namespaceCard(card.element, `${feed}-${index + 1}`, sources);
+      this.namespaceCard(card.element, `${feed}-${index + 1}`, sources, this.hashFor(feed, index));
       card.element.querySelectorAll<HTMLImageElement>('img:not(.reading-deck-cover-image)').forEach((image) => {
         image.classList.add('reading-deck-zoomable');
         image.tabIndex = 0;
@@ -582,7 +630,12 @@ class ReadingDeckController {
     return chunks.length ? chunks : [[...nodes]];
   }
 
-  private namespaceCard(card: HTMLElement, prefix: string, sources: Map<string, HTMLElement>): void {
+  private namespaceCard(
+    card: HTMLElement,
+    prefix: string,
+    sources: Map<string, HTMLElement>,
+    cardHash: string,
+  ): void {
     const ids = new Map<string, string>();
     card.querySelectorAll<HTMLElement>('[id]').forEach((element) => {
       const oldId = element.id;
@@ -595,10 +648,18 @@ class ReadingDeckController {
       const oldId = decodeFragment(anchor.getAttribute('href')!.slice(1));
       if (sources.has(oldId)) {
         anchor.dataset.deckSourceId = oldId;
-        anchor.href = '#';
+        anchor.href = cardHash;
+        anchor.setAttribute('data-no-swup', '');
       } else if (ids.has(oldId)) {
         anchor.href = `#${ids.get(oldId)}`;
+        anchor.setAttribute('data-no-swup', '');
       }
+    });
+
+    card.querySelectorAll<HTMLElement>('.footnote-number').forEach((marker) => {
+      marker.tabIndex = 0;
+      marker.setAttribute('role', 'button');
+      marker.setAttribute('aria-label', 'Open margin note');
     });
   }
 
@@ -629,7 +690,13 @@ class ReadingDeckController {
     }));
   }
 
-  private show(index: number, animate: boolean, haptic = false): void {
+  private show(
+    index: number,
+    animate: boolean,
+    haptic = false,
+    shouldPlace = true,
+    updateHash = true,
+  ): void {
     const model = this.feedCache.get(this.feed);
     if (!model?.cards.length) return;
     this.finished = false;
@@ -658,11 +725,14 @@ class ReadingDeckController {
     });
 
     this.syncUI(model);
-    this.place(animate);
+    if (shouldPlace) this.place(animate);
     this.bindCurrentCardScroll();
     if (changed) this.dismissSwipeHint();
-    if (this.dialog.open && this.locationFromHash()) this.updateLocationHash();
-    if (changed && haptic) this.tick();
+    if (updateHash && this.dialog.open && this.locationFromHash()) this.updateLocationHash();
+    if (changed && haptic) {
+      if (this.mobileCompletion.matches && shouldPlace) this.pendingMobileHapticIndex = nextIndex;
+      else this.tick();
+    }
   }
 
   private go(delta: number): void {
@@ -798,6 +868,8 @@ class ReadingDeckController {
   private bindCurrentCardScroll(): void {
     this.scrollCard?.removeEventListener('scroll', this.onCardScroll);
     this.scrollCard = this.currentCard();
+    this.scrollShadow.hidden = true;
+    this.scrollCard?.prepend(this.scrollShadow);
     this.scrollCard?.addEventListener('scroll', this.onCardScroll, { passive: true });
     requestAnimationFrame(() => this.updateScrollShadow());
   }
@@ -846,6 +918,10 @@ class ReadingDeckController {
   }
 
   private measure(): void {
+    if (this.mobileCompletion.matches) {
+      this.offsets = [];
+      return;
+    }
     const cards = this.feedCache.get(this.feed)?.cards || [];
     const style = getComputedStyle(this.stage);
     const contentWidth = this.stage.clientWidth
@@ -863,6 +939,17 @@ class ReadingDeckController {
   private place(animate: boolean): void {
     const model = this.feedCache.get(this.feed);
     if (!model) return;
+    if (this.mobileCompletion.matches) {
+      const card = model.cards[this.visualIndex(model)]?.element;
+      if (!card || card.parentElement !== this.track) return;
+      const left = card.offsetLeft - Math.max(0, (this.track.clientWidth - card.offsetWidth) / 2);
+      this.track.scrollTo({
+        left: Math.max(0, left),
+        behavior: animate && !this.reduceMotion.matches ? 'smooth' : 'auto',
+      });
+      this.scheduleMobileSettle();
+      return;
+    }
     if (this.offsets.length !== model.cards.length) this.measure();
     const offset = this.offsets[this.visualIndex(model)] || 0;
     if (!animate || this.reduceMotion.matches) {
@@ -883,13 +970,98 @@ class ReadingDeckController {
       this.resizeFrame = 0;
       if (!this.dialog.open) return;
       this.syncFinishPlacement();
+      if (this.mobileCompletion.matches && this.mobileTouchActive) return;
       this.measure();
       this.place(false);
     });
   }
 
+  private bindMobileCarousel(signal: AbortSignal): void {
+    this.track.addEventListener('touchstart', () => {
+      if (!this.mobileCompletion.matches) return;
+      this.mobileTouchActive = true;
+      this.pendingMobileHapticIndex = null;
+      this.scrollShadow.hidden = true;
+      this.dismissSwipeHint();
+    }, { passive: true, signal });
+
+    const finishTouch = () => {
+      if (!this.mobileCompletion.matches) return;
+      this.mobileTouchActive = false;
+      this.scheduleMobileSettle();
+    };
+    this.track.addEventListener('touchend', finishTouch, { passive: true, signal });
+    this.track.addEventListener('touchcancel', finishTouch, { passive: true, signal });
+
+    this.track.addEventListener('scroll', () => {
+      if (!this.mobileCompletion.matches) return;
+      this.scrollShadow.hidden = true;
+      this.scheduleMobileSettle();
+    }, { passive: true, signal });
+  }
+
+  private scheduleMobileSettle(): void {
+    if (!this.mobileCompletion.matches) return;
+    window.clearTimeout(this.mobileScrollTimer);
+    this.mobileScrollTimer = window.setTimeout(() => this.settleMobileCarousel(), 120);
+  }
+
+  private settleMobileCarousel(): void {
+    if (!this.mobileCompletion.matches || this.mobileTouchActive) return;
+
+    const model = this.feedCache.get(this.feed);
+    if (!model) return;
+    const center = this.track.scrollLeft + this.track.clientWidth / 2;
+    let nearestIndex = this.current;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    model.cards.forEach((card, index) => {
+      if (card.isTerminal || card.element.parentElement !== this.track) return;
+      const cardCenter = card.element.offsetLeft + card.element.offsetWidth / 2;
+      const distance = Math.abs(cardCenter - center);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    });
+
+    const changed = nearestIndex !== this.current;
+    if (changed) this.show(nearestIndex, false, false, false);
+    else this.bindCurrentCardScroll();
+
+    if (changed || this.pendingMobileHapticIndex === nearestIndex) this.tick();
+    this.pendingMobileHapticIndex = null;
+  }
+
+  private syncVisualViewport(): void {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    this.dialog.style.setProperty('--deck-viewport-top', `${viewport.offsetTop}px`);
+    this.dialog.style.setProperty('--deck-viewport-left', `${viewport.offsetLeft}px`);
+    this.dialog.style.setProperty('--deck-viewport-width', `${viewport.width}px`);
+    this.dialog.style.setProperty('--deck-viewport-height', `${viewport.height}px`);
+  }
+
+  private restoreHeading(targetId: string): void {
+    requestAnimationFrame(() => {
+      const target = document.getElementById(targetId);
+      if (!target || !this.dialog.contains(target)) return;
+      const card = target.closest<HTMLElement>('.reading-deck-card');
+      if (!card) return;
+
+      let top = 0;
+      let node: HTMLElement | null = target;
+      while (node && node !== card) {
+        top += node.offsetTop;
+        node = node.offsetParent as HTMLElement | null;
+      }
+      const paddingTop = Number.parseFloat(getComputedStyle(card).paddingTop || '0');
+      card.scrollTo({ top: Math.max(0, top - paddingTop), behavior: 'auto' });
+      this.updateScrollShadow();
+    });
+  }
+
   private tick(): void {
-    if (this.reduceMotion.matches) return;
     void this.haptics.trigger('selection').catch(() => {});
   }
 
@@ -897,6 +1069,7 @@ class ReadingDeckController {
     this.overlayReturnFocus = trigger;
     this.shell.inert = true;
     this.indexOverlay.hidden = false;
+    this.tick();
     this.indexList.querySelector<HTMLButtonElement>('[aria-current="true"]')
       ?.focus({ preventScroll: true });
   }
@@ -909,11 +1082,46 @@ class ReadingDeckController {
     clone.removeAttribute('id');
     clone.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
     clone.querySelectorAll('[data-footnote-backref]').forEach((element) => element.remove());
-    this.sourceContent.replaceChildren(clone);
-    this.shell.inert = true;
+    this.openNotePopover(clone, trigger);
+  }
+
+  private openMarginalia(trigger: HTMLElement): void {
+    const container = trigger.closest<HTMLElement>('.footnote-container');
+    const note = container?.querySelector<HTMLElement>('.footnote');
+    if (!note) return;
+    const clone = note.cloneNode(true) as HTMLElement;
+    clone.removeAttribute('id');
+    clone.style.removeProperty('top');
+    clone.style.removeProperty('left');
+    clone.style.removeProperty('width');
+    this.openNotePopover(clone, trigger);
+  }
+
+  private openNotePopover(content: HTMLElement, trigger: HTMLElement): void {
+    this.overlayReturnFocus = trigger;
+    this.sourceContent.replaceChildren(content);
     this.sourceOverlay.hidden = false;
-    this.sourceOverlay.querySelector<HTMLButtonElement>('[data-deck-source-close]')
-      ?.focus({ preventScroll: true });
+    this.sourceOverlay.classList.add('is-visible');
+    this.tick();
+
+    requestAnimationFrame(() => {
+      const anchor = trigger.getBoundingClientRect();
+      const popover = this.sourceOverlay;
+      const gap = 8;
+      const edge = 8;
+      const viewport = window.visualViewport;
+      const viewportWidth = viewport?.width || window.innerWidth;
+      const viewportHeight = viewport?.height || window.innerHeight;
+      const viewportLeft = viewport?.offsetLeft || 0;
+      const viewportTop = viewport?.offsetTop || 0;
+      const width = popover.offsetWidth;
+      const height = popover.offsetHeight;
+      const left = Math.max(viewportLeft + edge, Math.min(anchor.left, viewportLeft + viewportWidth - width - edge));
+      const above = anchor.top - height - gap;
+      const top = above >= viewportTop + edge ? above : Math.min(anchor.bottom + gap, viewportTop + viewportHeight - height - edge);
+      popover.style.left = `${left}px`;
+      popover.style.top = `${Math.max(viewportTop + edge, top)}px`;
+    });
   }
 
   private openImage(source: HTMLImageElement): void {
@@ -929,7 +1137,10 @@ class ReadingDeckController {
   private closeOverlay(overlay: HTMLElement, restoreFocus = true): void {
     if (overlay.hidden) return;
     overlay.hidden = true;
-    if (overlay === this.sourceOverlay) this.sourceContent.replaceChildren();
+    if (overlay === this.sourceOverlay) {
+      this.sourceOverlay.classList.remove('is-visible');
+      this.sourceContent.replaceChildren();
+    }
     if (overlay === this.imageOverlay) this.image.removeAttribute('src');
     if (this.indexOverlay.hidden && this.sourceOverlay.hidden && this.imageOverlay.hidden) this.shell.inert = false;
     if (restoreFocus) this.overlayReturnFocus?.focus({ preventScroll: true });
@@ -949,9 +1160,27 @@ class ReadingDeckController {
       this.hideFinish(true);
       return;
     }
+    const headingLink = target.closest<HTMLAnchorElement>('a[href^="#deck-"]');
+    if (headingLink) {
+      event.preventDefault();
+      const href = headingLink.getAttribute('href');
+      if (!href) return;
+      const state = { ...(history.state || {}), readingDeck: true, readingDeckKind: this.feed };
+      history.replaceState(state, '', `${location.pathname}${location.search}${href}`);
+      this.syncFromLocation();
+      this.tick();
+      return;
+    }
     const source = target.closest<HTMLAnchorElement>('a[data-deck-source-id]');
     if (source) {
       this.handleSourceLink(event);
+      return;
+    }
+    const marginalia = target.closest<HTMLElement>('.footnote-number');
+    if (marginalia) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.openMarginalia(marginalia);
       return;
     }
     const image = target.closest<HTMLImageElement>('img.reading-deck-zoomable');
@@ -986,9 +1215,13 @@ class ReadingDeckController {
   }
 
   private onKeydown(event: KeyboardEvent): void {
-    const overlay = !this.sourceOverlay.hidden
-      ? this.sourceOverlay
-      : !this.indexOverlay.hidden
+    if (!this.sourceOverlay.hidden && event.key === 'Escape') {
+      event.preventDefault();
+      this.closeOverlay(this.sourceOverlay);
+      return;
+    }
+
+    const overlay = !this.indexOverlay.hidden
         ? this.indexOverlay
         : !this.imageOverlay.hidden
           ? this.imageOverlay
@@ -1015,6 +1248,12 @@ class ReadingDeckController {
     }
 
     const target = event.target as Element;
+    const marginalia = target.closest<HTMLElement>('.footnote-number');
+    if (marginalia && (event.key === 'Enter' || event.code === 'Space')) {
+      event.preventDefault();
+      this.openMarginalia(marginalia);
+      return;
+    }
     const zoomable = target.closest<HTMLImageElement>('img.reading-deck-zoomable');
     if (zoomable && (event.key === 'Enter' || event.code === 'Space')) {
       event.preventDefault();
@@ -1081,6 +1320,7 @@ class ReadingDeckController {
     const hasSelection = () => Boolean(window.getSelection?.()?.toString());
 
     this.stage.addEventListener('pointerdown', (event) => {
+      if (this.mobileCompletion.matches) return;
       const target = event.target as Element;
       const mouseOnCard = event.pointerType === 'mouse' && Boolean(target.closest('.reading-deck-card'));
       if (this.finished || event.button !== 0 || mouseOnCard || !this.indexOverlay.hidden || !this.sourceOverlay.hidden || !this.imageOverlay.hidden || hasSelection()) return;

@@ -649,6 +649,118 @@ body.reading-deck-open {
   }
 }
 
+/* Mobile stability pass: keep the desktop transform deck, but let touch
+   browsers own horizontal momentum and scroll snapping. */
+.reading-deck {
+  --deck-viewport-top: 0px;
+  --deck-viewport-left: 0px;
+  --deck-viewport-width: 100vw;
+  --deck-viewport-height: 100dvh;
+  touch-action: manipulation;
+  box-shadow: 0 0 0 100vmax rgb(var(--color-primary-100));
+}
+
+.dark .reading-deck {
+  box-shadow: 0 0 0 100vmax rgb(var(--color-primary-900));
+}
+
+.reading-deck-shell {
+  position: fixed;
+  top: var(--deck-viewport-top);
+  left: var(--deck-viewport-left);
+  width: var(--deck-viewport-width);
+  height: var(--deck-viewport-height);
+}
+
+.reading-deck-topbar,
+.reading-deck-progress,
+.reading-deck-controls,
+.reading-deck-controls button,
+.reading-deck-back-button,
+.reading-deck-icon-button,
+.reading-deck-switcher button {
+  touch-action: manipulation;
+}
+
+/* Footnotes and marginalia use a compact, persistent, click-away popover
+   instead of making the deck inert behind a modal sheet. */
+.reading-deck-note-popover {
+  position: fixed;
+  z-index: 30;
+  width: min(20rem, calc(100vw - 1rem));
+  max-height: min(60dvh, 28rem);
+  overflow: auto;
+  padding: 0.8rem 1rem;
+  border: 1px dashed rgb(var(--color-highlight-500) / 0.45);
+  border-radius: var(--radius-md);
+  color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-50));
+  box-shadow: 0 0.5rem 1.5rem rgb(var(--color-primary-900) / 0.18);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  overscroll-behavior: contain;
+  touch-action: manipulation;
+}
+
+.reading-deck-note-popover[hidden] {
+  display: none;
+}
+
+.dark .reading-deck-note-popover {
+  border-color: rgb(var(--color-highlight-400) / 0.45);
+  color: rgb(var(--color-primary-200));
+  background: rgb(var(--color-primary-900));
+  box-shadow: 0 0.5rem 1.5rem rgb(var(--color-primary-950) / 0.45);
+}
+
+.reading-deck-note-popover [data-deck-source-content] > :first-child,
+.reading-deck-note-popover [data-deck-source-content] > :first-child > :first-child {
+  margin-top: 0;
+}
+
+.reading-deck-note-popover [data-deck-source-content] > :last-child,
+.reading-deck-note-popover [data-deck-source-content] > :last-child > :last-child {
+  margin-bottom: 0;
+}
+
+.reading-deck-note-popover .footnote {
+  display: block;
+  position: static;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+}
+
+/* web-haptics uses an actual iOS switch when navigator.vibrate is absent.
+   Keep it rendered for Safari's native feedback, but visually imperceptible. */
+body > label[for^='web-haptics-'] {
+  position: fixed !important;
+  top: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: 0 !important;
+  z-index: -1 !important;
+  display: block !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0.001 !important;
+  pointer-events: none !important;
+}
+
+body > label[for^='web-haptics-'] > input {
+  display: block !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: 0 !important;
+  opacity: 0.001 !important;
+}
+
 /* Affordance pass: compact site-aware chrome, story progress, cover/finish states,
    and explicit scroll/drag feedback. */
 .reading-deck {
@@ -1420,5 +1532,73 @@ body.reading-deck-open {
   .reading-deck-progress span,
   .reading-deck-entry-actions button {
     transition: none;
+  }
+}
+
+/* These rules intentionally come last: the affordance layer above contains
+   the legacy stage-wide blur and mobile sizing that this repair replaces. */
+.reading-deck-scroll-shadow {
+  position: sticky;
+  z-index: 8;
+  top: calc(100% - 2rem);
+  bottom: auto;
+  left: auto;
+  width: 1rem;
+  height: 0;
+  margin: 0 auto;
+  border-radius: 0;
+  background: none;
+  transform: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.dark .reading-deck-scroll-shadow {
+  background: none;
+}
+
+.reading-deck-scroll-shadow::after {
+  top: 0;
+  bottom: auto;
+}
+
+@media (max-width: 720px) {
+  .reading-deck-stage,
+  .reading-deck-track,
+  .reading-deck-card {
+    touch-action: manipulation;
+  }
+
+  .reading-deck-track {
+    box-sizing: border-box;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-inline: 0.5rem;
+    scroll-padding-inline: 0.5rem;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    transform: none !important;
+    transition: none;
+    will-change: auto;
+  }
+
+  .reading-deck-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reading-deck-card {
+    scroll-snap-align: center;
+    scroll-snap-stop: normal;
+  }
+
+  .reading-deck-scroll-shadow {
+    top: calc(100% - 1.7rem);
+    width: 1rem;
   }
 }
