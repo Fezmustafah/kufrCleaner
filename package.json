@@ -26,7 +26,10 @@
     "r2:upload-pdfs:dry": "node scripts/upload-r2-pdfs.mjs --dry-run",
     "update": "node scripts/update.mjs",
     "version": "node scripts/get-version.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "keywords": [
     "astro",
@@ -89,6 +92,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
+    "@playwright/test": "^1.61.1",
     "@types/d3": "^7.4.3",
     "@types/hast": "^3.0.4",
     "@types/js-yaml": "^4.0.9",
@@ -98,10 +102,12 @@
     "astro-pagefind": "^2.0.0",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
+    "happy-dom": "^20.10.6",
     "trash": "^10.1.1",
     "tsx": "^4.21.0",
     "vfile": "^6.0.3",
     "vite": "^7.3.1",
+    "vitest": "^4.1.10",
     "wrangler": "^4.71.0"
   }
 }
