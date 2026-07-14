@@ -5,15 +5,17 @@ export function requiredDeckMarkup(): string {
   return `
     <button data-deck-open="tldr">Quick read</button>
     <button data-deck-open="slides">Deep read</button>
-    <article data-deck-article-source>
+    <article id="post-content">
       <p id="introduction">Introduction copy.</p>
       <h2 id="first-heading">First heading</h2>
       <p>First section body.</p>
       <h2 id="sources">Sources</h2>
       <ol><li id="source-1">A source.</li></ol>
     </article>
-    <template data-deck-tldr-source>
-      <h2 id="quick-heading">Quick heading</h2><p>Quick body.</p>
+    <template data-deck-source-template="tldr">
+      <article data-deck-source-root>
+        <h2 id="quick-heading">Quick heading</h2><p>Quick body.</p>
+      </article>
     </template>
     <dialog data-reading-deck data-post-id="${PILOT_POST_ID}" data-post-title="Pilot"
       data-has-slides="true" data-has-tldr="true">
@@ -30,7 +32,7 @@ export function requiredDeckMarkup(): string {
         <span data-deck-mode-label></span>
         <button data-deck-prev>Previous</button>
         <button data-deck-index-open>Contents</button>
-        <button data-deck-next>Next</button>
+        <button data-deck-next><span>Next</span></button>
         <div data-deck-stage><div data-deck-track></div></div>
         <div data-deck-index hidden>
           <button data-deck-index-close>Close</button>

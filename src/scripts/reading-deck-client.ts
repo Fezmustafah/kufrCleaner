@@ -1,4 +1,5 @@
 import { WebHaptics } from 'web-haptics';
+import { attachReadingDeck, type ReadingDeckHandle } from './reading-deck';
 
 type FeedKind = 'slides' | 'tldr';
 
@@ -73,7 +74,7 @@ function focusableWithin(root: HTMLElement): HTMLElement[] {
   )).filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
 }
 
-class ReadingDeckController {
+export class ReadingDeckController implements ReadingDeckHandle {
   private readonly abort = new AbortController();
   private readonly dialog: HTMLDialogElement;
   private readonly shell: HTMLElement;
@@ -1400,25 +1401,17 @@ class ReadingDeckController {
   }
 }
 
-let activeController: ReadingDeckController | null = null;
+export function createReadingDeckController(dialog: HTMLDialogElement): ReadingDeckHandle {
+  return new ReadingDeckController(dialog);
+}
 
-function initializeReadingDeck(): void {
-  activeController?.destroy();
-  activeController = null;
-  const dialog = document.querySelector<HTMLDialogElement>('dialog[data-reading-deck]');
-  if (!dialog) {
-    document.documentElement.classList.remove('reading-deck-ready');
-    document.body.classList.remove('reading-deck-open');
-    return;
-  }
+let activeDeck: ReadingDeckHandle | null = null;
 
-  try {
-    activeController = new ReadingDeckController(dialog);
-    document.documentElement.classList.add('reading-deck-ready');
-  } catch (error) {
-    document.documentElement.classList.remove('reading-deck-ready');
-    if (import.meta.env.DEV) console.warn('[reading-deck]', error);
-  }
+export function initializeReadingDeck(): void {
+  activeDeck?.destroy();
+  activeDeck = attachReadingDeck(document, createReadingDeckController);
+  document.documentElement.classList.toggle('reading-deck-ready', activeDeck !== null);
+  if (!activeDeck) document.body.classList.remove('reading-deck-open');
 }
 
 window.initializeReadingDeck = initializeReadingDeck;
