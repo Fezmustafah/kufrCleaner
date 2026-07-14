@@ -63,18 +63,93 @@ test('neighbor cards navigate and explicit Finish opens completion', async ({ pa
   await expect(dialog(page).locator('[data-deck-finish]')).toHaveAttribute('data-deck-finish-active', 'false');
 });
 
-test('mobile native swipe settles on one card without snapping back', async ({ page, isMobile }) => {
+test('mobile scroll snap settles on one card without snapping back', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'mobile scroll-snap behavior');
   await openDeck(page);
   const track = dialog(page).locator('[data-deck-track]');
   await track.evaluate((element) => {
     const card = element.querySelector<HTMLElement>('.reading-deck-card');
     element.scrollTo({ left: card?.offsetWidth ?? 390, behavior: 'instant' });
-    element.dispatchEvent(new Event('scroll'));
-    element.dispatchEvent(new Event('scrollend'));
   });
   await expect(page).toHaveURL(/#slides-1$/);
   await page.waitForTimeout(600);
   await expect(page).toHaveURL(/#slides-1$/);
+  const settled = await track.evaluate((element) => ({
+    left: element.scrollLeft,
+    width: element.querySelector<HTMLElement>('.reading-deck-card')?.offsetWidth ?? 0,
+  }));
+  expect(Math.abs(settled.left - settled.width)).toBeLessThan(12);
   await expect(activeCard(page)).toHaveCount(1);
+});
+
+test('page-load reinitialization keeps the active session attached', async ({ page }) => {
+  await openDeck(page);
+  const before = page.url();
+  await page.evaluate(() => document.dispatchEvent(new Event('astro:page-load')));
+  await expect(dialog(page)).toBeVisible();
+  await expect(page).toHaveURL(before);
+  await page.locator('[data-deck-next]').click();
+  await expect(page).toHaveURL(/#slides-1$/);
+});
+
+test('direct heading links restore the matching card', async ({ page }) => {
+  await page.goto(`${pilot}#deck-slides-3-the-face-of-invalidating-the-doubt`);
+  await expect(dialog(page)).toBeVisible();
+  await expect(activeCard(page)).toContainText('The Face of Invalidating the Doubt');
+  await expect(page).toHaveURL(/#deck-slides-3-the-face-of-invalidating-the-doubt$/);
+});
+
+test('footnote popovers remain until an outside pointer dismisses them', async ({ page }) => {
+  await page.goto(`${pilot}#deck-slides-3-the-face-of-invalidating-the-doubt`);
+  await expect(dialog(page)).toBeVisible();
+  const note = activeCard(page).locator('a[data-deck-source-id], .footnote-number').first();
+  await expect(note).toBeVisible();
+  await note.click();
+  const popover = dialog(page).locator('[data-deck-source-panel]');
+  await expect(popover).toBeVisible();
+  await page.waitForTimeout(450);
+  await expect(popover).toBeVisible();
+  await dialog(page).locator('.reading-deck-topbar').click({ position: { x: 4, y: 4 } });
+  await expect(popover).toBeHidden();
+});
+
+test('mobile partial movement, reversal, and nested scrolling stay local', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'mobile scroll-snap behavior');
+  await openDeck(page);
+  const track = dialog(page).locator('[data-deck-track]');
+  const card = activeCard(page);
+  await card.evaluate((element) => element.scrollTo({ top: 120, behavior: 'instant' }));
+  await expect(page).toHaveURL(/#slides-0$/);
+
+  await track.evaluate((element) => element.scrollTo({ left: 48, behavior: 'instant' }));
+  await page.waitForTimeout(500);
+  await expect(page).toHaveURL(/#slides-0$/);
+
+  await track.evaluate((element) => {
+    const width = element.querySelector<HTMLElement>('.reading-deck-card')?.offsetWidth ?? 390;
+    element.scrollTo({ left: width * 2, behavior: 'instant' });
+    element.scrollTo({ left: width, behavior: 'instant' });
+  });
+  await page.waitForTimeout(650);
+  await expect(page).toHaveURL(/#slides-1$/);
+});
+
+test('mobile controls remain in the visual viewport and double tap does not zoom', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'mobile viewport behavior');
+  await openDeck(page);
+  const controls = dialog(page).locator('.reading-deck-controls');
+  const bounds = await controls.boundingBox();
+  const viewport = await page.evaluate(() => ({
+    height: window.visualViewport?.height ?? window.innerHeight,
+    scale: window.visualViewport?.scale ?? 1,
+  }));
+  expect(bounds).not.toBeNull();
+  expect((bounds?.y ?? 0) + (bounds?.height ?? 0)).toBeLessThanOrEqual(viewport.height + 1);
+  await page.touchscreen.tap(200, 400);
+  await page.touchscreen.tap(200, 400);
+  await page.waitForTimeout(350);
+  await expect(dialog(page)).toBeVisible();
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  await expect(dialog(page).locator('[data-deck-scroll-shadow]')).toHaveCount(1);
+  await expect(dialog(page).locator('[data-deck-scroll-shadow]')).toHaveText('');
 });

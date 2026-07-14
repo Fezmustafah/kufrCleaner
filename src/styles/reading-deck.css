@@ -1,5 +1,7 @@
 /* Reading deck — a theme-native, mobile-first folio rather than a separate app. */
 
+/* 1. Article entry surface */
+
 body.reading-deck-open {
   overflow: hidden;
   overscroll-behavior: none;
@@ -131,6 +133,8 @@ body.reading-deck-open {
   background: rgb(var(--color-primary-50) / 0.55);
 }
 
+/* 2. Shell and viewport */
+
 .dark .reading-deck-entry-secondary {
   border-color: rgb(var(--color-primary-600));
   color: rgb(var(--color-primary-200));
@@ -182,6 +186,8 @@ body.reading-deck-open {
     radial-gradient(circle at 50% -20%, rgb(var(--color-highlight-400) / 0.11), transparent 35%),
     linear-gradient(180deg, rgb(var(--color-primary-50)), rgb(var(--color-primary-100)));
 }
+
+/* 3. Top chrome, progress, and controls */
 
 .dark .reading-deck-shell {
   background:
@@ -359,6 +365,8 @@ body.reading-deck-open {
   contain: layout style paint;
 }
 
+/* 4. Cards and rich article content */
+
 .reading-deck-track {
   display: flex;
   align-items: stretch;
@@ -523,6 +531,8 @@ body.reading-deck-open {
   backdrop-filter: blur(10px);
 }
 
+/* 6. Contents, popovers, and image surface */
+
 .reading-deck-overlay[hidden] {
   display: none;
 }
@@ -649,8 +659,7 @@ body.reading-deck-open {
   }
 }
 
-/* Mobile stability pass: keep the desktop transform deck, but let touch
-   browsers own horizontal momentum and scroll snapping. */
+/* The viewport variables keep browser chrome changes inside the fixed shell. */
 .reading-deck {
   --deck-viewport-top: 0px;
   --deck-viewport-left: 0px;
@@ -761,8 +770,7 @@ body > label[for^='web-haptics-'] > input {
   opacity: 0.001 !important;
 }
 
-/* Affordance pass: compact site-aware chrome, story progress, cover/finish states,
-   and explicit scroll/drag feedback. */
+/* 7. Desktop transport presentation */
 .reading-deck {
   position: fixed;
   z-index: 70;
@@ -1039,6 +1047,8 @@ body > label[for^='web-haptics-'] > input {
     radial-gradient(circle at 72% 18%, rgb(var(--color-highlight-500) / 0.22), transparent 34%),
     linear-gradient(145deg, rgb(var(--color-primary-800)), rgb(var(--color-primary-950)));
 }
+
+/* 5. Cover, Sources, and Completion */
 
 .reading-deck-cover-card::before { display: none; }
 
@@ -1418,6 +1428,7 @@ body > label[for^='web-haptics-'] > input {
   background: rgb(var(--color-primary-800) / 0.72);
 }
 
+/* 8. Mobile transport presentation */
 @media (max-width: 720px) {
   .reading-deck-back-button {
     width: 2.35rem;
@@ -1533,6 +1544,7 @@ body > label[for^='web-haptics-'] > input {
   .reading-deck-swipe-hint { display: none; }
 }
 
+/* 9. Reduced motion and accessibility */
 @media (prefers-reduced-motion: reduce) {
   .reading-deck-swipe-hint { animation: none; }
   .reading-deck-scroll-shadow::after { animation: none; }
