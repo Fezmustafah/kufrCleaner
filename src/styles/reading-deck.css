@@ -957,27 +957,30 @@ body > label[for^='web-haptics-'] > input {
 }
 
 .reading-deck-scroll-shadow {
-  position: absolute;
+  position: sticky;
   z-index: 8;
-  bottom: clamp(0.55rem, 2vh, 1.15rem);
-  left: 50%;
-  width: min(calc(100% - 2.7rem), 48rem);
-  height: clamp(3.5rem, 9vh, 5.5rem);
-  border-radius: 0 0 0.8rem 0.8rem;
+  top: calc(100% - 2rem);
+  bottom: auto;
+  left: auto;
+  width: 1rem;
+  height: 0;
+  margin: 0 auto;
+  border-radius: 0;
   pointer-events: none;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, transparent, rgb(var(--color-primary-50) / 0.96));
-  -webkit-mask-image: linear-gradient(180deg, transparent, rgb(var(--color-primary-950)) 48%);
-  mask-image: linear-gradient(180deg, transparent, rgb(var(--color-primary-950)) 48%);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  transform: none;
+  background: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .reading-deck-scroll-shadow::after {
   content: '';
   position: absolute;
   left: 50%;
-  bottom: 0.85rem;
+  top: 0;
+  bottom: auto;
   width: 0.6rem;
   height: 0.6rem;
   border-right: 1.5px solid rgb(var(--color-highlight-600));
@@ -989,7 +992,7 @@ body > label[for^='web-haptics-'] > input {
 .reading-deck-scroll-shadow[hidden] { display: none; }
 
 .dark .reading-deck-scroll-shadow {
-  background: linear-gradient(180deg, transparent, rgb(var(--color-primary-900) / 0.96));
+  background: none;
 }
 
 .dark .reading-deck-scroll-shadow::after {
@@ -1434,11 +1437,35 @@ body > label[for^='web-haptics-'] > input {
     padding-block: 0.42rem;
     padding-inline: 0;
   }
-  .reading-deck-track { gap: 0.25rem; }
+  .reading-deck-stage,
+  .reading-deck-track,
+  .reading-deck-card {
+    touch-action: manipulation;
+  }
+  .reading-deck-track {
+    box-sizing: border-box;
+    width: 100%;
+    gap: 0.25rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-inline: 0.5rem;
+    scroll-padding-inline: 0.5rem;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    transform: none !important;
+    transition: none;
+    will-change: auto;
+  }
+  .reading-deck-track::-webkit-scrollbar { display: none; }
   .reading-deck-card {
     flex-basis: calc(100% - 1rem);
     padding: 1.15rem 0.9rem 2rem;
     border-radius: 0.72rem;
+    scroll-snap-align: center;
+    scroll-snap-stop: normal;
   }
   .reading-deck-cover-veil { padding: 1.15rem; }
   .reading-deck-cover-card h2 {
@@ -1454,8 +1481,8 @@ body > label[for^='web-haptics-'] > input {
   }
   .reading-deck-cover-start { margin-top: 0.85rem; }
   .reading-deck-scroll-shadow {
-    bottom: 0.42rem;
-    width: calc(100% - 1rem);
+    top: calc(100% - 1.7rem);
+    width: 1rem;
   }
   .reading-deck-controls {
     grid-template-columns: 3.25rem minmax(0, 2fr) 3.25rem;
@@ -1532,73 +1559,5 @@ body > label[for^='web-haptics-'] > input {
   .reading-deck-progress span,
   .reading-deck-entry-actions button {
     transition: none;
-  }
-}
-
-/* These rules intentionally come last: the affordance layer above contains
-   the legacy stage-wide blur and mobile sizing that this repair replaces. */
-.reading-deck-scroll-shadow {
-  position: sticky;
-  z-index: 8;
-  top: calc(100% - 2rem);
-  bottom: auto;
-  left: auto;
-  width: 1rem;
-  height: 0;
-  margin: 0 auto;
-  border-radius: 0;
-  background: none;
-  transform: none;
-  -webkit-mask-image: none;
-  mask-image: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-.dark .reading-deck-scroll-shadow {
-  background: none;
-}
-
-.reading-deck-scroll-shadow::after {
-  top: 0;
-  bottom: auto;
-}
-
-@media (max-width: 720px) {
-  .reading-deck-stage,
-  .reading-deck-track,
-  .reading-deck-card {
-    touch-action: manipulation;
-  }
-
-  .reading-deck-track {
-    box-sizing: border-box;
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-inline: 0.5rem;
-    scroll-padding-inline: 0.5rem;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: auto;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    transform: none !important;
-    transition: none;
-    will-change: auto;
-  }
-
-  .reading-deck-track::-webkit-scrollbar {
-    display: none;
-  }
-
-  .reading-deck-card {
-    scroll-snap-align: center;
-    scroll-snap-stop: normal;
-  }
-
-  .reading-deck-scroll-shadow {
-    top: calc(100% - 1.7rem);
-    width: 1rem;
   }
 }
