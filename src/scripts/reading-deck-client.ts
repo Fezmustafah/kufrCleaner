@@ -7,10 +7,15 @@ declare global {
 }
 
 let activeDeck: ReadingDeckHandle | null = null;
+let activeDialog: HTMLDialogElement | null = null;
 
 export function initializeReadingDeck(): void {
+  const nextDialog = document.querySelector<HTMLDialogElement>('dialog[data-reading-deck]');
+  if (activeDeck && nextDialog === activeDialog) return;
+
   activeDeck?.destroy();
   activeDeck = attachReadingDeck();
+  activeDialog = activeDeck ? nextDialog : null;
   document.documentElement.classList.toggle('reading-deck-ready', activeDeck !== null);
   if (!activeDeck) document.body.classList.remove('reading-deck-open');
 }
