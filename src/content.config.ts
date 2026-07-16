@@ -10,7 +10,16 @@ const postsCollection = defineCollection({
   schema: z.object({
     title: z.string().default('Untitled Post'),
     description: z.string().nullable().optional().default('No description provided'),
-    date: z.coerce.date().default(() => new Date()),
+    // Posts normally get a date from the vault-cms template. If one slips
+    // through without a date (e.g. a legacy import), fall back to a fixed old
+    // date so it sorts to the bottom deterministically — never build wall-clock
+    // time, which used to reshuffle listings every build. Warns in dev only.
+    date: z.coerce.date().default(() => {
+      if (import.meta.env.DEV) {
+        console.warn('[content] A post is missing a `date`; using fallback (sorts oldest). Add `date:` to its frontmatter.');
+      }
+      return new Date('2024-11-26');
+    }),
     tags: z.array(z.string()).nullable().optional(),
     draft: z.boolean().optional(),
     image: z.any().nullable().optional().transform((val) => {
