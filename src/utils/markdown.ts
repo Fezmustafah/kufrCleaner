@@ -292,11 +292,16 @@ export function shouldShowContent(
   return !draft;
 }
 
-// Sort content by date (newest first)
-export function sortPostsByDate<T extends { data: { date: Date } }>(
+// Sort content by date (newest first). Ties break by id so ordering is fully
+// deterministic across builds even when dates are equal or missing — without
+// this, same-date posts relied on collection iteration order and could shuffle.
+export function sortPostsByDate<T extends { id: string; data: { date: Date } }>(
   posts: T[]
 ): T[] {
-  return posts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+  return posts.sort((a, b) => {
+    const byDate = b.data.date.getTime() - a.data.date.getTime();
+    return byDate !== 0 ? byDate : a.id.localeCompare(b.id);
+  });
 }
 
 // Get next and previous content items
