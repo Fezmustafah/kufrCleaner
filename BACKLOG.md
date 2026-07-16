@@ -90,3 +90,25 @@ discuss threshold before committing.
 
 _Related graph work already done: local-graph load fix (empty-state for orphans + wikilink `posts/`
 prefix bug). See git history around `scripts/generate-graph-data.js` and `src/layouts/PostLayout.astro`._
+
+## 3. Code-quality deepening — parked from the build-time plan (2026-07-16)
+
+Descoped from `docs/superpowers/plans/2026-07-15-build-time-deepening.md` (owner call:
+build time is the goal; these improve code quality, not build time). Full task text with
+TDD steps lives in that plan — Tasks 4-5 and 7-12. Pick up any of them standalone.
+
+- **url-resolver extraction** (plan Tasks 4-5) — characterize + decompose the
+  cognitive-300 `remarkStandardLinks` behind a pure prefix-rule table in
+  `src/utils/url-resolver.ts`. Byte-parity gate: href dump diff.
+- **Shared frontmatter parser** (plan Tasks 7-8) — `scripts/lib/frontmatter.js` (js-yaml)
+  replacing the two NON-identical hand-rolled parsers; surgical aliases-block writes in
+  `process-aliases.js` (the current whole-frontmatter rewrite would corrupt `faq:` if it
+  ever fired).
+- **Image predicate dedup** (plan Task 9) — one `isRasterImage`/`webpPathFor` in
+  `scripts/lib/images.js` for the ~14 inline regex copies in `sync-images.js`.
+- **Deployment-config split** (plan Task 10) — 964-line `generate-deployment-config.js`
+  into per-platform adapters. CSP constant must survive byte-identical.
+- **Search consolidation** (plan Tasks 11-12) — port the orphaned `src/utils/search.test.ts`
+  into vitest (`tests/unit/`), extract a Pagefind gateway consumed by both
+  `search-client.ts` and `SearchPalette.astro`. Zero build-time impact — Pagefind indexes
+  inside `astro build` regardless.

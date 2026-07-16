@@ -79,3 +79,6 @@ r2-pdfs-missing.json
 # Playwright output
 /test-results/
 /playwright-report/
+
+# Build-time baseline artifacts (plan 2026-07-15-build-time-deepening)
+.build-baseline/
