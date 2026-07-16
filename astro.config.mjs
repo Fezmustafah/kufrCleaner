@@ -500,8 +500,9 @@ image: {
       remarkAnnotations,      // Parse ::text{type}:: rough-notation annotations
       remarkFolderImages,
       remarkObsidianEmbeds,
-      // Bases directive (table-only v1)
-      remarkBases,
+      // Bases directive (table-only v1) — registered only when enabled (ADR-0002),
+      // so disabled Bases costs zero per-post pipeline work. Position preserved.
+      ...(siteConfig.bases.enabled ? [remarkBases] : []),
       remarkImageCaptions,
       remarkMath,
       remarkRescueCurrency,

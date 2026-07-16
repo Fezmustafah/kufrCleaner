@@ -6,6 +6,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { SEOData } from '@/types';
 import type { BaseConfig } from '@/utils/bases/types';
+import { siteConfig } from '@/config';
 
 interface BaseEntry {
   id: string;
@@ -36,7 +37,7 @@ async function scanForBaseFiles(dir: string, basePath: string = ''): Promise<Arr
 }
 
 const contentPath = join(process.cwd(), 'src/content/posts');
-const rawBases = await scanForBaseFiles(contentPath);
+const rawBases = siteConfig.bases.enabled ? await scanForBaseFiles(contentPath) : [];
 
 const bases: BaseEntry[] = [];
 for (const raw of rawBases) {

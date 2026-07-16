@@ -182,6 +182,9 @@ export interface SiteConfig {
   // Optional Content Types
   optionalContentTypes: {
   };
+  bases: {
+    enabled: boolean;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -399,6 +402,13 @@ export const siteConfig: SiteConfig = {
 
   // Optional Content Types
   optionalContentTypes: {
+  },
+
+  // Bases (JEXL query) feature — intentionally disabled; see
+  // docs/adr/0002-bases-feature-gated-off.md. Flip to re-enable, fully reversible.
+  bases: {
+    // [CONFIG:BASES_ENABLED]
+    enabled: false,
   },
 
   // Home Options

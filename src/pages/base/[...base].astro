@@ -12,8 +12,11 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { SEOData } from '@/types';
 import type { Note } from '@/utils/bases/types';
+import { siteConfig } from '@/config';
 
 export async function getStaticPaths() {
+  if (!siteConfig.bases.enabled) return []; // ADR-0002: skips the .base scan and all /base/* routes
+
   // Scan src/content/posts/ for .base files
   const contentPath = join(process.cwd(), 'src/content/posts');
 
