@@ -23,3 +23,6 @@ document.addEventListener('swup:page:view', ensureGraphComponent);
 // For late-mounted graphs (the homepage showcase injects its <graph-component>
 // from a <template> when scrolled near) — the injector calls this after mount.
 (window as any).__ensureGraphComponent = ensureGraphComponent;
+
+// Mark as an ES module (loaded via dynamic import in BaseLayout); no runtime effect.
+export {};

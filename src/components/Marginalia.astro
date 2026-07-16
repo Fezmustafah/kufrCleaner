@@ -21,7 +21,7 @@ if (!marginalia || marginalia.length === 0) return null;
     Notes
   </h3>
   <ol class="space-y-4 list-none pl-0">
-    {marginalia.map((note) => (
+    {marginalia.map((note: MarginaliaEntry) => (
       <li
         id={`marginalia-${note.id}`}
         class="text-sm text-primary-600 dark:text-primary-300 leading-relaxed pl-2 border-l-2 border-primary-200 dark:border-primary-700"

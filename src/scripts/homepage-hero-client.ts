@@ -317,3 +317,6 @@ function initHero() {
 // (fires once per navigation) re-wires the hero after each swap.
 initHero();
 document.addEventListener('swup:page:view', initHero);
+
+// Mark as an ES module (loaded via dynamic import in BaseLayout); no runtime effect.
+export {};

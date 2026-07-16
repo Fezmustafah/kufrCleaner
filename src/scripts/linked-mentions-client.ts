@@ -52,3 +52,6 @@ if (document.readyState === 'loading') {
   initializeLinkedMentions();
 }
 document.addEventListener('astro:page-load', initializeLinkedMentions);
+
+// Mark as an ES module (loaded via dynamic import in BaseLayout); no runtime effect.
+export {};
