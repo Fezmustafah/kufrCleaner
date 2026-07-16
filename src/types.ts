@@ -90,12 +90,6 @@ export interface WikilinkMatch {
   slug: string;
 }
 
-export interface LinkedMention {
-  title: string;
-  slug: string;
-  excerpt: string;
-}
-
 export interface PaginationInfo {
   currentPage: number;
   totalPages: number;

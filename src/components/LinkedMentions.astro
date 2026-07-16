@@ -1,5 +1,5 @@
 ---
-import { findLinkedMentions } from '@/utils/internallinks';
+import { getBacklinkIndex } from '@/utils/backlink-index';
 import { getCollection } from 'astro:content';
 import Icon from './Icon.astro';
 
@@ -9,10 +9,10 @@ export interface Props {
 
 const { currentSlug } = Astro.props;
 
-// Get all posts and pages to find linked mentions
+// Backlinks come from a corpus-wide index built once per build (O(N)),
+// not a per-page rescan of every post body (O(N²)).
 const posts = await getCollection('posts');
-const pages = await getCollection('pages');
-const linkedMentions = findLinkedMentions(posts as any[], currentSlug, posts as any[], pages as any[]);
+const linkedMentions = getBacklinkIndex(posts).mentionsOf(currentSlug);
 ---
 
 {linkedMentions.length > 0 && (

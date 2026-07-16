@@ -13,7 +13,7 @@ export interface BacklinkIndex {
 
 // Built ONCE per build: inverts every post's outgoing wikilinks + standard
 // links into a target-slug -> [mentions] map. O(N) over the corpus, replacing
-// the per-page full-corpus rescan in findLinkedMentions (O(N²)).
+// the old per-page full-corpus rescan (O(N^2)).
 export function buildBacklinkIndex(posts: Post[]): BacklinkIndex {
   const map = new Map<string, LinkedMention[]>();
   for (const post of posts) {

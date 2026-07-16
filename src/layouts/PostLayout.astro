@@ -2,7 +2,6 @@
 import type { Post, Heading } from '@/types';
 import { siteConfig } from '@/config';
 import { generatePostSEO, generateBreadcrumbs, generateFAQSchema } from '@/utils/seo';
-import { processWikilinksInHTML } from '@/utils/internallinks';
 import { getCollection } from 'astro:content';
 import { shouldShowPost, processPost, calculateReadingTime, generateTOC, getAdjacentPosts, formatDate, formatDateMobile, getReadingTimeMobile } from '@/utils/markdown';
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -437,7 +436,7 @@ if (graphSidebarEnabled) {
             .replace(/-+/g, '-')
             .replace(/^-+|-+$/g, '');
 
-          // Helper function to create slug from title (same as resolveWikilink logic)
+          // Helper function to create slug from title (same slugification logic used server-side)
           const createSlugFromTitle = (title) => {
             return title.toLowerCase()
               .replace(/[^a-z0-9\s-]/g, '')

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { buildBacklinkIndex, getBacklinkIndex } from '@/utils/backlink-index';
-import { findLinkedMentions } from '@/utils/internallinks';
 import type { Post } from '@/types';
 
 function post(id: string, title: string, body: string): Post {
@@ -60,19 +59,5 @@ describe('getBacklinkIndex memoization', () => {
     const b = getBacklinkIndex(changed);
     expect(b).not.toBe(a);
     expect(b.mentionsOf('alpha')).toContainEqual({ slug: 'epsilon', title: 'Epsilon' });
-  });
-});
-
-// Deleted in Task 3 along with findLinkedMentions itself — the explicit
-// expectations above are the durable golden; this block proves index/legacy
-// parity while both exist.
-describe('parity with findLinkedMentions (temporary)', () => {
-  it('matches legacy mentions, order, and titles for every slug in the corpus', () => {
-    const index = buildBacklinkIndex(corpus);
-    for (const { id } of corpus) {
-      const legacy = (findLinkedMentions(corpus, id) as Array<{ slug: string; title: string }>)
-        .map((m) => ({ slug: m.slug, title: m.title }));
-      expect(index.mentionsOf(id)).toEqual(legacy);
-    }
   });
 });
