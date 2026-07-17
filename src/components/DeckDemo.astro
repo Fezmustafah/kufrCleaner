@@ -172,13 +172,23 @@ const enabled = siteConfig.postOptions.readingDeck;
 
 <script>
   import { createDesktopPanesTransport } from '@/scripts/reading-deck/transports/desktop-panes';
-  import type { DeckTransportContext } from '@/scripts/reading-deck/transports/transport';
+  import type { DeckTransport, DeckTransportContext } from '@/scripts/reading-deck/transports/transport';
+
+  // Held across DOMContentLoaded / astro:page-load re-inits so a client-side
+  // navigation back to the homepage can't stack a second live transport on
+  // top of the first — mirrors reading-deck-client.ts's activeDeck guard.
+  let activeTransport: DeckTransport | null = null;
+  let activeTrack: HTMLElement | null = null;
 
   function initDeckDemo() {
     const stage = document.querySelector<HTMLElement>('[data-deck-demo-stage]');
     const track = stage?.querySelector<HTMLElement>('[data-deck-demo-track]');
-    if (!stage || !track || track.dataset.demoReady) return;
-    track.dataset.demoReady = 'true';
+    if (!stage || !track) return;
+    if (activeTransport && track === activeTrack) return;
+
+    activeTransport?.destroy();
+    activeTransport = null;
+    activeTrack = null;
 
     const cards = Array.from(track.querySelectorAll<HTMLElement>('.reading-deck-card'));
     if (!cards.length) return;
@@ -187,6 +197,8 @@ const enabled = siteConfig.postOptions.readingDeck;
     let current = 0;
 
     const transport = createDesktopPanesTransport();
+    activeTransport = transport;
+    activeTrack = track;
     const syncControls = () => {
       if (prev) prev.disabled = current === 0;
       if (next) next.disabled = current === cards.length - 1;
@@ -217,6 +229,10 @@ const enabled = siteConfig.postOptions.readingDeck;
     next?.addEventListener('click', () => goTo(current + 1));
   }
 
-  document.addEventListener('DOMContentLoaded', initDeckDemo);
-  document.addEventListener('swup:page:view', initDeckDemo);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDeckDemo, { once: true });
+  } else {
+    initDeckDemo();
+  }
+  document.addEventListener('astro:page-load', initDeckDemo);
 </script>
