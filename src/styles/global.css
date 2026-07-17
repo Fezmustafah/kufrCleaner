@@ -2125,3 +2125,85 @@ svg:has(text:contains("mermaid version")) {
 #navbar {
   animation-delay: 0ms;
 }
+
+/* Swup navigation progress bar (driven by nav-progress-client.ts).
+   Hidden at width 0 until .is-active trickles it toward 90% over a long ease;
+   .is-done snaps to 100% and fades. Sits above the fixed header (z-50). */
+#nav-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0;
+  z-index: 60;
+  background: rgb(var(--color-highlight-500));
+  box-shadow: 0 0 8px rgb(var(--color-highlight-500) / 0.6);
+  opacity: 0;
+  pointer-events: none;
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+.dark #nav-progress {
+  background: rgb(var(--color-highlight-400));
+  box-shadow: 0 0 8px rgb(var(--color-highlight-400) / 0.6);
+}
+#nav-progress.is-active {
+  opacity: 1;
+  width: 90%;
+  transition: width 8s cubic-bezier(0.1, 0.7, 0.1, 1);
+}
+#nav-progress.is-done {
+  width: 100%;
+  opacity: 0;
+  transition: width 0.2s ease-out, opacity 0.25s ease-out 0.1s;
+}
+@media (prefers-reduced-motion: reduce) {
+  #nav-progress.is-active { transition: width 0.3s linear; }
+}
+
+/* Inline citation hover/focus tooltip (driven by citation-tooltip-client.ts).
+   A single fixed element repositioned per ref; reads its text from the
+   reading-deck bibliography. */
+.citation-tooltip {
+  position: fixed;
+  z-index: 70;
+  max-width: min(22rem, calc(100vw - 1rem));
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgb(var(--color-primary-200) / 0.9);
+  border-radius: 0.55rem;
+  background: #ffffff;
+  color: rgb(var(--color-primary-700));
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-align: left;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.12);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(2px);
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s;
+}
+.dark .citation-tooltip {
+  border-color: rgb(var(--color-primary-700) / 0.7);
+  background: rgb(var(--color-primary-900));
+  color: rgb(var(--color-primary-200));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.55);
+}
+/* Measured off-screen before positioning so width/height are real but unseen. */
+.citation-tooltip.is-measuring {
+  visibility: hidden;
+  opacity: 0;
+  transform: none;
+  transition: none;
+}
+.citation-tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.citation-tooltip.is-below { transform: translateY(-2px); }
+.citation-tooltip.is-below.is-visible { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .citation-tooltip { transition: opacity 0.12s ease; transform: none; }
+}
+

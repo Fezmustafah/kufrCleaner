@@ -1217,6 +1217,9 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
 </head>
 
 <body class={`min-h-screen flex flex-col bg-white dark:bg-primary-950 text-primary-900 dark:text-primary-50 text-selection-highlight transition-colors duration-200 ${scrollbarClass} ${bodyClass}`}>
+  <!-- Swup navigation progress bar (driven by nav-progress-client.ts) -->
+  <div id="nav-progress" aria-hidden="true"></div>
+
   <!-- Skip to main content -->
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 btn-primary px-4 py-2 rounded-md z-50">
     Skip to main content
@@ -1292,6 +1295,12 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     </script>
     <script>
       try { await import('../scripts/linked-mentions-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/nav-progress-client.ts'); } catch (_) {}
+    </script>
+    <script>
+      try { await import('../scripts/citation-tooltip-client.ts'); } catch (_) {}
     </script>
     <script>
       try { await import('../scripts/homepage-hero-client.ts'); } catch (_) {}
