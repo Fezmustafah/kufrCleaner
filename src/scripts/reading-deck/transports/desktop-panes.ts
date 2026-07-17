@@ -17,8 +17,6 @@ class DesktopPanesTransport implements DeckTransport {
   private settleTimer = 0;
   private programmatic = false;
 
-  constructor(private readonly wheelNav: boolean) {}
-
   connect(context: DeckTransportContext): void {
     this.destroy();
     this.context = context;
@@ -27,21 +25,14 @@ class DesktopPanesTransport implements DeckTransport {
     const { signal } = this.abort;
     context.track.dataset.deckLayout = 'panes';
     this.buildSpines(context);
+    // No custom wheel handling: plain wheel reads a pane vertically (native),
+    // and horizontal movement across panes is native too — Shift+wheel, the
+    // track's horizontal scrollbar, or a trackpad swipe — plus spine/title.
     context.track.addEventListener('scroll', () => {
       if (this.programmatic) return;
       context.dismissHint();
       this.scheduleSettle();
     }, { passive: true, signal });
-    // Panes advance horizontally, so a plain (vertical) mouse wheel moves across
-    // them. Vertical reading within a tall pane uses that pane's own scrollbar.
-    // Pure-horizontal trackpad gestures fall through to native scrolling.
-    // Disabled for the bounded homepage demo so it can't hijack page scroll.
-    if (this.wheelNav) context.track.addEventListener('wheel', (event) => {
-      if (!event.deltaY) return;
-      event.preventDefault();
-      context.dismissHint();
-      context.track.scrollLeft += event.deltaY + event.deltaX;
-    }, { passive: false, signal });
   }
 
   present(index: number, motion: DeckMotion): void {
@@ -151,8 +142,6 @@ class DesktopPanesTransport implements DeckTransport {
   }
 }
 
-export function createDesktopPanesTransport(
-  options: { wheelNav?: boolean } = {},
-): DeckTransport {
-  return new DesktopPanesTransport(options.wheelNav ?? true);
+export function createDesktopPanesTransport(): DeckTransport {
+  return new DesktopPanesTransport();
 }

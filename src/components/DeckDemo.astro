@@ -186,8 +186,7 @@ const enabled = siteConfig.postOptions.readingDeck;
     const next = stage.querySelector<HTMLButtonElement>('[data-deck-demo-next]');
     let current = 0;
 
-    // wheelNav off: a bounded homepage widget must not hijack page scrolling.
-    const transport = createDesktopPanesTransport({ wheelNav: false });
+    const transport = createDesktopPanesTransport();
     const syncControls = () => {
       if (prev) prev.disabled = current === 0;
       if (next) next.disabled = current === cards.length - 1;
