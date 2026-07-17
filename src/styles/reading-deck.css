@@ -1041,6 +1041,9 @@ body > label[for^='web-haptics-'] > input {
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  /* Contain horizontal over-scroll at the ends so it can't trigger the
+     browser's back/forward swipe. */
+  overscroll-behavior-x: contain;
   transform: none !important;
   transition: none;
   scrollbar-width: thin;
@@ -1060,6 +1063,11 @@ body > label[for^='web-haptics-'] > input {
   position: sticky;
   top: 0;
   flex: 0 0 auto;
+  /* The base card sets `overscroll-behavior: contain`, which blocks a wheel
+     over a pane from chaining to the horizontally-scrollable track (panes have
+     overflow-x: hidden). Re-enable horizontal chaining so trackpad/shift-wheel
+     move across panes; vertical stays contained. */
+  overscroll-behavior-x: auto;
   width: min(40rem, 92vw);
   max-width: min(40rem, 92vw);
   height: 100%;
