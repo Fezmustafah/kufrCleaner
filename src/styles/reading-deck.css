@@ -1042,10 +1042,18 @@ body > label[for^='web-haptics-'] > input {
   overflow-y: hidden;
   transform: none !important;
   transition: none;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-primary-300)) transparent;
   touch-action: pan-x;
 }
-.reading-deck-track[data-deck-layout="panes"]::-webkit-scrollbar { display: none; }
+/* Visible horizontal scrollbar = an obvious "drag to move across panes" handle. */
+.reading-deck-track[data-deck-layout="panes"]::-webkit-scrollbar { display: block; height: 10px; }
+.reading-deck-track[data-deck-layout="panes"]::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-primary-300));
+  border-radius: 5px;
+}
+.dark .reading-deck-track[data-deck-layout="panes"] { scrollbar-color: rgb(var(--color-primary-700)) transparent; }
+.dark .reading-deck-track[data-deck-layout="panes"]::-webkit-scrollbar-thumb { background: rgb(var(--color-primary-700)); }
 
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card {
   position: relative;
