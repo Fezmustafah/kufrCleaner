@@ -15,7 +15,7 @@ export type PaneRole = 'spine' | 'active' | 'ahead' | 'hidden';
 export interface PaneLayout {
   index: number;
   role: PaneRole;
-  left: number | null; // px for sticky panes; null = not pinned (ahead)
+  left: number | null; // px for pinned panes (spine/active); null for ahead & hidden (transport hides those via data-pane-hidden)
 }
 
 export function computePaneLayout(

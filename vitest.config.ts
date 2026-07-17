@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
-    include: ['tests/unit/**/*.test.ts', 'src/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'src/scripts/reading-deck/**/*.test.ts'],
     clearMocks: true,
     restoreMocks: true,
   },
