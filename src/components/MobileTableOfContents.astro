@@ -1,0 +1,212 @@
+---
+// Mobile table of contents — a sticky "Contents" bar that drops down a panel
+// listing every heading, with scroll-spy active-tracking and a dimmed backdrop.
+// Modelled on Fumadocs' TocPopover (see alkarkari). Shown only below 1100px,
+// where the desktop line-rail (TableOfContents.astro) is display:none. Same
+// headings data as the rail — no duplicated TOC logic; behaviour lives in
+// /src/scripts/mobile-toc-client.ts (loaded globally from BaseLayout).
+import type { Heading } from '@/types';
+import { getTableOfContentsDepth } from '@/config';
+
+export interface Props {
+  headings: Heading[];
+}
+
+const { headings } = Astro.props;
+
+const maxDepth = getTableOfContentsDepth();
+const filtered = headings.filter(
+  h => h.depth >= 2 && h.depth <= maxDepth && h.slug !== 'footnote-label'
+);
+const shouldShow = filtered.length > 1;
+const minDepth = shouldShow ? Math.min(...filtered.map(h => h.depth)) : 2;
+---
+
+{shouldShow && (
+  <div class="mobile-toc" data-mobile-toc>
+    <button
+      type="button"
+      id="mobile-toc-bar"
+      class="mobile-toc-bar"
+      aria-expanded="false"
+      aria-controls="mobile-toc-panel"
+    >
+      <svg class="mobile-toc-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
+        <line x1="8" y1="6" x2="20" y2="6" />
+        <line x1="8" y1="12" x2="20" y2="12" />
+        <line x1="8" y1="18" x2="20" y2="18" />
+        <circle cx="4" cy="6" r="0.5" />
+        <circle cx="4" cy="12" r="0.5" />
+        <circle cx="4" cy="18" r="0.5" />
+      </svg>
+      <span class="mobile-toc-current" id="mobile-toc-current">Contents</span>
+      <svg class="mobile-toc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+    </button>
+
+    <nav id="mobile-toc-panel" class="mobile-toc-panel" aria-label="Table of contents">
+      <p class="mobile-toc-heading">Contents</p>
+      <ul class="mobile-toc-list">
+        {filtered.map(h => (
+          <li>
+            <a
+              href={`#${h.slug}`}
+              class={`mobile-toc-link depth-${h.depth - minDepth}`}
+              data-slug={h.slug}
+            >{h.text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="mobile-toc-backdrop" aria-hidden="true"></div>
+  </div>
+)}
+
+<style is:global>
+  /* Desktop uses the line-rail; this only exists below 1100px. */
+  .mobile-toc { display: none; }
+
+  @media (max-width: 1099.98px) {
+    .mobile-toc {
+      display: block;
+      position: sticky;
+      top: 3.75rem; /* just below the fixed 3.5rem navbar */
+      z-index: 45;  /* above article content (z:0), below header (z:50) */
+      margin: 0 0 1.5rem;
+    }
+  }
+
+  .mobile-toc-bar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid rgb(var(--color-primary-200) / 0.8);
+    border-radius: 0.75rem;
+    background: rgb(var(--color-primary-50) / 0.92);
+    color: rgb(var(--color-primary-700));
+    font-size: 0.875rem;
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 20px rgb(0 0 0 / 0.06);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  .dark .mobile-toc-bar {
+    border-color: rgb(var(--color-primary-700) / 0.7);
+    background: rgb(var(--color-primary-900) / 0.92);
+    color: rgb(var(--color-primary-200));
+  }
+
+  .mobile-toc-bar-icon { width: 1rem; height: 1rem; flex: none; opacity: 0.7; }
+  .mobile-toc-current {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .mobile-toc-chevron {
+    width: 1rem; height: 1rem; flex: none; opacity: 0.6;
+    transition: transform 0.2s ease;
+  }
+  .mobile-toc.is-open .mobile-toc-chevron { transform: rotate(180deg); }
+
+  .mobile-toc-panel {
+    position: absolute;
+    z-index: 2;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.5rem;
+    border: 1px solid rgb(var(--color-primary-200) / 0.8);
+    border-radius: 0.9rem;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 12px 34px rgb(0 0 0 / 0.14);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
+  }
+  .dark .mobile-toc-panel {
+    border-color: rgb(var(--color-primary-700) / 0.6);
+    background: rgb(var(--color-primary-900));
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 34px rgb(0 0 0 / 0.5);
+  }
+  .mobile-toc.is-open .mobile-toc-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .mobile-toc-heading {
+    margin: 0.15rem 0.5rem 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-400));
+  }
+  .mobile-toc-list { list-style: none; margin: 0; padding: 0; }
+
+  .mobile-toc-link {
+    display: block;
+    padding: 0.4rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: rgb(var(--color-primary-600));
+    text-decoration: none;
+    transition: background-color 0.1s ease, color 0.1s ease;
+  }
+  .dark .mobile-toc-link { color: rgb(var(--color-primary-300)); }
+  .mobile-toc-link.depth-1 { padding-left: 1.5rem; }
+  .mobile-toc-link.depth-2 { padding-left: 2.5rem; }
+  .mobile-toc-link.depth-3,
+  .mobile-toc-link.depth-4 { padding-left: 3.5rem; }
+  .mobile-toc-link:hover,
+  .mobile-toc-link:active { background: rgb(var(--color-primary-100)); }
+  .dark .mobile-toc-link:hover,
+  .dark .mobile-toc-link:active { background: rgb(var(--color-primary-800)); }
+  .mobile-toc-link.is-active {
+    color: rgb(var(--color-highlight-600));
+    font-weight: 600;
+  }
+  .dark .mobile-toc-link.is-active { color: rgb(var(--color-highlight-400)); }
+
+  /* Dim + blur the page behind the open panel; tap it to close. */
+  .mobile-toc-backdrop {
+    position: fixed;
+    z-index: 1;
+    inset: 0;
+    background: rgb(255 255 255 / 0.5);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.16s ease, visibility 0.16s;
+  }
+  .dark .mobile-toc-backdrop { background: rgb(var(--color-primary-950) / 0.55); }
+  .mobile-toc.is-open .mobile-toc-backdrop {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-toc-panel,
+    .mobile-toc-chevron,
+    .mobile-toc-backdrop { transition: none; }
+  }
+</style>

@@ -6,6 +6,7 @@ import { getCollection } from 'astro:content';
 import { shouldShowPost, processPost, calculateReadingTime, generateTOC, getAdjacentPosts, formatDate, formatDateMobile, getReadingTimeMobile } from '@/utils/markdown';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import TableOfContents from '@/components/TableOfContents.astro';
+import MobileTableOfContents from '@/components/MobileTableOfContents.astro';
 import LinkedMentions from '@/components/LinkedMentions.astro';
 import SiteGraph from '@/components/SiteGraph.astro';
 import GiscusComments from '@/components/GiscusComments.astro';
@@ -291,6 +292,10 @@ if (graphSidebarEnabled) {
 
           <ReadingDeck post={post} tldr={tldr} />
 
+        <!-- Mobile TOC: sticky "Contents" popover, shown <1100px where the
+             left-rail is hidden. Same headings as the rail. -->
+        {shouldShowTOC && <MobileTableOfContents headings={toc} />}
+
         <!-- Article content -->
         <div class="prose dark:prose-dark max-w-none" id="post-content">
           <Content />
@@ -551,6 +556,12 @@ if (graphSidebarEnabled) {
       min-width: 0;
       overflow: visible; /* must not clip floated notes */
       position: relative; /* containing block for absolute sidebar buttons + marginalia notes */
+    }
+
+    /* Anchor jumps (TOC links, hash loads, the desktop rail) must clear the
+       fixed 3.5rem navbar instead of tucking the target heading under it. */
+    :global(#post-content :is(h2, h3, h4, h5, h6)) {
+      scroll-margin-top: 4.5rem;
     }
 
     .post-layout-left-col {

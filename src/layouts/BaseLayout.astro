@@ -1256,6 +1256,9 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
       try { await import('../scripts/toc-client.ts'); } catch (_) {}
     </script>
     <script>
+      try { await import('../scripts/mobile-toc-client.ts'); } catch (_) {}
+    </script>
+    <script>
       try { await import('../scripts/reading-deck-client.ts'); } catch (_) {}
     </script>
     <script>
