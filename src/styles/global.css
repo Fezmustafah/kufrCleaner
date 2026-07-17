@@ -2207,3 +2207,62 @@ svg:has(text:contains("mermaid version")) {
   .citation-tooltip { transition: opacity 0.12s ease; transform: none; }
 }
 
+/* Wikilink hover-preview card (driven by link-preview-client.ts). A single
+   reused, fixed-position node showing a peek of the linked post's #post-content,
+   capped in height with a fade at the bottom. */
+.link-preview {
+  position: fixed;
+  z-index: 65;
+  width: min(30rem, calc(100vw - 1rem));
+  max-height: 55vh;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-primary-200) / 0.9);
+  border-radius: 0.7rem;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 14px 40px rgb(0 0 0 / 0.16);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s;
+}
+.dark .link-preview {
+  border-color: rgb(var(--color-primary-700) / 0.7);
+  background: rgb(var(--color-primary-900));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 40px rgb(0 0 0 / 0.6);
+}
+.link-preview.is-measuring {
+  visibility: hidden;
+  opacity: 0;
+  transform: none;
+  transition: none;
+}
+.link-preview.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto; /* so the cursor can enter the card to read/scroll it */
+}
+.link-preview.is-below { transform: translateY(-4px); }
+.link-preview.is-below.is-visible { transform: translateY(0); }
+
+/* The extracted article body: scrollable, slightly reduced scale, bottom fade. */
+.link-preview-body {
+  max-height: 55vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.15rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+}
+.link-preview-body :first-child { margin-top: 0; }
+/* Tame heavy in-content elements inside the small peek. */
+.link-preview-body :is(h1, h2, h3, h4) { font-size: 1em; margin-top: 1em; }
+.link-preview-body img { max-height: 10rem; width: auto; }
+.link-preview-body :is(pre, table) { font-size: 0.9em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .link-preview { transition: opacity 0.14s ease; transform: none; }
+}
