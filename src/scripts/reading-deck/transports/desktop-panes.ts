@@ -1,12 +1,14 @@
 import type { DeckMotion, DeckTransport, DeckTransportContext } from './transport';
+import { computePaneLayout } from './panes-geometry';
 
-// Deep read — Matuschak-style sliding panes across headings. Each card is a
-// full-width pane; panes before the selected one collapse to a 40px vertical
-// spine (a clickable heading breadcrumb) that pins on the left via CSS sticky.
-// Collapse state is derived from the selected index (deterministic), so the
-// sticky pinning — not fragile scroll math — does the visual stacking.
+// Deep read — within-article sliding panes. Each card is a full-width, sticky
+// pane. As the reader scrolls right, the passed prefix collapses; only the two
+// most-recently-passed sections stay on screen as stacked, clickable spines
+// (older ones scroll away, reachable via the contents index). Collapse is a
+// pure function of scroll position — never of animated width — so free scroll,
+// spine clicks, and contents jumps all agree and nothing drifts.
 
-const SPINE_WIDTH = 40; // px — matches the reference --note-title-width (2.5rem)
+const MAX_SPINES = 2;
 
 class DesktopPanesTransport implements DeckTransport {
   private context: DeckTransportContext | null = null;
@@ -14,8 +16,8 @@ class DesktopPanesTransport implements DeckTransport {
   private abort: AbortController | null = null;
   private spines: HTMLButtonElement[] = [];
   private resizeFrame = 0;
-  private settleTimer = 0;
-  private programmatic = false;
+  private scrollFrame = 0;
+  private spineWidth = 40;
 
   connect(context: DeckTransportContext): void {
     this.destroy();
@@ -24,55 +26,40 @@ class DesktopPanesTransport implements DeckTransport {
     this.abort = new AbortController();
     const { signal } = this.abort;
     context.track.dataset.deckLayout = 'panes';
+    this.readSpineWidth(context);
     this.buildSpines(context);
-    // No custom wheel handling: plain wheel reads a pane vertically (native),
-    // and horizontal movement across panes is native too — Shift+wheel, the
-    // track's horizontal scrollbar, or a trackpad swipe — plus spine/title.
+    // Native scroll in both axes: vertical wheel reads a pane, horizontal
+    // (scrollbar / shift-wheel / trackpad swipe) moves across panes. We only
+    // react to it — recompute the layout and report the active pane.
     context.track.addEventListener('scroll', () => {
-      if (this.programmatic) return;
       context.dismissHint();
-      this.scheduleSettle();
+      this.scheduleLayout();
     }, { passive: true, signal });
+    this.applyLayout();
   }
 
   present(index: number, motion: DeckMotion): void {
     const context = this.context;
     if (!context?.cards.length) return;
     const selected = Math.max(0, Math.min(context.cards.length - 1, index));
-    const pane = context.cards[selected];
-    if (!pane) return;
-
-    // If the pane is already comfortably in view this is a manual-scroll settle
-    // or a resize — leave collapse and scroll alone. Re-collapsing/re-scrolling
-    // here is exactly what fought the user's own horizontal scrolling.
-    const relBefore = pane.offsetLeft - context.track.scrollLeft;
-    const inView = relBefore >= 0 && relBefore <= context.track.clientWidth * 0.5;
-    if (motion !== 'animate' && inView) return;
-
-    // Explicit navigation (or an off-screen target): collapse the panes behind
-    // the selection into compact in-flow spines, then bring it into view. Spines
-    // are NOT pinned — they scroll away, so a long article can't fill the screen.
-    context.cards.forEach((p, i) => p.classList.toggle('collapsed', i < selected));
-
-    const gutter = 2 * SPINE_WIDTH; // let a couple of prior spines peek as a breadcrumb
-    this.programmatic = true;
+    const paneWidth = this.paneWidth();
+    const spineZone = this.spineWidth * MAX_SPINES;
+    const left = Math.max(0, selected * paneWidth - spineZone);
     context.track.scrollTo({
-      left: Math.max(0, pane.offsetLeft - gutter),
+      left,
       behavior: motion === 'animate' && !context.reducedMotion() ? 'smooth' : 'auto',
     });
-    // Release the programmatic guard after the scroll settles.
-    (this.browser || window).clearTimeout(this.settleTimer);
-    this.settleTimer = (this.browser || window).setTimeout(() => {
-      this.programmatic = false;
-      this.settleTimer = 0;
-    }, motion === 'animate' ? 360 : 60);
+    // The scrollTo fires a scroll event; applyLayout runs from there. Run it
+    // once synchronously too so a no-op scroll (already at target) still lays out.
+    this.applyLayout();
   }
 
   reflow(): void {
     if (this.resizeFrame || !this.context) return;
     this.resizeFrame = (this.browser || window).requestAnimationFrame(() => {
       this.resizeFrame = 0;
-      if (this.context) this.present(this.context.selectedIndex(), 'none');
+      this.readSpineWidth(this.context!);
+      this.applyLayout();
     });
   }
 
@@ -81,14 +68,14 @@ class DesktopPanesTransport implements DeckTransport {
     this.abort = null;
     const browser = this.browser || window;
     if (this.resizeFrame) browser.cancelAnimationFrame(this.resizeFrame);
-    if (this.settleTimer) browser.clearTimeout(this.settleTimer);
+    if (this.scrollFrame) browser.cancelAnimationFrame(this.scrollFrame);
     this.resizeFrame = 0;
-    this.settleTimer = 0;
-    this.programmatic = false;
+    this.scrollFrame = 0;
     this.spines.forEach((spine) => spine.remove());
     this.spines = [];
     this.context?.cards.forEach((pane) => {
       pane.classList.remove('collapsed');
+      pane.removeAttribute('data-pane-hidden');
       pane.style.removeProperty('left');
     });
     if (this.context) delete this.context.track.dataset.deckLayout;
@@ -96,10 +83,50 @@ class DesktopPanesTransport implements DeckTransport {
     this.browser = null;
   }
 
+  private scheduleLayout(): void {
+    if (this.scrollFrame || !this.context) return;
+    this.scrollFrame = (this.browser || window).requestAnimationFrame(() => {
+      this.scrollFrame = 0;
+      this.applyLayout();
+    });
+  }
+
+  private applyLayout(): void {
+    const context = this.context;
+    if (!context?.cards.length) return;
+    const paneWidth = this.paneWidth();
+    const layout = computePaneLayout(context.track.scrollLeft, context.cards.length, {
+      paneWidth,
+      spineWidth: this.spineWidth,
+      maxSpines: MAX_SPINES,
+    });
+    let active = 0;
+    layout.forEach((pane) => {
+      const el = context.cards[pane.index];
+      el.classList.toggle('collapsed', pane.role === 'spine');
+      el.toggleAttribute('data-pane-hidden', pane.role === 'hidden');
+      if (pane.left == null) el.style.removeProperty('left');
+      else el.style.left = `${pane.left}px`;
+      if (pane.role === 'active') active = pane.index;
+    });
+    if (active !== context.selectedIndex()) context.reportSettled(active);
+  }
+
+  private paneWidth(): number {
+    const first = this.context?.cards[0];
+    return first ? first.getBoundingClientRect().width || first.offsetWidth : 640;
+  }
+
+  private readSpineWidth(context: DeckTransportContext): void {
+    const doc = context.track.ownerDocument;
+    const probe = doc.defaultView?.getComputedStyle(context.track).getPropertyValue('--deck-spine-width');
+    const parsed = probe ? parseFloat(probe) : NaN;
+    this.spineWidth = Number.isFinite(parsed) && parsed > 0 ? parsed : 40;
+  }
+
   private buildSpines(context: DeckTransportContext): void {
     const doc = context.track.ownerDocument;
     context.cards.forEach((pane, index) => {
-      // The finish/completion card is not a heading section — no spine.
       if (pane.hasAttribute('data-deck-finish')) return;
       if (pane.querySelector(':scope > .reading-deck-spine')) return;
       const heading = pane.querySelector('h2, h3');
@@ -113,32 +140,6 @@ class DesktopPanesTransport implements DeckTransport {
       pane.prepend(spine);
       this.spines.push(spine);
     });
-  }
-
-  private scheduleSettle(): void {
-    if (!this.context) return;
-    (this.browser || window).clearTimeout(this.settleTimer);
-    this.settleTimer = (this.browser || window).setTimeout(() => this.settle(), 140);
-  }
-
-  private settle(): void {
-    const context = this.context;
-    this.settleTimer = 0;
-    if (!context || this.programmatic) return;
-    // Nearest expanded pane to the left edge (past any leading in-flow spines).
-    const collapsedCount = context.cards.filter((p) => p.classList.contains('collapsed')).length;
-    const edge = context.track.scrollLeft + collapsedCount * SPINE_WIDTH;
-    let nearest = context.selectedIndex();
-    let distance = Number.POSITIVE_INFINITY;
-    context.cards.forEach((pane, index) => {
-      if (pane.classList.contains('collapsed')) return;
-      const candidate = Math.abs(pane.offsetLeft - edge);
-      if (candidate < distance) {
-        distance = candidate;
-        nearest = index;
-      }
-    });
-    if (nearest !== context.selectedIndex()) context.reportSettled(nearest);
   }
 }
 

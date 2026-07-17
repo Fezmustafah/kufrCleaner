@@ -1029,10 +1029,11 @@ body > label[for^='web-haptics-'] > input {
 
 /* ── Deep read: sliding panes (across headings) ───────────────────────────
    Scoped to the panes track (data-deck-layout="panes", set by the panes
-   transport) so the TLDR card-deck layout is untouched. Full-width columns,
-   native horizontal scroll; panes before the selected one collapse to a
-   40px vertical spine that pins on the left via CSS sticky. */
+   transport) so the TLDR card-deck layout is untouched. Full-width sticky
+   columns; the two most-recently-passed sections stay as stacked spines,
+   older ones scroll away. */
 .reading-deck-track[data-deck-layout="panes"] {
+  --deck-spine-width: 40px;
   display: flex;
   flex-direction: row;
   gap: 0;
@@ -1110,7 +1111,7 @@ body > label[for^='web-haptics-'] > input {
   position: absolute;
   inset: 0;
   z-index: 2;
-  width: 2.5rem;
+  width: var(--deck-spine-width);
   margin: 0;
   padding: 1rem 0;
   border: 0;
