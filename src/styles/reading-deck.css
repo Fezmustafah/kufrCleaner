@@ -1056,7 +1056,8 @@ body > label[for^='web-haptics-'] > input {
 .dark .reading-deck-track[data-deck-layout="panes"]::-webkit-scrollbar-thumb { background: rgb(var(--color-primary-700)); }
 
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card {
-  position: relative;
+  position: sticky;
+  top: 0;
   flex: 0 0 auto;
   width: min(40rem, 92vw);
   max-width: min(40rem, 92vw);
@@ -1070,7 +1071,6 @@ body > label[for^='web-haptics-'] > input {
   content-visibility: visible;
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--color-primary-300)) transparent;
-  transition: width 320ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card:first-of-type {
   border-left: 0;
@@ -1091,17 +1091,18 @@ body > label[for^='web-haptics-'] > input {
   background: rgb(var(--color-primary-700));
 }
 
-/* Collapsed pane → a compact 40px spine in normal flow (NOT pinned), so a long
-   article's history scrolls away to the left instead of eating the screen. */
+/* Collapsed pane keeps its width; the next pane (sticky, offset right) covers
+   all but its leading 40px, which is where the vertical spine title shows. */
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card.collapsed {
-  width: 2.5rem;
-  min-width: 2.5rem;
-  max-width: 2.5rem;
   overflow: hidden;
 }
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card.collapsed > :not(.reading-deck-spine) {
   opacity: 0;
   pointer-events: none;
+}
+/* Passed sections older than the two-spine window: fully out of view. */
+.reading-deck-track[data-deck-layout="panes"] > .reading-deck-card[data-pane-hidden] {
+  visibility: hidden;
 }
 
 .reading-deck-spine {
@@ -1132,6 +1133,13 @@ body > label[for^='web-haptics-'] > input {
   outline: 2px solid rgb(var(--color-highlight-500));
   outline-offset: -2px;
 }
+.reading-deck-spine {
+  border-right: 1px solid rgb(var(--color-primary-200));
+  box-shadow: 2px 0 6px -3px rgb(0 0 0 / 0.18);
+}
+.dark .reading-deck-spine {
+  border-right-color: rgb(var(--color-primary-700));
+}
 
 .dark .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card {
   border-left-color: rgb(var(--color-primary-800));
@@ -1141,11 +1149,21 @@ body > label[for^='web-haptics-'] > input {
   color: rgb(var(--color-primary-200));
 }
 
+/* Deep read is full-bleed: no inset frame around the panes or the scrollbar. */
+.reading-deck[data-active-feed="slides"] .reading-deck-stage {
+  padding: 0;
+}
+.reading-deck[data-active-feed="slides"] .reading-deck-track[data-deck-layout="panes"] {
+  padding: 0;
+}
+
 /* Deep read chrome: no edge hover-strips, no footer controls — the topbar
    title opens the contents index instead (wired in view.ts). Scoped to slides
    so the TLDR deck keeps its neighbors and Prev/Next/contents footer. */
 .reading-deck[data-active-feed="slides"] .reading-deck-neighbor { display: none; }
 .reading-deck[data-active-feed="slides"] .reading-deck-controls { display: none; }
+.reading-deck[data-active-feed="slides"] [data-deck-mode-label] { display: none; }
+.reading-deck[data-active-feed="slides"] .reading-deck-progress { display: none; }
 .reading-deck[data-active-feed="slides"] #reading-deck-title {
   cursor: pointer;
   border-bottom: 1px dashed rgb(var(--color-primary-400));
