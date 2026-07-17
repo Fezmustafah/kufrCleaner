@@ -8,6 +8,11 @@ import type { DeckMotion, DeckTransport, DeckTransportContext } from './transpor
 
 const SPINE_WIDTH = 40; // px — matches the reference --note-title-width (2.5rem)
 
+function canScrollVertically(pane: HTMLElement, deltaY: number): boolean {
+  if (deltaY < 0) return pane.scrollTop > 0;
+  return pane.scrollTop + pane.clientHeight < pane.scrollHeight - 1;
+}
+
 class DesktopPanesTransport implements DeckTransport {
   private context: DeckTransportContext | null = null;
   private browser: Window | null = null;
@@ -16,6 +21,8 @@ class DesktopPanesTransport implements DeckTransport {
   private resizeFrame = 0;
   private settleTimer = 0;
   private programmatic = false;
+
+  constructor(private readonly wheelNav: boolean) {}
 
   connect(context: DeckTransportContext): void {
     this.destroy();
@@ -30,6 +37,19 @@ class DesktopPanesTransport implements DeckTransport {
       context.dismissHint();
       this.scheduleSettle();
     }, { passive: true, signal });
+    // A plain mouse wheel is vertical, but panes advance horizontally. Let the
+    // hovered pane scroll its own content first; once it bottoms/tops out (or
+    // there's nothing to scroll), carry the wheel across to the next/prev pane.
+    // Trackpad horizontal gestures (deltaX-dominant) fall through to native.
+    // Disabled for the bounded homepage demo so it can't hijack page scroll.
+    if (this.wheelNav) context.track.addEventListener('wheel', (event) => {
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      const pane = (event.target as Element).closest<HTMLElement>('.reading-deck-card');
+      if (pane && !pane.classList.contains('collapsed') && canScrollVertically(pane, event.deltaY)) return;
+      event.preventDefault();
+      context.dismissHint();
+      context.track.scrollLeft += event.deltaY;
+    }, { passive: false, signal });
   }
 
   present(index: number, motion: DeckMotion): void {
@@ -139,6 +159,8 @@ class DesktopPanesTransport implements DeckTransport {
   }
 }
 
-export function createDesktopPanesTransport(): DeckTransport {
-  return new DesktopPanesTransport();
+export function createDesktopPanesTransport(
+  options: { wheelNav?: boolean } = {},
+): DeckTransport {
+  return new DesktopPanesTransport(options.wheelNav ?? true);
 }

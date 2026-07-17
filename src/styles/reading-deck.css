@@ -1043,6 +1043,7 @@ body > label[for^='web-haptics-'] > input {
   transform: none !important;
   transition: none;
   scrollbar-width: none;
+  touch-action: pan-x;
 }
 .reading-deck-track[data-deck-layout="panes"]::-webkit-scrollbar { display: none; }
 
