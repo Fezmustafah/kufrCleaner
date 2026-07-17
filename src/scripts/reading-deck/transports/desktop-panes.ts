@@ -18,6 +18,8 @@ class DesktopPanesTransport implements DeckTransport {
   private resizeFrame = 0;
   private scrollFrame = 0;
   private spineWidth = 40;
+  private programmatic = false;
+  private settleTimer = 0;
 
   connect(context: DeckTransportContext): void {
     this.destroy();
@@ -35,6 +37,10 @@ class DesktopPanesTransport implements DeckTransport {
       context.dismissHint();
       this.scheduleLayout();
     }, { passive: true, signal });
+    // The session positions us via present() immediately after connect();
+    // suppress settle-reporting until that scroll lands, so we don't clobber
+    // the opening (resume / deep-link) index with a premature reportSettled(0).
+    this.programmatic = true;
     this.applyLayout();
   }
 
@@ -45,13 +51,20 @@ class DesktopPanesTransport implements DeckTransport {
     const paneWidth = this.paneWidth();
     const spineZone = this.spineWidth * MAX_SPINES;
     const left = Math.max(0, selected * paneWidth - spineZone);
-    context.track.scrollTo({
-      left,
-      behavior: motion === 'animate' && !context.reducedMotion() ? 'smooth' : 'auto',
-    });
-    // The scrollTo fires a scroll event; applyLayout runs from there. Run it
-    // once synchronously too so a no-op scroll (already at target) still lays out.
+    const smooth = motion === 'animate' && !context.reducedMotion();
+    // Scripted scroll: guard settle-reporting until scrollLeft reaches the
+    // target, so applyLayout() (which fires on the resulting scroll events)
+    // never reports a stale active index back into session state.
+    this.programmatic = true;
+    context.track.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
     this.applyLayout();
+    const browser = this.browser || window;
+    browser.clearTimeout(this.settleTimer);
+    this.settleTimer = browser.setTimeout(() => {
+      this.settleTimer = 0;
+      this.programmatic = false;
+      this.applyLayout();
+    }, smooth ? 420 : 60);
   }
 
   reflow(): void {
@@ -71,6 +84,9 @@ class DesktopPanesTransport implements DeckTransport {
     if (this.scrollFrame) browser.cancelAnimationFrame(this.scrollFrame);
     this.resizeFrame = 0;
     this.scrollFrame = 0;
+    if (this.settleTimer) browser.clearTimeout(this.settleTimer);
+    this.settleTimer = 0;
+    this.programmatic = false;
     this.spines.forEach((spine) => spine.remove());
     this.spines = [];
     this.context?.cards.forEach((pane) => {
@@ -109,7 +125,8 @@ class DesktopPanesTransport implements DeckTransport {
       else el.style.left = `${pane.left}px`;
       if (pane.role === 'active') active = pane.index;
     });
-    if (active !== context.selectedIndex()) context.reportSettled(active);
+    // Only sync session state from genuine user scrolls — never mid-scripted-scroll.
+    if (!this.programmatic && active !== context.selectedIndex()) context.reportSettled(active);
   }
 
   private paneWidth(): number {
