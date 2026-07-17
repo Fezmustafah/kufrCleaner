@@ -9,6 +9,7 @@ declare global {
     initializeAnnotations?: (opts?: { animate?: boolean }) => void;
     _roughAnnotations?: RoughAnnotation[];
     _annRun?: () => void;
+    _annReanchor?: () => void;
   }
 }
 
@@ -52,27 +53,55 @@ function initAnnotations({ animate = true }: { animate?: boolean } = {}) {
 
 window.initializeAnnotations = initAnnotations;
 
+// Re-anchor existing annotations to their spans' current positions WITHOUT
+// recreating them. Each RoughAnnotation carries a stable `_seed`, so calling
+// show() re-renders the SAME hand-drawn squiggle at the new rect with animation
+// forced off (render(svg, true)). Recreating via initAnnotations() would assign
+// fresh seeds → every annotation re-sketches = shimmer. Unmoved annotations
+// re-render pixel-identically, so this is safe to call on the whole set.
+function reanchorAnnotations() {
+  const anns = window._roughAnnotations;
+  if (!anns?.length) return;
+  anns.forEach(a => { try { a.show(); } catch {} });
+}
+window._annReanchor = reanchorAnnotations;
+
+// Draw only once span geometry is final. Fonts load with `font-display: swap`,
+// so body text reflows after first paint and shifts annotated spans. The old
+// triggers (DOMContentLoaded, or a fixed 250ms timer) captured positions before
+// that swap, and rough-notation only self-heals on window-resize / changes to a
+// span's OWN size — never for a span displaced by upstream reflow — so
+// annotations sat at stale coordinates until a manual resize/DevTools reflow.
+// Gating on document.fonts.ready removes the guesswork; the window-load pass
+// re-anchors for any late images that lack intrinsic dimensions.
+function whenFontsReady(cb: () => void) {
+  const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+  if (fonts && fonts.status !== 'loaded') fonts.ready.then(() => requestAnimationFrame(cb));
+  else requestAnimationFrame(cb);
+}
+
 let _annLastPath = '';
-function runAnnotations() {
+function schedule(animate: boolean) {
   const path = window.location.pathname;
   if (path === _annLastPath) return;
   _annLastPath = path;
-  setTimeout(() => initAnnotations({ animate: false }), 250);
+  whenFontsReady(() => initAnnotations({ animate }));
+  if (document.readyState !== 'complete') {
+    window.addEventListener(
+      'load',
+      () => requestAnimationFrame(() => initAnnotations({ animate: false })),
+      { once: true }
+    );
+  }
 }
+function runAnnotations() { schedule(false); }
 window._annRun = runAnnotations;
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (_annLastPath) return;
-  _annLastPath = window.location.pathname;
-  initAnnotations({ animate: true });
-});
+document.addEventListener('DOMContentLoaded', () => schedule(true));
 document.addEventListener('astro:page-load', runAnnotations);
-if (document.readyState !== 'loading' && !_annLastPath) {
-  _annLastPath = window.location.pathname;
-  setTimeout(() => initAnnotations({ animate: false }), 250);
-}
+if (document.readyState !== 'loading') schedule(false);
 window.addEventListener('pageshow', e => {
-  if (e.persisted) { _annLastPath = ''; initAnnotations({ animate: true }); }
+  if (e.persisted) { _annLastPath = ''; schedule(true); }
 });
 
 // Redraw with fresh colors on dark/light flips (class mutation) and palette

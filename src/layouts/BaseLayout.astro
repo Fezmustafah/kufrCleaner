@@ -1138,6 +1138,26 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
           callout.classList.toggle('is-collapsed');
           const isNowCollapsed = callout.classList.contains('is-collapsed');
           content.style.gridTemplateRows = isNowCollapsed ? '0fr' : '1fr';
+          // Expanding/collapsing runs a 0.15s grid-rows transition that slides
+          // everything below the callout. rough-notation SVGs live on <body> and
+          // don't follow reflow, so track their spans each frame until the
+          // transition settles — this makes the annotations slide with the text
+          // instead of snapping at the end. _annReanchor reuses the existing
+          // annotation instances (stable seed = same squiggle); recreating them
+          // would re-sketch every annotation = shimmer.
+          let rafId = 0;
+          const deadline = performance.now() + 300; // safety stop if transitionend never fires (reduced-motion / no transition)
+          const tick = () => {
+            window._annReanchor?.();
+            if (performance.now() < deadline) rafId = requestAnimationFrame(tick);
+          };
+          rafId = requestAnimationFrame(tick);
+          content.addEventListener('transitionend', function done(e) {
+            if (e.propertyName !== 'grid-template-rows') return;
+            content.removeEventListener('transitionend', done);
+            cancelAnimationFrame(rafId);
+            window._annReanchor?.();
+          });
         });
       });
     }
