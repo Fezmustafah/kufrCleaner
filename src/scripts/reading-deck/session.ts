@@ -8,6 +8,7 @@ import {
   type FeedLengths,
 } from './state';
 import { createDesktopTransformTransport } from './transports/desktop-transform';
+import { createDesktopPanesTransport } from './transports/desktop-panes';
 import { createMobileScrollSnapTransport } from './transports/mobile-scroll-snap';
 import type {
   DeckTransport,
@@ -242,7 +243,10 @@ export class ReadingDeckSession {
 
   private sourceFor(feed: FeedKind): HTMLElement {
     if (feed === 'slides') {
-      const article = this.document.querySelector<HTMLElement>('#post-content');
+      // Posts scrape their live #post-content; a standalone deck (e.g. the
+      // homepage demo) can point elsewhere via data-deck-slides-source.
+      const selector = this.view.dialog.dataset.deckSlidesSource || '#post-content';
+      const article = this.document.querySelector<HTMLElement>(selector);
       if (!article) return this.document.createElement('div');
       return article.cloneNode(true) as HTMLElement;
     }
@@ -412,7 +416,9 @@ export class ReadingDeckSession {
     this.transport?.destroy();
     this.transport = mobile
       ? createMobileScrollSnapTransport({ onSettledHaptic: () => this.tick() })
-      : createDesktopTransformTransport();
+      : this.feed === 'slides'
+        ? createDesktopPanesTransport()
+        : createDesktopTransformTransport();
     this.transport.connect(this.transportContext(model, mobile));
     this.place(false);
   }
@@ -428,6 +434,7 @@ export class ReadingDeckSession {
       reducedMotion: () => this.viewportState.reducedMotion,
       interactionEnabled: () => !this.finished && !this.view.hasOpenSurface(),
       requestMove: (delta) => this.go(delta),
+      requestSelect: (index) => this.show(index, true, true),
       reportSettled: (index) => {
         if (index !== this.current) this.show(index, false, false, false);
         else this.bindCurrentCardScroll();

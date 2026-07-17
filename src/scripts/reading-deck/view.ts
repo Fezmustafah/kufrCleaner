@@ -105,7 +105,12 @@ export class ReadingDeckView {
 
   private overlayReturnFocus: HTMLElement | null = null;
   private scrollCard: HTMLElement | null = null;
-  private readonly onCardScroll = () => this.updateOverflow();
+  private readonly onCardScroll = () => {
+    // The note popover is fixed at open-time coordinates; dismiss it on scroll
+    // so it can't float over text that has scrolled away underneath it.
+    if (!this.sourceOverlay.hidden) this.closeSource();
+    this.updateOverflow();
+  };
   private readonly frames = new Set<number>();
   private destroyed = false;
 
@@ -189,7 +194,7 @@ export class ReadingDeckView {
   renderFeed(feed: CompiledReadingFeed, kind: FeedKind): void {
     this.track.replaceChildren(...feed.cards.map((card) => card.element));
     this.track.appendChild(this.finish);
-    this.modeLabel.textContent = kind === 'tldr' ? 'Quick read' : 'Deep read';
+    this.modeLabel.textContent = kind === 'tldr' ? 'TLDR view' : 'Deep read';
     this.dialog.dataset.activeFeed = kind;
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-feed]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.deckFeed === kind));
@@ -221,7 +226,7 @@ export class ReadingDeckView {
     const nextLabel = this.next.querySelector('span') || this.next;
     nextLabel.textContent = state.current === feed.cards.length - 1 ? 'Finish' : 'Next';
     this.status.textContent = card.isCover
-      ? `${state.feed === 'tldr' ? 'Quick read' : 'Deep read'} cover.`
+      ? `${state.feed === 'tldr' ? 'TLDR view' : 'Deep read'} cover.`
       : `${card.title}. Card ${contentIndex} of ${contentTotal}.`;
     this.indexList.querySelectorAll<HTMLButtonElement>('[data-card-index]').forEach((button) => {
       button.toggleAttribute('aria-current', Number(button.dataset.cardIndex) === state.current);
@@ -246,7 +251,7 @@ export class ReadingDeckView {
     this.finish.setAttribute('aria-label', 'Reading complete');
     this.finishTitle.textContent = kind === 'tldr' ? 'You have the core argument' : 'You reached the end';
     this.finishCopy.textContent = kind === 'tldr'
-      ? `You finished the ${feed.minutes}-minute quick read. Return to the article or share this view.`
+      ? `You finished the ${feed.minutes}-minute TLDR view. Return to the article or share this view.`
       : `You finished the ${feed.minutes}-minute deep read. Share this view or return to the article.`;
     this.finishPrimary.dataset.deckAction = 'article';
     this.finishPrimaryLabel.textContent = 'Back to article';

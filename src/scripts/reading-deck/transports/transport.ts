@@ -8,6 +8,7 @@ export interface DeckTransportContext {
   reducedMotion(): boolean;
   interactionEnabled(): boolean;
   requestMove(delta: -1 | 1): void;
+  requestSelect?(index: number): void;
   reportSettled(index: number): void;
   dismissHint(): void;
 }

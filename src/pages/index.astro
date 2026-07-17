@@ -12,6 +12,7 @@ import { optimizePostImagePath } from '@/utils/images';
 import HomepageHero from '@/components/HomepageHero.astro';
 import TopicBanner from '@/components/TopicBanner.astro';
 import PlatformShowcase from '@/components/PlatformShowcase.astro';
+import DeckDemo from '@/components/DeckDemo.astro';
 
 const baseUrl = import.meta.env.BASE_URL;
 
@@ -20,21 +21,6 @@ const allPosts = await getCollection('posts');
 const isDev = import.meta.env.DEV;
 const visiblePosts = allPosts.filter(post => shouldShowPost(post, isDev));
 const sortedPosts = sortPostsByDate(visiblePosts);
-
-// Pilot used by the homepage's interactive reading-deck showcase. Keep the
-// canonical article as the destination; the homepage only demonstrates the
-// navigation model and hands off to the real Deep read state via #slides.
-const DECK_SHOWCASE_ID = 'does-the-prophet-speak-only-by-revelation-refuting-the-alleged-contradiction-in-an-najm-53-34';
-const deckShowcasePost = sortedPosts.find(
-  (post) => post.id === DECK_SHOWCASE_ID && post.data.deck === true,
-);
-const deckShowcase = deckShowcasePost
-  ? {
-      title: deckShowcasePost.data.title,
-      description: deckShowcasePost.data.description || '',
-      url: `${baseUrl}posts/${deckShowcasePost.id}/#slides`,
-    }
-  : null;
 
 // Process posts for reading time and word count
 const processedPosts = await Promise.all(
@@ -399,7 +385,10 @@ const structuredData = {
           </div>
 
           <!-- ═══════════ 4 · PLATFORM DISCOVERY (live feature showcases) ═══════════ -->
-          <PlatformShowcase maxWidth={homeWidth} deckShowcase={deckShowcase} />
+          <PlatformShowcase maxWidth={homeWidth} />
+
+          <!-- ═══════════ 5 · DEEP READ demo (real sliding-panes transport, below "close reading") ═══════════ -->
+          <DeckDemo />
 
           <!-- ═══════════ CLOSING PULL-QUOTE ═══════════ -->
           <section class="hp-closer">

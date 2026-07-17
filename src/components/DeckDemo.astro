@@ -1,0 +1,222 @@
+---
+// Homepage "Deep read" demo — a REAL, inline sliding-panes instance: the same
+// panes CSS and the same `desktop-panes` transport used on every article,
+// driven over hand-written dummy panes (not content-collection files). The
+// transport context is dialog-agnostic, so this is the genuine renderer in a
+// bounded box — not a mock. Rendered from index.astro, below "Built for close
+// reading".
+import { siteConfig } from '@/config';
+
+// Kill-switch: when Deep read is disabled site-wide, don't advertise it here.
+const enabled = siteConfig.postOptions.readingDeck;
+---
+
+{enabled && (
+<section class="deck-demo not-prose" aria-labelledby="deck-demo-title" data-pagefind-ignore>
+  <div class="deck-demo-inner">
+    <span class="deck-demo-eyebrow">Try it yourself</span>
+    <h2 id="deck-demo-title" class="deck-demo-h2">Read across headings, one pane at a time</h2>
+    <p class="deck-demo-lead">
+      Deep read turns an article into sliding panes — each heading becomes its
+      own column. Move forward and the ones behind you collapse to a spine you
+      can click to jump back. Every post on this wiki has it; this is the real
+      thing, running right here.
+    </p>
+  </div>
+
+  <div class="deck-demo-stage" data-deck-demo-stage>
+    <!-- data-deck-layout is hardcoded to match what the transport sets, so the
+         panes render as columns on first paint (no flash of the deck layout). -->
+    <div class="reading-deck-track" data-deck-layout="panes" data-deck-demo-track>
+      <section class="reading-deck-card">
+        <h2>What is Deep read?</h2>
+        <p>
+          Instead of one long scroll, the article is laid out as panes you move
+          through at your own pace. The full text is all here — only the shape
+          changes.
+        </p>
+      </section>
+      <section class="reading-deck-card">
+        <h2>One heading per pane</h2>
+        <p>
+          Each section stands on its own column, so a single idea sits in front
+          of you without the rest of the page competing for attention.
+        </p>
+      </section>
+      <section class="reading-deck-card">
+        <h2>Panes stack as you go</h2>
+        <p>
+          Advance and the pane behind you folds into a slim spine on the left.
+          The spines are a live breadcrumb of where you have been — click one to
+          jump straight back.
+        </p>
+      </section>
+      <section class="reading-deck-card">
+        <h2>Close reading stays intact</h2>
+        <p>
+          Nothing is flattened. Emphasis like <mark>a highlighted phrase</mark>,
+          block quotes, footnotes and citations all carry over exactly as
+          written.
+        </p>
+        <blockquote>
+          <p>The panes are a different lens on the same text — not a summary of it.</p>
+        </blockquote>
+      </section>
+    </div>
+    <div class="deck-demo-controls">
+      <button type="button" class="deck-demo-nav" data-deck-demo-prev aria-label="Previous pane" disabled>
+        <span aria-hidden="true">←</span> Prev
+      </button>
+      <button type="button" class="deck-demo-nav" data-deck-demo-next aria-label="Next pane">
+        Next <span aria-hidden="true">→</span>
+      </button>
+    </div>
+  </div>
+</section>
+)}
+
+<style>
+  .deck-demo {
+    margin: 4rem auto 0;
+    max-width: 60rem;
+    padding: 0 1rem;
+  }
+  .deck-demo-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+  }
+  .deck-demo-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-600));
+  }
+  :global(.dark) .deck-demo-eyebrow { color: rgb(var(--color-highlight-400)); }
+  .deck-demo-h2 {
+    margin: 0;
+    font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    color: rgb(var(--color-primary-900));
+  }
+  :global(.dark) .deck-demo-h2 { color: rgb(var(--color-primary-50)); }
+  .deck-demo-lead {
+    margin: 0;
+    max-width: 38rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgb(var(--color-primary-600));
+  }
+  :global(.dark) .deck-demo-lead { color: rgb(var(--color-primary-300)); }
+
+  /* Bounded stage — gives the panes/track a real height to lay out in. */
+  .deck-demo-stage {
+    margin-top: 1.75rem;
+    height: 24rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 0.9rem;
+    overflow: hidden;
+    background: rgb(var(--color-primary-50));
+    position: relative;
+  }
+  :global(.dark) .deck-demo-stage {
+    border-color: rgb(var(--color-primary-800));
+    background: rgb(var(--color-primary-900));
+  }
+  /* The track fills the stage minus the controls bar. */
+  .deck-demo-stage [data-deck-demo-track] {
+    height: calc(100% - 3.25rem);
+  }
+  .deck-demo-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    border-top: 1px solid rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-100));
+  }
+  :global(.dark) .deck-demo-controls {
+    border-top-color: rgb(var(--color-primary-800));
+    background: rgb(var(--color-primary-950));
+  }
+  .deck-demo-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid rgb(var(--color-primary-300));
+    border-radius: 9999px;
+    background: rgb(var(--color-primary-50));
+    color: rgb(var(--color-primary-700));
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .deck-demo-nav:hover:not(:disabled) { background: rgb(var(--color-highlight-500) / 0.12); }
+  .deck-demo-nav:disabled { opacity: 0.4; cursor: default; }
+  :global(.dark) .deck-demo-nav {
+    border-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-800));
+    color: rgb(var(--color-primary-200));
+  }
+</style>
+
+<script>
+  import { createDesktopPanesTransport } from '@/scripts/reading-deck/transports/desktop-panes';
+  import type { DeckTransportContext } from '@/scripts/reading-deck/transports/transport';
+
+  function initDeckDemo() {
+    const stage = document.querySelector<HTMLElement>('[data-deck-demo-stage]');
+    const track = stage?.querySelector<HTMLElement>('[data-deck-demo-track]');
+    if (!stage || !track || track.dataset.demoReady) return;
+    track.dataset.demoReady = 'true';
+
+    const cards = Array.from(track.querySelectorAll<HTMLElement>('.reading-deck-card'));
+    if (!cards.length) return;
+    const prev = stage.querySelector<HTMLButtonElement>('[data-deck-demo-prev]');
+    const next = stage.querySelector<HTMLButtonElement>('[data-deck-demo-next]');
+    let current = 0;
+
+    const transport = createDesktopPanesTransport();
+    const syncControls = () => {
+      if (prev) prev.disabled = current === 0;
+      if (next) next.disabled = current === cards.length - 1;
+    };
+    const goTo = (index: number) => {
+      current = Math.max(0, Math.min(cards.length - 1, index));
+      transport.present(current, 'animate');
+      syncControls();
+    };
+
+    const context: DeckTransportContext = {
+      stage,
+      track,
+      cards,
+      selectedIndex: () => current,
+      reducedMotion: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      interactionEnabled: () => true,
+      requestMove: (delta) => goTo(current + delta),
+      requestSelect: (index) => goTo(index),
+      reportSettled: (index) => { current = index; syncControls(); },
+      dismissHint: () => {},
+    };
+
+    transport.connect(context);
+    transport.present(0, 'none');
+    syncControls();
+    prev?.addEventListener('click', () => goTo(current - 1));
+    next?.addEventListener('click', () => goTo(current + 1));
+  }
+
+  document.addEventListener('DOMContentLoaded', initDeckDemo);
+  document.addEventListener('swup:page:view', initDeckDemo);
+</script>

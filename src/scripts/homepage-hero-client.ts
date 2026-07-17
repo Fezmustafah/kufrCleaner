@@ -145,63 +145,6 @@ function initHero() {
     else window.location.href = `/search/?q=${encodeURIComponent(q)}`;
   });
 
-  // ── Platform showcase: lightweight reading-deck preview ────────────────
-  // This intentionally demonstrates only the card-navigation model. The
-  // article page owns extraction, history, gestures, sources, and completion.
-  const deckPreview = document.querySelector<HTMLElement>('[data-deck-showcase]');
-  if (deckPreview && deckPreview.dataset.deckPreviewBound !== 'true') {
-    deckPreview.dataset.deckPreviewBound = 'true';
-    const cards = Array.from(deckPreview.querySelectorAll<HTMLElement>('[data-deck-preview-card]'));
-    const progress = Array.from(deckPreview.querySelectorAll<HTMLElement>('[data-deck-preview-progress]'));
-    const previous = deckPreview.querySelector<HTMLButtonElement>('[data-deck-preview-previous]');
-    const next = deckPreview.querySelector<HTMLButtonElement>('[data-deck-preview-next]');
-    const previousNeighbor = deckPreview.querySelector<HTMLButtonElement>('[data-deck-preview-neighbor="-1"]');
-    const nextNeighbor = deckPreview.querySelector<HTMLButtonElement>('[data-deck-preview-neighbor="1"]');
-    const position = deckPreview.querySelector<HTMLElement>('[data-deck-preview-position]');
-    const title = deckPreview.querySelector<HTMLElement>('[data-deck-preview-title]');
-    const status = deckPreview.querySelector<HTMLElement>('[data-deck-preview-status]');
-    let current = 0;
-
-    const renderDeckPreview = (announce = false) => {
-      cards.forEach((card, index) => {
-        const offset = index - current;
-        card.style.setProperty('--deck-preview-x', `${offset * 92}%`);
-        card.dataset.distance = String(Math.min(Math.abs(offset), 2));
-        card.setAttribute('aria-hidden', String(offset !== 0));
-        card.toggleAttribute('inert', offset !== 0);
-      });
-      progress.forEach((step, index) => {
-        if (index === current) step.setAttribute('aria-current', 'step');
-        else step.removeAttribute('aria-current');
-      });
-
-      const atStart = current === 0;
-      const atEnd = current === cards.length - 1;
-      if (previous) previous.disabled = atStart;
-      if (next) next.disabled = atEnd;
-      if (previousNeighbor) previousNeighbor.hidden = atStart;
-      if (nextNeighbor) nextNeighbor.hidden = atEnd;
-
-      const cardTitle = cards[current]?.dataset.cardTitle || `Card ${current + 1}`;
-      if (position) position.textContent = `${current + 1} / ${cards.length}`;
-      if (title) title.textContent = cardTitle;
-      if (announce && status) status.textContent = `Preview card ${current + 1} of ${cards.length}: ${cardTitle}`;
-    };
-
-    const showPreviewCard = (index: number) => {
-      const target = Math.max(0, Math.min(index, cards.length - 1));
-      if (target === current) return;
-      current = target;
-      renderDeckPreview(true);
-    };
-
-    previous?.addEventListener('click', () => showPreviewCard(current - 1));
-    next?.addEventListener('click', () => showPreviewCard(current + 1));
-    previousNeighbor?.addEventListener('click', () => showPreviewCard(current - 1));
-    nextNeighbor?.addEventListener('click', () => showPreviewCard(current + 1));
-    renderDeckPreview();
-  }
-
   // ── Portal card stack — front card slides down and away, the deck rises ──
   // Depth per card via CSS vars (--sy/--ss/--so/--sv); cards beyond the top
   // three sit hidden at the back. DOM is fresh after every Swup swap, so no

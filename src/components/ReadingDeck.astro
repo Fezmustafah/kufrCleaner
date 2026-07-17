@@ -3,20 +3,37 @@ import type { CollectionEntry } from 'astro:content';
 import { render } from 'astro:content';
 import globalRefs from '@/data/global-refs.json';
 import { optimizePostImagePath } from '@/utils/images';
+import { siteConfig } from '@/config';
 import '@/styles/reading-deck.css';
 
 interface Props {
-  post: CollectionEntry<'posts'>;
+  post?: CollectionEntry<'posts'>;
   tldr?: CollectionEntry<'tldrs'>;
+  // Standalone/demo mode (used when `post` is omitted, e.g. the homepage demo):
+  // pass metadata explicitly and point the slides feed at a custom source element.
+  title?: string;
+  description?: string;
+  coverImage?: string;
+  id?: string;
+  slidesSource?: string; // CSS selector for the slides source; posts default to #post-content
+  hideEntry?: boolean; // suppress the built-in entry CTA (caller supplies its own [data-deck-open])
 }
 
-const { post, tldr } = Astro.props;
-const hasSlides = post.data.deck === true;
+const { post, tldr, slidesSource, hideEntry } = Astro.props;
+
+// Real posts gate the slides feed on the global Deep Read flag; a standalone
+// deck (no `post`) exists solely to show its slides, so it's always on.
+const hasSlides = post ? siteConfig.postOptions.readingDeck : true;
 const hasTldr = Boolean(tldr?.body?.trim());
-const coverImageValue = post.data.banner || post.data.image || '';
+
+const postId = post?.id ?? Astro.props.id ?? 'deck';
+const deckTitle = post?.data.title ?? Astro.props.title ?? '';
+const deckDescription = post?.data.description ?? Astro.props.description ?? '';
+
+const coverImageValue = post ? (post.data.banner || post.data.image || '') : '';
 const coverImage = coverImageValue
-  ? optimizePostImagePath(coverImageValue, post.id, post.id)
-  : '';
+  ? optimizePostImagePath(coverImageValue, post!.id, post!.id)
+  : (Astro.props.coverImage ?? '');
 
 let TldrContent: any = null;
 if (hasTldr && tldr) {
@@ -25,7 +42,7 @@ if (hasTldr && tldr) {
 
 const citationKeys = Array.from(new Set(
   Array.from(
-    `${post.body || ''}\n${tldr?.body || ''}`.matchAll(/\[@([a-zA-Z0-9_:.-]+)\]/g),
+    `${post?.body || ''}\n${tldr?.body || ''}`.matchAll(/\[@([a-zA-Z0-9_:.-]+)\]/g),
     (match) => match[1],
   ),
 ));
@@ -45,7 +62,7 @@ const citationText = (ref: Record<string, unknown>) => [
 ].filter(Boolean).join('. ');
 ---
 
-{(hasSlides || hasTldr) && (
+{(hasSlides || hasTldr) && !hideEntry && (
   <section class="reading-deck-entry not-prose" data-pagefind-ignore aria-label="Alternate reading modes">
     <div class="reading-deck-entry-copy">
       <span class="reading-deck-entry-kicker">Choose your pace</span>
@@ -78,12 +95,13 @@ const citationText = (ref: Record<string, unknown>) => [
       class="reading-deck"
       data-reading-deck
       data-pagefind-ignore
-      data-post-id={post.id}
-      data-post-title={post.data.title}
-      data-post-description={post.data.description || ''}
+      data-post-id={postId}
+      data-post-title={deckTitle}
+      data-post-description={deckDescription}
       data-cover-image={coverImage}
       data-has-slides={String(hasSlides)}
       data-has-tldr={String(hasTldr)}
+      data-deck-slides-source={slidesSource}
       aria-labelledby="reading-deck-title"
     >
       <div class="reading-deck-shell">
@@ -96,11 +114,11 @@ const citationText = (ref: Record<string, unknown>) => [
           </button>
 
           <div class="reading-deck-heading">
-            <h2 id="reading-deck-title" title={post.data.title}>{post.data.title}</h2>
+            <h2 id="reading-deck-title" title={deckTitle}>{deckTitle}</h2>
             {(hasSlides && hasTldr) && (
               <div class="reading-deck-switcher" role="group" aria-label="Reading mode">
                 <span class="reading-deck-switcher-thumb" aria-hidden="true"></span>
-                <button type="button" data-deck-feed="tldr"><span class="deck-mode-wide">Quick read</span><span class="deck-mode-short">Quick</span></button>
+                <button type="button" data-deck-feed="tldr"><span class="deck-mode-wide">TLDR view</span><span class="deck-mode-short">TLDR</span></button>
                 <button type="button" data-deck-feed="slides"><span class="deck-mode-wide">Deep read</span><span class="deck-mode-short">Deep</span></button>
               </div>
             )}

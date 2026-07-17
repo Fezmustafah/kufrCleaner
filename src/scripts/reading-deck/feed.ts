@@ -123,7 +123,7 @@ function createCoverCard(
   copy.className = 'reading-deck-cover-copy';
   const mode = document.createElement('span');
   mode.className = 'reading-deck-cover-mode';
-  mode.textContent = options.kind === 'tldr' ? 'Quick read' : 'Deep read';
+  mode.textContent = options.kind === 'tldr' ? 'TLDR view' : 'Deep read';
   const title = document.createElement('h2');
   title.textContent = options.title || 'Article';
   const description = document.createElement('p');
@@ -250,7 +250,7 @@ function decorateCards(
     card.element.setAttribute(
       'aria-label',
       card.isCover
-        ? `${options.kind === 'tldr' ? 'Quick read' : 'Deep read'} cover`
+        ? `${options.kind === 'tldr' ? 'TLDR view' : 'Deep read'} cover`
         : `${card.title}, card ${index} of ${contentTotal}`,
     );
     namespaceCard(card.element, `${options.kind}-${index + 1}`, sources, options.cardHash(options.kind, index));

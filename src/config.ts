@@ -148,6 +148,7 @@ export interface SiteConfig {
       showOrphanedPosts: boolean;
     };
     postNavigation: boolean;
+    readingDeck: boolean;
     showPostCardCoverImages: "all" | "featured" | "home" | "posts" | "featured-and-posts" | "none";
     postCardAspectRatio: AspectRatio;
     customPostCardAspectRatio?: string;
@@ -463,6 +464,8 @@ export const siteConfig: SiteConfig = {
     },
     // [CONFIG:POST_OPTIONS_POST_NAVIGATION]
     postNavigation: true,
+    // [CONFIG:POST_OPTIONS_READING_DECK]
+    readingDeck: true, // Deep Read slide/deck mode, available on every post
     // [CONFIG:POST_OPTIONS_SHOW_POST_CARD_COVER_IMAGES]
     showPostCardCoverImages: "featured-and-posts", // "all" | "featured" | "home" | "posts" | "featured-and-posts" | "none"
     // [CONFIG:POST_OPTIONS_POST_CARD_ASPECT_RATIO]
