@@ -142,6 +142,18 @@ export class ReadingDeckView {
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-feed]').forEach((button) => {
       button.addEventListener('click', () => events.switchFeed(button.dataset.deckFeed as FeedKind), { signal });
     });
+    // Deep read has no footer contents button — the article title opens the
+    // contents index instead (see renderFeed for the a11y attributes).
+    const titleEl = this.dialog.querySelector<HTMLElement>('#reading-deck-title');
+    titleEl?.addEventListener('click', () => {
+      if (this.dialog.dataset.activeFeed === 'slides') events.openContents(titleEl);
+    }, { signal });
+    titleEl?.addEventListener('keydown', (event) => {
+      if (this.dialog.dataset.activeFeed === 'slides' && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault();
+        events.openContents(titleEl);
+      }
+    }, { signal });
     this.prev.addEventListener('click', () => events.move(-1), { signal });
     this.next.addEventListener('click', () => events.move(1), { signal });
     this.dialog.querySelector<HTMLButtonElement>('[data-deck-search]')?.addEventListener('click', events.search, { signal });
@@ -196,6 +208,20 @@ export class ReadingDeckView {
     this.track.appendChild(this.finish);
     this.modeLabel.textContent = kind === 'tldr' ? 'TLDR view' : 'Deep read';
     this.dialog.dataset.activeFeed = kind;
+    const titleEl = this.dialog.querySelector<HTMLElement>('#reading-deck-title');
+    if (titleEl) {
+      if (kind === 'slides') {
+        titleEl.setAttribute('role', 'button');
+        titleEl.setAttribute('tabindex', '0');
+        titleEl.setAttribute('aria-haspopup', 'dialog');
+        titleEl.setAttribute('aria-label', `Contents — ${titleEl.textContent}`);
+      } else {
+        titleEl.removeAttribute('role');
+        titleEl.removeAttribute('tabindex');
+        titleEl.removeAttribute('aria-haspopup');
+        titleEl.removeAttribute('aria-label');
+      }
+    }
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-feed]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.deckFeed === kind));
     });
@@ -204,13 +230,17 @@ export class ReadingDeckView {
   }
 
   selectCard(index: number): void {
+    // Deep read shows every pane at once — reading across headings means all
+    // panes stay interactive (no inert/aria-hidden), unlike the one-at-a-time
+    // TLDR deck.
+    const panes = this.track.dataset.deckLayout === 'panes';
     const cards = Array.from(this.track.querySelectorAll<HTMLElement>('.reading-deck-card'));
     cards.forEach((card, cardIndex) => {
       const active = cardIndex === index;
       card.dataset.deckDistance = String(Math.min(2, Math.abs(cardIndex - index)));
-      card.toggleAttribute('inert', !active);
-      card.setAttribute('aria-hidden', String(!active));
-      card.style.contentVisibility = Math.abs(cardIndex - index) <= 1 ? 'visible' : '';
+      card.toggleAttribute('inert', panes ? false : !active);
+      card.setAttribute('aria-hidden', String(panes ? false : !active));
+      card.style.contentVisibility = panes || Math.abs(cardIndex - index) <= 1 ? 'visible' : '';
     });
   }
 

@@ -1059,18 +1059,32 @@ body > label[for^='web-haptics-'] > input {
   border-radius: 0;
   box-shadow: none;
   content-visibility: visible;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-primary-300)) transparent;
   transition: width 320ms cubic-bezier(0.19, 1, 0.22, 1);
 }
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card:first-of-type {
   border-left: 0;
 }
+/* Panes get a visible (thin) scrollbar so "there is more below" is obvious. */
+.reading-deck-track[data-deck-layout="panes"] > .reading-deck-card::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+}
+.reading-deck-track[data-deck-layout="panes"] > .reading-deck-card::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-primary-300));
+  border-radius: 4px;
+}
+.dark .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card {
+  scrollbar-color: rgb(var(--color-primary-700)) transparent;
+}
+.dark .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-primary-700));
+}
 
-/* Collapsed pane → sticky 40px spine breadcrumb pinned on the left.
-   The transport sets inline `left: <cumulative>px` so spines stack. */
+/* Collapsed pane → a compact 40px spine in normal flow (NOT pinned), so a long
+   article's history scrolls away to the left instead of eating the screen. */
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card.collapsed {
-  position: sticky;
-  left: 0;
-  z-index: 6;
   width: 2.5rem;
   min-width: 2.5rem;
   max-width: 2.5rem;
@@ -1116,6 +1130,31 @@ body > label[for^='web-haptics-'] > input {
 .dark .reading-deck-spine {
   background: rgb(var(--color-primary-800));
   color: rgb(var(--color-primary-200));
+}
+
+/* Deep read chrome: no edge hover-strips, no footer controls — the topbar
+   title opens the contents index instead (wired in view.ts). Scoped to slides
+   so the TLDR deck keeps its neighbors and Prev/Next/contents footer. */
+.reading-deck[data-active-feed="slides"] .reading-deck-neighbor { display: none; }
+.reading-deck[data-active-feed="slides"] .reading-deck-controls { display: none; }
+.reading-deck[data-active-feed="slides"] #reading-deck-title {
+  cursor: pointer;
+  border-bottom: 1px dashed rgb(var(--color-primary-400));
+  transition: border-bottom-color 0.15s ease, color 0.15s ease;
+}
+.reading-deck[data-active-feed="slides"] #reading-deck-title:hover,
+.reading-deck[data-active-feed="slides"] #reading-deck-title:focus-visible {
+  color: rgb(var(--color-highlight-600));
+  border-bottom-color: rgb(var(--color-highlight-600));
+  outline: none;
+}
+.dark .reading-deck[data-active-feed="slides"] #reading-deck-title {
+  border-bottom-color: rgb(var(--color-primary-600));
+}
+.dark .reading-deck[data-active-feed="slides"] #reading-deck-title:hover,
+.dark .reading-deck[data-active-feed="slides"] #reading-deck-title:focus-visible {
+  color: rgb(var(--color-highlight-400));
+  border-bottom-color: rgb(var(--color-highlight-400));
 }
 
 .reading-deck-cover-card {

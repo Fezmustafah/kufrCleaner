@@ -36,26 +36,25 @@ class DesktopPanesTransport implements DeckTransport {
     const context = this.context;
     if (!context?.cards.length) return;
     const selected = Math.max(0, Math.min(context.cards.length - 1, index));
-
-    // ponytail: collapse everything left of the selected pane; cumulative
-    // left = (collapsed-so-far) * SPINE_WIDTH so spines stack, not overlap.
-    let collapsedLeft = 0;
-    context.cards.forEach((pane, i) => {
-      const collapsed = i < selected;
-      pane.classList.toggle('collapsed', collapsed);
-      if (collapsed) {
-        pane.style.left = `${collapsedLeft}px`;
-        collapsedLeft += SPINE_WIDTH;
-      } else {
-        pane.style.removeProperty('left');
-      }
-    });
-
     const pane = context.cards[selected];
     if (!pane) return;
+
+    // If the pane is already comfortably in view this is a manual-scroll settle
+    // or a resize — leave collapse and scroll alone. Re-collapsing/re-scrolling
+    // here is exactly what fought the user's own horizontal scrolling.
+    const relBefore = pane.offsetLeft - context.track.scrollLeft;
+    const inView = relBefore >= 0 && relBefore <= context.track.clientWidth * 0.5;
+    if (motion !== 'animate' && inView) return;
+
+    // Explicit navigation (or an off-screen target): collapse the panes behind
+    // the selection into compact in-flow spines, then bring it into view. Spines
+    // are NOT pinned — they scroll away, so a long article can't fill the screen.
+    context.cards.forEach((p, i) => p.classList.toggle('collapsed', i < selected));
+
+    const gutter = 2 * SPINE_WIDTH; // let a couple of prior spines peek as a breadcrumb
     this.programmatic = true;
     context.track.scrollTo({
-      left: Math.max(0, pane.offsetLeft - collapsedLeft),
+      left: Math.max(0, pane.offsetLeft - gutter),
       behavior: motion === 'animate' && !context.reducedMotion() ? 'smooth' : 'auto',
     });
     // Release the programmatic guard after the scroll settles.
@@ -123,8 +122,8 @@ class DesktopPanesTransport implements DeckTransport {
     const context = this.context;
     this.settleTimer = 0;
     if (!context || this.programmatic) return;
-    // Nearest expanded pane to the left edge (after the pinned spine stack).
-    const collapsedCount = context.cards.filter((_, i) => i < context.selectedIndex()).length;
+    // Nearest expanded pane to the left edge (past any leading in-flow spines).
+    const collapsedCount = context.cards.filter((p) => p.classList.contains('collapsed')).length;
     const edge = context.track.scrollLeft + collapsedCount * SPINE_WIDTH;
     let nearest = context.selectedIndex();
     let distance = Number.POSITIVE_INFINITY;
