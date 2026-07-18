@@ -1174,20 +1174,18 @@ body > label[for^='web-haptics-'] > input {
    tied to content scroll. Hidden on the last section (nothing to the right). */
 .reading-deck-nudge { display: none; }
 @media (max-width: 720px) {
-  .reading-deck[data-active-feed="slides"] .reading-deck-nudge {
+  /* Bottom-right, and only once the current pane is scrolled to its end. */
+  .reading-deck[data-active-feed="slides"][data-deck-at-end]:not([data-deck-last]) .reading-deck-nudge {
     display: flex;
-    justify-content: center;
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    right: calc(0.9rem + env(safe-area-inset-right, 0px));
+    bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
     z-index: 5;
     pointer-events: none;
   }
-  .reading-deck[data-active-feed="slides"][data-deck-last] .reading-deck-nudge { display: none; }
   .reading-deck-nudge svg {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1.6rem;
+    height: 1.6rem;
     color: rgb(var(--color-primary-500));
     animation: reading-deck-nudge 1.8s ease-in-out infinite;
   }

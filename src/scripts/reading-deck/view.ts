@@ -518,11 +518,14 @@ export class ReadingDeckView {
     const card = this.scrollCard;
     if (!card) {
       this.scrollShadow.hidden = true;
+      this.dialog.removeAttribute('data-deck-at-end');
       return;
     }
     const overflow = card.scrollHeight > card.clientHeight + 10;
     const moreBelow = card.scrollTop + card.clientHeight < card.scrollHeight - 10;
     this.scrollShadow.hidden = finished || !(overflow && moreBelow);
+    // Reveal the mobile "slide for more" nudge only once the pane's bottom is reached.
+    this.dialog.toggleAttribute('data-deck-at-end', !finished && !moreBelow);
   }
 
   destroy(): void {
