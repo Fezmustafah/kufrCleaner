@@ -67,6 +67,9 @@ export class ReadingDeckView {
       image: required<HTMLImageElement>(dialog, '[data-deck-image]'),
       scrollShadow: required<HTMLElement>(dialog, '[data-deck-scroll-shadow]'),
       swipeHint: required<HTMLElement>(dialog, '[data-deck-swipe-hint]'),
+      hud: required<HTMLElement>(dialog, '[data-deck-hud]'),
+      hudTitle: required<HTMLElement>(dialog, '[data-deck-hud-title]'),
+      hudCount: required<HTMLElement>(dialog, '[data-deck-hud-count]'),
       finish: required<HTMLElement>(dialog, '[data-deck-finish]'),
       finishTitle: required<HTMLElement>(dialog, '[data-deck-finish-title]'),
       finishCopy: required<HTMLElement>(dialog, '[data-deck-finish-copy]'),
@@ -98,6 +101,10 @@ export class ReadingDeckView {
   declare private readonly scrollShadow: HTMLElement;
   declare private readonly swipeHint: HTMLElement;
   declare readonly finish: HTMLElement;
+  declare private readonly hud: HTMLElement;
+  declare private readonly hudTitle: HTMLElement;
+  declare private readonly hudCount: HTMLElement;
+  private hudTimer = 0;
   declare private readonly finishTitle: HTMLElement;
   declare private readonly finishCopy: HTMLElement;
   declare private readonly finishPrimary: HTMLButtonElement;
@@ -249,6 +256,28 @@ export class ReadingDeckView {
     });
   }
 
+  // Mobile Deep read has no spine breadcrumb; on each section change a
+  // transient HUD confirms where you landed, then fades — no standing chrome.
+  flashPosition(index: number, feed: CompiledReadingFeed): void {
+    const card = feed.cards[index];
+    if (!card || card.isCover) { this.hideHud(); return; }
+    const total = feed.cards.filter((item) => !item.isCover).length;
+    const position = feed.cards.slice(0, index + 1).filter((item) => !item.isCover).length;
+    this.hudTitle.textContent = card.title;
+    this.hudCount.textContent = `${position} / ${total}`;
+    this.hud.classList.add('is-visible');
+    const browser = this.dialog.ownerDocument.defaultView || window;
+    browser.clearTimeout(this.hudTimer);
+    this.hudTimer = browser.setTimeout(() => this.hud.classList.remove('is-visible'), 1500);
+  }
+
+  hideHud(): void {
+    const browser = this.dialog.ownerDocument.defaultView || window;
+    browser.clearTimeout(this.hudTimer);
+    this.hudTimer = 0;
+    this.hud.classList.remove('is-visible');
+  }
+
   renderNavigation(state: DeckState, feed: CompiledReadingFeed): void {
     const card = feed.cards[state.current];
     if (!card) return;
@@ -264,7 +293,9 @@ export class ReadingDeckView {
       ? `${state.feed === 'tldr' ? 'TLDR view' : 'Deep read'} cover.`
       : `${card.title}. Card ${contentIndex} of ${contentTotal}.`;
     this.indexList.querySelectorAll<HTMLButtonElement>('[data-card-index]').forEach((button) => {
-      button.toggleAttribute('aria-current', Number(button.dataset.cardIndex) === state.current);
+      // Must be the literal "true" so the [aria-current="true"] highlight applies.
+      if (Number(button.dataset.cardIndex) === state.current) button.setAttribute('aria-current', 'true');
+      else button.removeAttribute('aria-current');
     });
     this.progress.querySelectorAll<HTMLButtonElement>('[data-deck-progress-index]').forEach((button) => {
       const index = Number(button.dataset.deckProgressIndex);
@@ -508,6 +539,8 @@ export class ReadingDeckView {
     this.frames.clear();
     this.scrollCard?.removeEventListener('scroll', this.onCardScroll);
     this.scrollCard = null;
+    browser.clearTimeout(this.hudTimer);
+    this.hudTimer = 0;
     this.close();
   }
 

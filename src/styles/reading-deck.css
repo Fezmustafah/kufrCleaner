@@ -1220,6 +1220,60 @@ body > label[for^='web-haptics-'] > input {
   color: rgb(var(--color-highlight-400));
 }
 
+/* Mobile Deep read — a transient position HUD (bottom-center) that overlays the
+   content and fades after each section change, so it costs no standing space. */
+.reading-deck-hud {
+  position: absolute;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 20;
+  display: none;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: min(88%, 30rem);
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  background: rgb(var(--color-primary-950) / 0.72);
+  border: 1px solid rgb(var(--color-primary-700) / 0.7);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: var(--font-heading, inherit);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+.reading-deck-hud.is-visible { opacity: 1; visibility: visible; }
+.reading-deck-hud-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  color: rgb(var(--color-primary-100));
+}
+.reading-deck-hud-count {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--color-highlight-400));
+}
+@media (max-width: 720px) {
+  .reading-deck[data-active-feed="slides"] .reading-deck-hud { display: flex; }
+  /* One clean section per screen — remove the garbled neighbour peek. */
+  .reading-deck[data-active-feed="slides"] .reading-deck-track {
+    gap: 0;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
+  }
+  .reading-deck[data-active-feed="slides"] .reading-deck-track > .reading-deck-card {
+    flex-basis: 100%;
+    border-radius: 0;
+  }
+}
+
 .reading-deck-cover-card {
   isolation: isolate;
   display: grid;

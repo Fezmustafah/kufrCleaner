@@ -272,6 +272,10 @@ export class ReadingDeckSession {
     this.view.selectCard(this.current);
 
     this.syncUI(model);
+    // Mobile Deep read: flash the transient position HUD when the section changes.
+    if (result.effects.cardChanged && this.feed === 'slides' && this.viewportState.mobile) {
+      this.view.flashPosition(this.current, model);
+    }
     if (shouldPlace) this.place(animate);
     this.bindCurrentCardScroll();
     if (result.effects.cardChanged) this.dismissSwipeHint();
