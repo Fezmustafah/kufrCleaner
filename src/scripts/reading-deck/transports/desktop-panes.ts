@@ -19,9 +19,9 @@ class DesktopPanesTransport implements DeckTransport {
   private browser: Window | null = null;
   private abort: AbortController | null = null;
   private spines: HTMLButtonElement[] = [];
-  private arrows: HTMLButtonElement[] = [];
   private resizeFrame = 0;
   private scrollFrame = 0;
+  private slidingTimer = 0;
   private spineWidth = 40;
   private programmatic = false;
   private settleTimer = 0;
@@ -40,12 +40,13 @@ class DesktopPanesTransport implements DeckTransport {
     context.track.dataset.deckLayout = 'panes';
     this.readSpineWidth(context);
     this.buildSpines(context);
-    this.buildArrows(context);
     // Native scroll in both axes: vertical wheel reads a pane, horizontal
     // (scrollbar / shift-wheel / trackpad swipe) moves across panes. We only
-    // react to it — recompute the layout and report the active pane.
+    // react to it — recompute the layout, report the active pane, and flag the
+    // track as sliding so the pane depth-shadow shows during motion only.
     context.track.addEventListener('scroll', () => {
       context.dismissHint();
+      this.markSliding();
       this.scheduleLayout();
     }, { passive: true, signal });
     // The session positions us via present() immediately after connect();
@@ -53,8 +54,6 @@ class DesktopPanesTransport implements DeckTransport {
     // the opening (resume / deep-link) index with a premature reportSettled(0).
     this.programmatic = true;
     this.applyLayout();
-    // Panes need a laid-out frame before their scroll heights are meaningful.
-    (this.browser || window).requestAnimationFrame(() => this.updateAllEnds());
   }
 
   present(index: number, motion: DeckMotion): void {
@@ -86,7 +85,6 @@ class DesktopPanesTransport implements DeckTransport {
       this.resizeFrame = 0;
       this.readSpineWidth(this.context!);
       this.applyLayout();
-      this.updateAllEnds();
     });
   }
 
@@ -100,15 +98,15 @@ class DesktopPanesTransport implements DeckTransport {
     this.scrollFrame = 0;
     if (this.settleTimer) browser.clearTimeout(this.settleTimer);
     this.settleTimer = 0;
+    if (this.slidingTimer) browser.clearTimeout(this.slidingTimer);
+    this.slidingTimer = 0;
     this.programmatic = false;
     this.spines.forEach((spine) => spine.remove());
     this.spines = [];
-    this.arrows.forEach((arrow) => arrow.remove());
-    this.arrows = [];
+    this.context?.track.classList.remove('reading-deck-sliding');
     this.context?.cards.forEach((pane) => {
       pane.classList.remove('collapsed');
       pane.removeAttribute('data-pane-hidden');
-      pane.removeAttribute('data-at-end');
       pane.style.removeProperty('left');
     });
     if (this.context) delete this.context.track.dataset.deckLayout;
@@ -179,38 +177,18 @@ class DesktopPanesTransport implements DeckTransport {
     });
   }
 
-  // Each pane gets a "continue →" arrow that reveals (via CSS) once the pane is
-  // scrolled to its bottom — the deliberate "slide to the next section" prompt,
-  // replacing the old single scroll-shadow that mistracked across panes.
-  private buildArrows(context: DeckTransportContext): void {
-    const doc = context.track.ownerDocument;
-    const signal = this.abort!.signal;
-    context.cards.forEach((pane, index) => {
-      if (pane.hasAttribute('data-deck-finish')) return;
-      if (pane.querySelector(':scope > .reading-deck-pane-arrow')) return;
-      const arrow = doc.createElement('button');
-      arrow.type = 'button';
-      arrow.className = 'reading-deck-pane-arrow';
-      arrow.setAttribute('aria-label', 'Continue to the next section');
-      arrow.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>';
-      arrow.addEventListener('click', () => {
-        context.requestSelect?.(Math.min(index + 1, context.cards.length - 1));
-      }, { signal });
-      pane.appendChild(arrow);
-      this.arrows.push(arrow);
-      pane.addEventListener('scroll', () => this.updatePaneEnd(pane), { passive: true, signal });
-    });
-  }
-
-  private updatePaneEnd(pane: HTMLElement): void {
-    const atEnd = pane.scrollTop + pane.clientHeight >= pane.scrollHeight - 4;
-    pane.toggleAttribute('data-at-end', atEnd);
-  }
-
-  private updateAllEnds(): void {
-    this.context?.cards.forEach((pane) => {
-      if (!pane.hasAttribute('data-deck-finish')) this.updatePaneEnd(pane);
-    });
+  // Depth-shadow shows only while the track is moving; it fades out (via CSS
+  // transition) shortly after the slide comes to rest.
+  private markSliding(): void {
+    const context = this.context;
+    if (!context) return;
+    context.track.classList.add('reading-deck-sliding');
+    const browser = this.browser || window;
+    browser.clearTimeout(this.slidingTimer);
+    this.slidingTimer = browser.setTimeout(() => {
+      this.slidingTimer = 0;
+      this.context?.track.classList.remove('reading-deck-sliding');
+    }, 180);
   }
 }
 

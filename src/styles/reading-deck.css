@@ -1049,9 +1049,6 @@ body > label[for^='web-haptics-'] > input {
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--color-primary-300)) transparent;
   touch-action: pan-x;
-  /* Gentle settle-into-place per section without trapping free scroll. */
-  scroll-snap-type: x proximity;
-  scroll-padding-left: calc(var(--deck-spine-width) * 2);
 }
 /* Visible horizontal scrollbar = an obvious "drag to move across panes" handle. */
 .reading-deck-track[data-deck-layout="panes"]::-webkit-scrollbar { display: block; height: 10px; }
@@ -1079,15 +1076,20 @@ body > label[for^='web-haptics-'] > input {
   border: 0;
   border-left: 1px solid rgb(var(--color-primary-200));
   border-radius: 0;
-  /* Andy-style depth: each pane casts left over the one behind it as it slides. */
-  box-shadow: -16px 0 34px -22px rgb(var(--color-primary-950) / 0.6);
-  scroll-snap-align: start;
+  /* Andy-style depth appears only while sliding (rule below) and fades at rest. */
+  box-shadow: none;
+  transition: box-shadow 0.28s ease;
   content-visibility: visible;
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--color-primary-300)) transparent;
 }
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card:first-of-type {
   border-left: 0;
+}
+/* Depth only during motion — the transport toggles .reading-deck-sliding on the
+   track while scrolling and clears it shortly after the slide comes to rest. */
+.reading-deck-track[data-deck-layout="panes"].reading-deck-sliding > .reading-deck-card {
+  box-shadow: -16px 0 34px -22px rgb(var(--color-primary-950) / 0.6);
 }
 /* Panes get a visible (thin) scrollbar so "there is more below" is obvious. */
 .reading-deck-track[data-deck-layout="panes"] > .reading-deck-card::-webkit-scrollbar {
@@ -1167,42 +1169,42 @@ body > label[for^='web-haptics-'] > input {
    deck, mistracks across panes) with a per-pane "continue" arrow. */
 .reading-deck[data-active-feed="slides"] .reading-deck-scroll-shadow { display: none; }
 
-.reading-deck-pane-arrow {
-  position: sticky;
-  bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
-  z-index: 6;
-  display: grid;
-  place-items: center;
-  width: 2.7rem;
-  height: 2.7rem;
-  margin: -2.7rem 1rem 0 auto; /* pull back up so it doesn't add scroll length */
-  padding: 0;
-  border: 1px solid rgb(var(--color-primary-300) / 0.7);
-  border-radius: 50%;
-  color: rgb(var(--color-primary-700));
-  background: rgb(var(--color-primary-50) / 0.85);
-  box-shadow: 0 6px 18px rgb(var(--color-primary-950) / 0.22);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  opacity: 0;
-  transform: translateX(0.4rem);
-  pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.15s ease;
-}
-.reading-deck-card[data-at-end] > .reading-deck-pane-arrow {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-.reading-deck-card.collapsed > .reading-deck-pane-arrow { display: none; }
-.reading-deck-pane-arrow:hover {
-  background: rgb(var(--color-highlight-500) / 0.18);
-  border-color: rgb(var(--color-highlight-500) / 0.5);
-}
-.dark .reading-deck-pane-arrow {
-  border-color: rgb(var(--color-primary-600) / 0.8);
-  color: rgb(var(--color-primary-100));
-  background: rgb(var(--color-primary-800) / 0.82);
+/* Mobile-only "continue" arrow (built by the mobile transport for slides).
+   Sticky to the pane's bottom edge; revealed once the pane is scrolled to end. */
+.reading-deck-pane-arrow { display: none; }
+@media (max-width: 720px) {
+  .reading-deck-pane-arrow {
+    display: grid;
+    position: sticky;
+    bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+    z-index: 6;
+    place-items: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    margin: -2.7rem 0.9rem 0 auto; /* pull back up so it adds no scroll length */
+    padding: 0;
+    border: 1px solid rgb(var(--color-primary-300) / 0.7);
+    border-radius: 50%;
+    color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-50) / 0.9);
+    box-shadow: 0 6px 18px rgb(var(--color-primary-950) / 0.22);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transform: translateY(0.4rem);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .reading-deck-card[data-at-end] > .reading-deck-pane-arrow {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+  .dark .reading-deck-pane-arrow {
+    border-color: rgb(var(--color-primary-600) / 0.8);
+    color: rgb(var(--color-primary-100));
+    background: rgb(var(--color-primary-800) / 0.85);
+  }
 }
 
 /* Deep read is full-bleed: no inset frame around the panes or the scrollbar. */
