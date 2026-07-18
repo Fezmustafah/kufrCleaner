@@ -1,238 +1,276 @@
 ---
-// Homepage "Deep read" demo — a REAL, inline sliding-panes instance: the same
-// panes CSS and the same `desktop-panes` transport used on every article,
-// driven over hand-written dummy panes (not content-collection files). The
-// transport context is dialog-agnostic, so this is the genuine renderer in a
-// bounded box — not a mock. Rendered from index.astro, below "Built for close
-// reading".
+// Homepage showcase for the two reading modes. These are self-contained,
+// scoped-CSS previews (NOT the real transport) — the article-only
+// reading-deck.css isn't loaded on the homepage, so a live instance can't
+// render here. Natively scrollable so they still feel alive.
 import { siteConfig } from '@/config';
 
-// Kill-switch: when Deep read is disabled site-wide, don't advertise it here.
 const enabled = siteConfig.postOptions.readingDeck;
 ---
 
 {enabled && (
-<section class="deck-demo not-prose" aria-labelledby="deck-demo-title" data-pagefind-ignore>
-  <div class="deck-demo-inner">
-    <span class="deck-demo-eyebrow">Try it yourself</span>
-    <h2 id="deck-demo-title" class="deck-demo-h2">Read across headings, one pane at a time</h2>
-    <p class="deck-demo-lead">
-      Deep read turns an article into sliding panes — each heading becomes its
-      own column. Move forward and the ones behind you collapse to a spine you
-      can click to jump back. Every post on this wiki has it; this is the real
-      thing, running right here.
+<section class="feat-demo not-prose" aria-labelledby="feat-demo-title" data-pagefind-ignore>
+  <div class="feat-demo-inner">
+    <span class="feat-demo-eyebrow">Two ways to read</span>
+    <h2 id="feat-demo-title" class="feat-demo-h2">Every article, read your way</h2>
+    <p class="feat-demo-lead">
+      Skim the whole argument in seconds with <strong>TLDR view</strong>, or read it
+      slowly as sliding panes with <strong>Deep read</strong>. Both are one tap away
+      on every post — try dragging the previews.
     </p>
   </div>
 
-  <div class="deck-demo-stage" data-deck-demo-stage>
-    <!-- data-deck-layout is hardcoded to match what the transport sets, so the
-         panes render as columns on first paint (no flash of the deck layout). -->
-    <div class="reading-deck-track" data-deck-layout="panes" data-deck-demo-track>
-      <section class="reading-deck-card">
-        <h2>What is Deep read?</h2>
-        <p>
-          Instead of one long scroll, the article is laid out as panes you move
-          through at your own pace. The full text is all here — only the shape
-          changes.
-        </p>
-      </section>
-      <section class="reading-deck-card">
-        <h2>One heading per pane</h2>
-        <p>
-          Each section stands on its own column, so a single idea sits in front
-          of you without the rest of the page competing for attention.
-        </p>
-      </section>
-      <section class="reading-deck-card">
-        <h2>Panes stack as you go</h2>
-        <p>
-          Advance and the pane behind you folds into a slim spine on the left.
-          The spines are a live breadcrumb of where you have been — click one to
-          jump straight back.
-        </p>
-      </section>
-      <section class="reading-deck-card">
-        <h2>Close reading stays intact</h2>
-        <p>
-          Nothing is flattened. Emphasis like <mark>a highlighted phrase</mark>,
-          block quotes, footnotes and citations all carry over exactly as
-          written.
-        </p>
-        <blockquote>
-          <p>The panes are a different lens on the same text — not a summary of it.</p>
-        </blockquote>
-      </section>
-    </div>
-    <div class="deck-demo-controls">
-      <button type="button" class="deck-demo-nav" data-deck-demo-prev aria-label="Previous pane" disabled>
-        <span aria-hidden="true">←</span> Prev
-      </button>
-      <button type="button" class="deck-demo-nav" data-deck-demo-next aria-label="Next pane">
-        Next <span aria-hidden="true">→</span>
-      </button>
-    </div>
+  <div class="feat-demo-grid">
+    <!-- Deep read preview -->
+    <figure class="feat-demo-fig">
+      <div class="fd-panes" tabindex="0" role="group" aria-label="Deep read sliding-panes preview">
+        <div class="fd-spine"><span>The objection</span></div>
+        <article class="fd-pane">
+          <h3>Second: the reply</h3>
+          <p>Each heading becomes its own column, so a single idea sits in front of you without the rest of the page competing for attention.</p>
+          <p class="fd-pane-quote">“A different lens on the same text — not a summary of it.”</p>
+        </article>
+        <article class="fd-pane">
+          <h3>The evidence</h3>
+          <p>Move forward and the pane behind you folds into a slim spine on the left — a live breadcrumb you can click to jump back.</p>
+        </article>
+        <article class="fd-pane">
+          <h3>Conclusion</h3>
+          <p>Nothing is flattened. Highlights, block quotes, footnotes and citations all carry over exactly as written.</p>
+        </article>
+      </div>
+      <figcaption><strong>Deep read</strong> — sliding panes across headings · scroll&nbsp;→</figcaption>
+    </figure>
+
+    <!-- TLDR preview -->
+    <figure class="feat-demo-fig">
+      <div class="fd-deck" tabindex="0" role="group" aria-label="TLDR summary-cards preview">
+        <article class="fd-card">
+          <span class="fd-kicker">TLDR</span>
+          <h3>The claim, in brief</h3>
+          <ul>
+            <li>The objection rests on a mistranslation.</li>
+            <li>The earliest sources say the opposite.</li>
+            <li>The conclusion doesn’t follow from the premise.</li>
+          </ul>
+        </article>
+        <article class="fd-card">
+          <span class="fd-kicker">Key point</span>
+          <h3>What the text actually says</h3>
+          <p>A couple of lines you can read at a glance — enough to decide whether to go deeper.</p>
+        </article>
+        <article class="fd-card">
+          <span class="fd-kicker">Takeaway</span>
+          <h3>No contradiction remains</h3>
+          <p>The apparent problem dissolves once the terms are defined and the context is restored.</p>
+        </article>
+      </div>
+      <figcaption><strong>TLDR view</strong> — glanceable summary cards · swipe&nbsp;→</figcaption>
+    </figure>
   </div>
 </section>
 )}
 
 <style>
-  .deck-demo {
+  .feat-demo {
     margin: 4rem auto 0;
-    max-width: 60rem;
+    max-width: 64rem;
     padding: 0 1rem;
   }
-  .deck-demo-inner {
+  .feat-demo-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.7rem;
     text-align: center;
   }
-  .deck-demo-eyebrow {
+  .feat-demo-eyebrow {
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: rgb(var(--color-highlight-600));
   }
-  :global(.dark) .deck-demo-eyebrow { color: rgb(var(--color-highlight-400)); }
-  .deck-demo-h2 {
+  :global(.dark) .feat-demo-eyebrow { color: rgb(var(--color-highlight-400)); }
+  .feat-demo-h2 {
     margin: 0;
+    font-family: var(--font-heading);
     font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
     font-weight: 700;
     line-height: 1.15;
     color: rgb(var(--color-primary-900));
   }
-  :global(.dark) .deck-demo-h2 { color: rgb(var(--color-primary-50)); }
-  .deck-demo-lead {
+  :global(.dark) .feat-demo-h2 { color: rgb(var(--color-primary-50)); }
+  .feat-demo-lead {
     margin: 0;
-    max-width: 38rem;
+    max-width: 42rem;
     font-size: 1rem;
     line-height: 1.6;
     color: rgb(var(--color-primary-600));
   }
-  :global(.dark) .deck-demo-lead { color: rgb(var(--color-primary-300)); }
+  :global(.dark) .feat-demo-lead { color: rgb(var(--color-primary-300)); }
 
-  /* Bounded stage — gives the panes/track a real height to lay out in. */
-  .deck-demo-stage {
-    margin-top: 1.75rem;
-    height: 24rem;
+  .feat-demo-grid {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 2rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 760px) {
+    .feat-demo-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .feat-demo-fig { margin: 0; }
+  .feat-demo-fig figcaption {
+    margin-top: 0.7rem;
+    font-size: 0.82rem;
+    color: rgb(var(--color-primary-500));
+    text-align: center;
+  }
+  .feat-demo-fig figcaption strong { color: rgb(var(--color-primary-700)); }
+  :global(.dark) .feat-demo-fig figcaption { color: rgb(var(--color-primary-400)); }
+  :global(.dark) .feat-demo-fig figcaption strong { color: rgb(var(--color-primary-200)); }
+
+  /* ── Deep read preview: horizontally-scrollable panes + a sticky spine ── */
+  .fd-panes {
+    display: flex;
+    height: 19rem;
+    overflow-x: auto;
+    overflow-y: hidden;
     border: 1px solid rgb(var(--color-primary-200));
     border-radius: 0.9rem;
-    overflow: hidden;
     background: rgb(var(--color-primary-50));
-    position: relative;
+    scrollbar-width: thin;
   }
-  :global(.dark) .deck-demo-stage {
+  :global(.dark) .fd-panes {
     border-color: rgb(var(--color-primary-800));
     background: rgb(var(--color-primary-900));
   }
-  /* The track fills the stage minus the controls bar. */
-  .deck-demo-stage [data-deck-demo-track] {
-    height: calc(100% - 3.25rem);
-  }
-  .deck-demo-controls {
-    position: absolute;
+  .fd-spine {
+    position: sticky;
     left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.6rem 0.85rem;
-    border-top: 1px solid rgb(var(--color-primary-200));
+    z-index: 2;
+    flex: 0 0 2.6rem;
+    display: grid;
+    place-items: center;
+    border-right: 1px solid rgb(var(--color-primary-200));
     background: rgb(var(--color-primary-100));
+    box-shadow: 3px 0 8px -4px rgb(var(--color-primary-950) / 0.25);
   }
-  :global(.dark) .deck-demo-controls {
-    border-top-color: rgb(var(--color-primary-800));
-    background: rgb(var(--color-primary-950));
-  }
-  .deck-demo-nav {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.4rem 0.9rem;
-    border: 1px solid rgb(var(--color-primary-300));
-    border-radius: 9999px;
-    background: rgb(var(--color-primary-50));
-    color: rgb(var(--color-primary-700));
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
-  .deck-demo-nav:hover:not(:disabled) { background: rgb(var(--color-highlight-500) / 0.12); }
-  .deck-demo-nav:disabled { opacity: 0.4; cursor: default; }
-  :global(.dark) .deck-demo-nav {
-    border-color: rgb(var(--color-primary-700));
+  :global(.dark) .fd-spine {
+    border-right-color: rgb(var(--color-primary-700));
     background: rgb(var(--color-primary-800));
-    color: rgb(var(--color-primary-200));
   }
+  .fd-spine span {
+    writing-mode: vertical-rl;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgb(var(--color-primary-600));
+  }
+  :global(.dark) .fd-spine span { color: rgb(var(--color-primary-300)); }
+  .fd-pane {
+    flex: 0 0 min(17rem, 74%);
+    height: 100%;
+    padding: 1.15rem 1.25rem;
+    overflow-y: auto;
+    border-left: 1px solid rgb(var(--color-primary-200) / 0.7);
+    background: rgb(var(--color-primary-50));
+    box-shadow: -16px 0 30px -22px rgb(var(--color-primary-950) / 0.55);
+  }
+  .fd-pane:first-of-type { box-shadow: none; }
+  :global(.dark) .fd-pane {
+    border-left-color: rgb(var(--color-primary-800));
+    background: rgb(var(--color-primary-900));
+  }
+  .fd-pane h3 {
+    margin: 0 0 0.6rem;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: rgb(var(--color-primary-900));
+  }
+  :global(.dark) .fd-pane h3 { color: rgb(var(--color-primary-50)); }
+  .fd-pane p {
+    margin: 0 0 0.7rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: rgb(var(--color-primary-700));
+  }
+  :global(.dark) .fd-pane p { color: rgb(var(--color-primary-300)); }
+  .fd-pane-quote {
+    padding-left: 0.8rem;
+    border-left: 3px solid rgb(var(--color-highlight-500) / 0.6);
+    font-style: italic;
+    color: rgb(var(--color-primary-600)) !important;
+  }
+
+  /* ── TLDR preview: scroll-snap deck of glanceable summary cards ── */
+  .fd-deck {
+    display: flex;
+    gap: 0.9rem;
+    height: 19rem;
+    padding: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 0.9rem;
+    background: rgb(var(--color-primary-100) / 0.5);
+    scrollbar-width: thin;
+  }
+  :global(.dark) .fd-deck {
+    border-color: rgb(var(--color-primary-800));
+    background: rgb(var(--color-primary-950) / 0.4);
+  }
+  .fd-card {
+    flex: 0 0 min(18rem, 82%);
+    scroll-snap-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 1.3rem 1.35rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 0.75rem;
+    background: rgb(var(--color-primary-50));
+    box-shadow: 0 14px 34px -20px rgb(var(--color-primary-950) / 0.4);
+  }
+  :global(.dark) .fd-card {
+    border-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-900));
+  }
+  .fd-kicker {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(var(--color-highlight-600));
+  }
+  :global(.dark) .fd-kicker { color: rgb(var(--color-highlight-400)); }
+  .fd-card h3 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: rgb(var(--color-primary-900));
+  }
+  :global(.dark) .fd-card h3 { color: rgb(var(--color-primary-50)); }
+  .fd-card p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgb(var(--color-primary-600));
+  }
+  :global(.dark) .fd-card p { color: rgb(var(--color-primary-300)); }
+  .fd-card ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: rgb(var(--color-primary-700));
+  }
+  :global(.dark) .fd-card ul { color: rgb(var(--color-primary-300)); }
 </style>
-
-<script>
-  import { createDesktopPanesTransport } from '@/scripts/reading-deck/transports/desktop-panes';
-  import type { DeckTransport, DeckTransportContext } from '@/scripts/reading-deck/transports/transport';
-
-  // Held across DOMContentLoaded / astro:page-load re-inits so a client-side
-  // navigation back to the homepage can't stack a second live transport on
-  // top of the first — mirrors reading-deck-client.ts's activeDeck guard.
-  let activeTransport: DeckTransport | null = null;
-  let activeTrack: HTMLElement | null = null;
-
-  function initDeckDemo() {
-    const stage = document.querySelector<HTMLElement>('[data-deck-demo-stage]');
-    const track = stage?.querySelector<HTMLElement>('[data-deck-demo-track]');
-    if (!stage || !track) return;
-    if (activeTransport && track === activeTrack) return;
-
-    activeTransport?.destroy();
-    activeTransport = null;
-    activeTrack = null;
-
-    const cards = Array.from(track.querySelectorAll<HTMLElement>('.reading-deck-card'));
-    if (!cards.length) return;
-    const prev = stage.querySelector<HTMLButtonElement>('[data-deck-demo-prev]');
-    const next = stage.querySelector<HTMLButtonElement>('[data-deck-demo-next]');
-    let current = 0;
-
-    const transport = createDesktopPanesTransport();
-    activeTransport = transport;
-    activeTrack = track;
-    const syncControls = () => {
-      if (prev) prev.disabled = current === 0;
-      if (next) next.disabled = current === cards.length - 1;
-    };
-    const goTo = (index: number) => {
-      current = Math.max(0, Math.min(cards.length - 1, index));
-      transport.present(current, 'animate');
-      syncControls();
-    };
-
-    const context: DeckTransportContext = {
-      stage,
-      track,
-      cards,
-      selectedIndex: () => current,
-      reducedMotion: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-      interactionEnabled: () => true,
-      requestMove: (delta) => goTo(current + delta),
-      requestSelect: (index) => goTo(index),
-      reportSettled: (index) => { current = index; syncControls(); },
-      dismissHint: () => {},
-    };
-
-    transport.connect(context);
-    transport.present(0, 'none');
-    syncControls();
-    prev?.addEventListener('click', () => goTo(current - 1));
-    next?.addEventListener('click', () => goTo(current + 1));
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initDeckDemo, { once: true });
-  } else {
-    initDeckDemo();
-  }
-  document.addEventListener('astro:page-load', initDeckDemo);
-</script>
