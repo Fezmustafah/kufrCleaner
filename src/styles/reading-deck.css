@@ -1260,8 +1260,28 @@ body > label[for^='web-haptics-'] > input {
   font-variant-numeric: tabular-nums;
   color: rgb(var(--color-highlight-400));
 }
+/* Always-on hairline: continuous "how far through the sections" (mobile Deep read). */
+.reading-deck-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  z-index: 19;
+  display: none;
+  background: rgb(var(--color-primary-800) / 0.6);
+  pointer-events: none;
+}
+.reading-deck-rail-fill {
+  display: block;
+  width: 0%;
+  height: 100%;
+  background: rgb(var(--color-highlight-500));
+  transition: width 0.3s ease;
+}
 @media (max-width: 720px) {
   .reading-deck[data-active-feed="slides"] .reading-deck-hud { display: flex; }
+  .reading-deck[data-active-feed="slides"] .reading-deck-rail { display: block; }
   /* One clean section per screen — remove the garbled neighbour peek. */
   .reading-deck[data-active-feed="slides"] .reading-deck-track {
     gap: 0;

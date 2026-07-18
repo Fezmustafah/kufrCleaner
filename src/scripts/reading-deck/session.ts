@@ -225,6 +225,10 @@ export class ReadingDeckSession {
     this.syncFinishPlacement();
     this.replaceTransport(this.viewportState.mobile);
     this.show(this.current, false, false, true, !targetId);
+    // Entering mobile Deep read: flash the position once (no-op on the cover).
+    if (feed === 'slides' && this.viewportState.mobile) {
+      this.view.flashPosition(this.current, model);
+    }
     queueMicrotask(() => {
       if (!this.destroyed) this.effects.initializeArticleEnhancements();
     });

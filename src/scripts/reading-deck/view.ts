@@ -70,6 +70,7 @@ export class ReadingDeckView {
       hud: required<HTMLElement>(dialog, '[data-deck-hud]'),
       hudTitle: required<HTMLElement>(dialog, '[data-deck-hud-title]'),
       hudCount: required<HTMLElement>(dialog, '[data-deck-hud-count]'),
+      railFill: required<HTMLElement>(dialog, '[data-deck-rail-fill]'),
       finish: required<HTMLElement>(dialog, '[data-deck-finish]'),
       finishTitle: required<HTMLElement>(dialog, '[data-deck-finish-title]'),
       finishCopy: required<HTMLElement>(dialog, '[data-deck-finish-copy]'),
@@ -104,6 +105,7 @@ export class ReadingDeckView {
   declare private readonly hud: HTMLElement;
   declare private readonly hudTitle: HTMLElement;
   declare private readonly hudCount: HTMLElement;
+  declare private readonly railFill: HTMLElement;
   private hudTimer = 0;
   declare private readonly finishTitle: HTMLElement;
   declare private readonly finishCopy: HTMLElement;
@@ -284,6 +286,8 @@ export class ReadingDeckView {
     const contentTotal = feed.cards.filter((item) => !item.isCover).length;
     const contentIndex = feed.cards.slice(0, state.current + 1).filter((item) => !item.isCover).length;
     this.position.textContent = card.isCover ? 'Ready' : `${contentIndex} / ${contentTotal}`;
+    // Mobile Deep read hairline: how far through the sections (CSS shows it only there).
+    this.railFill.style.width = card.isCover || contentTotal === 0 ? '0%' : `${(contentIndex / contentTotal) * 100}%`;
     this.cardTitle.textContent = card.isCover ? 'Swipe to begin' : card.title;
     this.prev.disabled = state.current === 0;
     this.next.disabled = state.finished;
