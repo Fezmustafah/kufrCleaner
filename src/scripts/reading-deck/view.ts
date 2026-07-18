@@ -210,16 +210,21 @@ export class ReadingDeckView {
     this.dialog.dataset.activeFeed = kind;
     const titleEl = this.dialog.querySelector<HTMLElement>('#reading-deck-title');
     if (titleEl) {
+      const label = titleEl.textContent?.trim() ?? '';
       if (kind === 'slides') {
         titleEl.setAttribute('role', 'button');
         titleEl.setAttribute('tabindex', '0');
         titleEl.setAttribute('aria-haspopup', 'dialog');
-        titleEl.setAttribute('aria-label', `Contents — ${titleEl.textContent}`);
+        titleEl.setAttribute('aria-expanded', 'false');
+        titleEl.setAttribute('aria-label', `Contents — ${label}`);
+        titleEl.setAttribute('title', 'Open contents');
       } else {
         titleEl.removeAttribute('role');
         titleEl.removeAttribute('tabindex');
         titleEl.removeAttribute('aria-haspopup');
+        titleEl.removeAttribute('aria-expanded');
         titleEl.removeAttribute('aria-label');
+        titleEl.setAttribute('title', label);
       }
     }
     this.dialog.querySelectorAll<HTMLButtonElement>('[data-deck-feed]').forEach((button) => {
@@ -297,6 +302,9 @@ export class ReadingDeckView {
     this.overlayReturnFocus = trigger;
     this.shell.inert = true;
     this.indexOverlay.hidden = false;
+    if (this.dialog.dataset.activeFeed === 'slides') {
+      this.dialog.querySelector('#reading-deck-title')?.setAttribute('aria-expanded', 'true');
+    }
     const target = this.indexList.querySelector<HTMLButtonElement>('[aria-current="true"]')
       || this.indexList.querySelector<HTMLButtonElement>('[data-card-index]')
       || this.indexOverlay.querySelector<HTMLButtonElement>('[data-deck-index-close]');
@@ -322,6 +330,9 @@ export class ReadingDeckView {
   private closeSurface(surface: HTMLElement, restoreFocus = true): void {
     if (surface.hidden) return;
     surface.hidden = true;
+    if (surface === this.indexOverlay) {
+      this.dialog.querySelector('#reading-deck-title')?.setAttribute('aria-expanded', 'false');
+    }
     if (surface === this.sourceOverlay) {
       this.sourceOverlay.classList.remove('is-visible');
       this.sourceContent.replaceChildren();

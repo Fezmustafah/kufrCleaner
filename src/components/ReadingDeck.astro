@@ -114,7 +114,7 @@ const citationText = (ref: Record<string, unknown>) => [
           </button>
 
           <div class="reading-deck-heading">
-            <h2 id="reading-deck-title" title={deckTitle}>{deckTitle}</h2>
+            <h2 id="reading-deck-title" title={deckTitle}><span class="reading-deck-title-text">{deckTitle}</span><span class="reading-deck-title-caret" aria-hidden="true"></span></h2>
             {(hasSlides && hasTldr) && (
               <div class="reading-deck-switcher" role="group" aria-label="Reading mode">
                 <span class="reading-deck-switcher-thumb" aria-hidden="true"></span>

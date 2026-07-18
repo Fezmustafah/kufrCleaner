@@ -1173,24 +1173,51 @@ body > label[for^='web-haptics-'] > input {
 .reading-deck[data-active-feed="slides"] .reading-deck-controls { display: none; }
 .reading-deck[data-active-feed="slides"] [data-deck-mode-label] { display: none; }
 .reading-deck[data-active-feed="slides"] .reading-deck-progress { display: none; }
+/* The caret only appears in Deep read, where the title toggles the contents
+   index. It signals "click to open a list" without reintroducing chrome. */
+.reading-deck-title-caret { display: none; }
 .reading-deck[data-active-feed="slides"] #reading-deck-title {
   cursor: pointer;
-  border-bottom: 1px dashed rgb(var(--color-primary-400));
-  transition: border-bottom-color 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  max-width: 100%;
+  transition: color 0.15s ease;
+}
+.reading-deck[data-active-feed="slides"] .reading-deck-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reading-deck[data-active-feed="slides"] .reading-deck-title-caret {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 0.46em;
+  height: 0.46em;
+  margin-top: -0.18em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.7;
+  transition: transform 0.18s ease, opacity 0.15s ease;
+}
+.reading-deck[data-active-feed="slides"] #reading-deck-title[aria-expanded="true"] .reading-deck-title-caret {
+  transform: rotate(225deg);
+  margin-top: 0.1em;
 }
 .reading-deck[data-active-feed="slides"] #reading-deck-title:hover,
 .reading-deck[data-active-feed="slides"] #reading-deck-title:focus-visible {
   color: rgb(var(--color-highlight-600));
-  border-bottom-color: rgb(var(--color-highlight-600));
   outline: none;
 }
-.dark .reading-deck[data-active-feed="slides"] #reading-deck-title {
-  border-bottom-color: rgb(var(--color-primary-600));
+.reading-deck[data-active-feed="slides"] #reading-deck-title:hover .reading-deck-title-caret,
+.reading-deck[data-active-feed="slides"] #reading-deck-title:focus-visible .reading-deck-title-caret {
+  opacity: 1;
 }
 .dark .reading-deck[data-active-feed="slides"] #reading-deck-title:hover,
 .dark .reading-deck[data-active-feed="slides"] #reading-deck-title:focus-visible {
   color: rgb(var(--color-highlight-400));
-  border-bottom-color: rgb(var(--color-highlight-400));
 }
 
 .reading-deck-cover-card {
