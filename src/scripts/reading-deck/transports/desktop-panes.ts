@@ -134,7 +134,12 @@ class DesktopPanesTransport implements DeckTransport {
     let active = 0;
     layout.forEach((pane) => {
       const el = context.cards[pane.index];
-      el.classList.toggle('collapsed', pane.role === 'spine');
+      const isSpine = pane.role === 'spine';
+      // On collapse, reset the pane's vertical scroll so the spine title
+      // (position: absolute, so it scrolls with content) sits at the visible top
+      // instead of wherever the reader had scrolled the pane to.
+      if (isSpine && !el.classList.contains('collapsed')) el.scrollTop = 0;
+      el.classList.toggle('collapsed', isSpine);
       el.toggleAttribute('data-pane-hidden', pane.role === 'hidden');
       if (pane.left == null) el.style.removeProperty('left');
       else el.style.left = `${pane.left}px`;
