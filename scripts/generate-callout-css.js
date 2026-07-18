@@ -7,11 +7,14 @@
  *
  * Color format:  Obsidian stores "r, g, b" bare RGB; we wrap to rgb(r, g, b).
  * Icon format:   Obsidian stores "lucide-flame" or emoji; we strip "lucide-" prefix.
- * Conditions:    { colorScheme: 'dark' } → .dark selector; theme conditions skipped.
+ * Conditions:    { colorScheme: 'dark' } → .dark selector; theme/compound (and/or)
+ *                conditions aren't scheme-specific, so they're flattened to apply
+ *                to both light and dark (see classifyCondition).
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { pathToFileURL } from 'url';
 
 const DATA_PATH    = join(process.cwd(), 'src/content/.obsidian/plugins/callout-manager/data.json');
 const CSS_PATH     = join(process.cwd(), 'src/styles/callouts-custom.css');
@@ -39,7 +42,7 @@ function idToTitle(id) {
 
 // Convert Obsidian color to a valid CSS color string.
 // Obsidian uses bare "r, g, b" components; hex and rgb() strings pass through.
-function toColor(raw) {
+export function toColor(raw) {
   if (!raw) return null;
   const s = raw.trim();
   // Bare RGB components: "82, 144, 212"
@@ -82,21 +85,32 @@ function ruleBlock(id, color, borderOpacity, bgOpacity) {
   ].join('\n');
 }
 
-// Classify a condition. Returns 'light', 'dark', 'skip', or 'always'.
-function classifyCondition(condition) {
-  if (condition == null) return 'always';
+// Classify a condition. Returns 'light', 'dark', or 'both'.
+// Unconditional changes, `theme` conditions, and compound (`and`/`or`) conditions
+// all apply to both color schemes — we flatten them rather than dropping them,
+// warning so the flattening is visible in build output.
+export function classifyCondition(condition) {
+  if (condition == null) return 'both';
   if ('colorScheme' in condition) return condition.colorScheme; // 'light' | 'dark'
-  if ('theme' in condition) return 'skip';
-  if ('and' in condition || 'or' in condition) return 'skip'; // complex — skip
-  return 'skip';
+  if ('theme' in condition) {
+    console.warn(`generate-callout-css: 'theme' condition is not scheme-specific — flattening to 'both' color schemes.`);
+    return 'both';
+  }
+  if ('and' in condition || 'or' in condition) {
+    console.warn(`generate-callout-css: compound ('and'/'or') condition flattened to 'both' color schemes.`);
+    return 'both';
+  }
+  console.warn(`generate-callout-css: unrecognized condition shape flattened to 'both' color schemes.`, condition);
+  return 'both';
 }
 
+function main() {
 if (!existsSync(GENERATED_DIR)) mkdirSync(GENERATED_DIR, { recursive: true });
 
 if (!existsSync(DATA_PATH)) {
   writeFileSync(CSS_PATH,  HEADER + '/* callout-manager data.json not found */\n');
   writeFileSync(META_PATH, '{}\n');
-  process.exit(0);
+  return;
 }
 
 const data = JSON.parse(readFileSync(DATA_PATH, 'utf-8'));
@@ -107,7 +121,7 @@ if (customIds.length === 0) {
   writeFileSync(CSS_PATH,  HEADER + '/* No custom callouts defined yet */\n');
   writeFileSync(META_PATH, '{}\n');
   console.log('generate-callout-css: no custom callouts.');
-  process.exit(0);
+  return;
 }
 
 const lightRules = [];
@@ -119,21 +133,20 @@ for (const id of customIds) {
 
   let lightColor  = null;
   let darkColor   = null;
-  let alwaysColor = null;
+  let bothColor   = null;
   let customStyles = null;
   let iconRaw = null;
 
   for (const setting of settings) {
     const cls = classifyCondition(setting.condition);
-    if (cls === 'skip') continue;
 
     const raw   = setting.changes?.color;
     const color = raw ? toColor(raw) : null;
     const cs    = setting.changes?.customStyles ?? null;
     const ic    = setting.changes?.icon ?? null;
 
-    if (cls === 'always') {
-      if (color) alwaysColor = color;
+    if (cls === 'both') {
+      if (color) bothColor = color;
       if (cs)    customStyles = cs;
       if (ic && !iconRaw) iconRaw = ic; // first unconditional icon wins
     }
@@ -141,8 +154,8 @@ for (const id of customIds) {
     if (cls === 'dark')  { if (color) darkColor  = color; }
   }
 
-  const resolvedLight = lightColor ?? alwaysColor;
-  const resolvedDark  = darkColor  ?? alwaysColor;
+  const resolvedLight = lightColor ?? bothColor;
+  const resolvedDark  = darkColor  ?? bothColor;
 
   // CSS
   if (resolvedLight) {
@@ -154,7 +167,10 @@ for (const id of customIds) {
   }
 
   if (resolvedDark) {
-    const block = ruleBlock(id, resolvedDark, 0.28, 0.10);
+    let block = ruleBlock(id, resolvedDark, 0.28, 0.10);
+    if (customStyles) {
+      block = block.replace(/\}$/, `  ${customStyles.trim().replace(/\n/g, '\n  ')}\n}`);
+    }
     darkRules.push(`.dark .callout[data-callout='${id}'] {\n${
       block.split('\n').slice(1, -1).join('\n')
     }\n}`);
@@ -185,3 +201,10 @@ writeFileSync(CSS_PATH, cssOutput);
 writeFileSync(META_PATH, JSON.stringify(metadata, null, 2) + '\n');
 
 console.log(`generate-callout-css: ${customIds.length} custom callout(s) → callouts-custom.css + callouts-custom.json`);
+}
+
+// Only run generation when this file is executed directly (e.g. `node scripts/generate-callout-css.js`),
+// not when imported (e.g. by tests importing the pure helpers above) — importing must be side-effect-free.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}
