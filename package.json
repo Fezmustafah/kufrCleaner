@@ -5,8 +5,9 @@
   "description": "A flexible blog theme designed for Obsidian users.",
   "main": "index.js",
   "scripts": {
-    "dev": "cross-env ASTRO_CONTENT_COLLECTION_CACHE=false node scripts/setup-dev.mjs && node scripts/sync-images.js && node scripts/process-aliases.js && node scripts/generate-deployment-config.js && node scripts/generate-graph-data.js && node scripts/parse-bib.mjs && node scripts/generate-callout-css.js && node scripts/dev-with-port.js",
-    "build": "node scripts/sync-images.js && node scripts/process-aliases.js && node scripts/generate-deployment-config.js && node scripts/generate-graph-data.js --production && node scripts/parse-bib.mjs && node scripts/generate-callout-css.js && node scripts/prewarm-image-dims.mjs && node scripts/cf-assets.js pre && astro build && node scripts/cf-assets.js post",
+    "dev": "cross-env ASTRO_CONTENT_COLLECTION_CACHE=false node scripts/setup-dev.mjs && node scripts/sync-images.js && node scripts/process-aliases.js && node scripts/generate-deployment-config.js && node scripts/generate-graph-data.js && node scripts/parse-bib.mjs && node scripts/generate-callout-css.js && node scripts/lint-callouts.js && node scripts/dev-with-port.js",
+    "build": "node scripts/sync-images.js && node scripts/process-aliases.js && node scripts/generate-deployment-config.js && node scripts/generate-graph-data.js --production && node scripts/parse-bib.mjs && node scripts/generate-callout-css.js && node scripts/lint-callouts.js && node scripts/prewarm-image-dims.mjs && node scripts/cf-assets.js pre && astro build && node scripts/cf-assets.js post",
+    "lint-callouts": "node scripts/lint-callouts.js",
     "parse-bib": "node scripts/parse-bib.mjs",
     "prewarm-image-dims": "node scripts/prewarm-image-dims.mjs",
     "ai:index": "node scripts/ai-index.mjs",
