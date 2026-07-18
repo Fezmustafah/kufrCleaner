@@ -37,6 +37,11 @@ export function requiredDeckMarkup(): string {
         <button data-deck-next><span>Next</span></button>
         <div data-deck-stage>
           <div data-deck-track></div>
+          <div data-deck-hud aria-hidden="true">
+            <span data-deck-hud-title></span>
+            <span data-deck-hud-count></span>
+          </div>
+          <div data-deck-rail aria-hidden="true"><span data-deck-rail-fill></span></div>
           <div data-deck-scroll-shadow hidden></div>
           <div data-deck-swipe-hint hidden></div>
           <section data-deck-finish hidden>
