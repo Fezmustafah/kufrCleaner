@@ -259,6 +259,10 @@ function decorateCards(
       image.tabIndex = 0;
       image.setAttribute('role', 'button');
       image.setAttribute('aria-label', image.alt ? `Expand image: ${image.alt}` : 'Expand image');
+      // Cloned lazy images don't reliably fire inside the initially-hidden deck
+      // dialog, so they stayed blank until a refresh. Load them eagerly here.
+      image.loading = 'eager';
+      image.removeAttribute('data-src');
     });
   });
 }
