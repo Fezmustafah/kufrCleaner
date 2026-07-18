@@ -5,7 +5,7 @@ description: Use when quoting sources in post content — Qurʼan, Bible, hadith
 
 # Scripture & source callouts
 
-Source quotations use Obsidian-style callouts. The type is not cosmetic: `PostInfobox.astro` regexes the post body for these types to build the "Sources cited" counts, so a misfiled quote produces wrong numbers in the infobox.
+Source quotations use Obsidian-style callouts. The type is not cosmetic: `src/layouts/PostLayout.astro` regexes the post body for these types to build the "Sources cited" counts (sourceCounts, ~lines 108–116), so a misfiled quote produces wrong numbers in the infobox.
 
 ## The types
 
