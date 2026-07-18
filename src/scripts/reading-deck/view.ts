@@ -163,6 +163,7 @@ export class ReadingDeckView {
     }, { signal });
     this.prev.addEventListener('click', () => events.move(-1), { signal });
     this.next.addEventListener('click', () => events.move(1), { signal });
+    this.dialog.querySelector<HTMLButtonElement>('[data-deck-nudge]')?.addEventListener('click', () => events.move(1), { signal });
     this.dialog.querySelector<HTMLButtonElement>('[data-deck-search]')?.addEventListener('click', events.search, { signal });
     this.dialog.querySelector<HTMLButtonElement>('[data-deck-menu]')?.addEventListener('click', events.menu, { signal });
     this.progress.addEventListener('click', (event) => {

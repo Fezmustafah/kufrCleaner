@@ -1174,21 +1174,29 @@ body > label[for^='web-haptics-'] > input {
    tied to content scroll. Hidden on the last section (nothing to the right). */
 .reading-deck-nudge { display: none; }
 @media (max-width: 720px) {
-  /* Bottom-right, and only once the current pane is scrolled to its end. */
+  /* Bottom-right, and only once the current pane is scrolled to its end.
+     Interactive: tap to advance to the next section. */
   .reading-deck[data-active-feed="slides"][data-deck-at-end]:not([data-deck-last]) .reading-deck-nudge {
     display: flex;
+    align-items: center;
+    justify-content: center;
     position: absolute;
-    right: calc(0.9rem + env(safe-area-inset-right, 0px));
-    bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
+    right: calc(0.4rem + env(safe-area-inset-right, 0px));
+    bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
     z-index: 5;
-    pointer-events: none;
+    padding: 0.5rem;
+    border: 0;
+    background: none;
+    cursor: pointer;
   }
   .reading-deck-nudge svg {
-    width: 1.6rem;
-    height: 1.6rem;
+    width: 2.3rem;
+    height: 1.5rem;
     color: rgb(var(--color-primary-500));
     animation: reading-deck-nudge 1.8s ease-in-out infinite;
   }
+  .reading-deck-nudge:hover svg,
+  .reading-deck-nudge:active svg { color: rgb(var(--color-highlight-500)); }
   .dark .reading-deck-nudge svg { color: rgb(var(--color-primary-400)); }
 }
 @keyframes reading-deck-nudge {
