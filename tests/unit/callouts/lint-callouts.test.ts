@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { lintText } from '../../../scripts/lint-callouts.js';
+import { lintText, collectIssues } from '../../../scripts/lint-callouts.js';
+
+describe('collectIssues', () => {
+  it('returns an empty array instead of throwing when the root does not exist', () => {
+    expect(() => collectIssues('/nonexistent-path-xyz')).not.toThrow();
+    expect(collectIssues('/nonexistent-path-xyz')).toEqual([]);
+  });
+});
 
 describe('lintText', () => {
   it('flags a marker with no leading > (renders as plain text)', () => {
