@@ -13,5 +13,45 @@
     "icon": "book-heart",
     "iconType": "lucide",
     "title": "Quran"
+  },
+  "scholar": {
+    "icon": "graduation-cap",
+    "iconType": "lucide",
+    "title": "Scholar"
+  },
+  "cite": {
+    "icon": "book",
+    "iconType": "lucide",
+    "title": "Cite"
+  },
+  "research": {
+    "icon": "search",
+    "iconType": "lucide",
+    "title": "Research"
+  },
+  "consensus": {
+    "icon": "landmark",
+    "iconType": "lucide",
+    "title": "Consensus"
+  },
+  "manuscript": {
+    "icon": "scroll",
+    "iconType": "lucide",
+    "title": "Manuscript"
+  },
+  "science": {
+    "icon": "zap",
+    "iconType": "lucide",
+    "title": "Science"
+  },
+  "admission": {
+    "icon": "key",
+    "iconType": "lucide",
+    "title": "Admission"
+  },
+  "source": {
+    "icon": "link",
+    "iconType": "lucide",
+    "title": "Source"
   }
 }

@@ -24,6 +24,62 @@
   --callout-bg:     rgba(21, 128, 61, 0.07);
 }
 
+/* scholar */
+.callout[data-callout='scholar'] {
+  --callout-color:  rgb(146, 64, 14);
+  --callout-border: rgba(146, 64, 14, 0.22);
+  --callout-bg:     rgba(146, 64, 14, 0.07);
+}
+
+/* cite */
+.callout[data-callout='cite'] {
+  --callout-color:  rgb(71, 85, 105);
+  --callout-border: rgba(71, 85, 105, 0.22);
+  --callout-bg:     rgba(71, 85, 105, 0.07);
+}
+
+/* research */
+.callout[data-callout='research'] {
+  --callout-color:  rgb(14, 116, 144);
+  --callout-border: rgba(14, 116, 144, 0.22);
+  --callout-bg:     rgba(14, 116, 144, 0.07);
+}
+
+/* consensus */
+.callout[data-callout='consensus'] {
+  --callout-color:  rgb(109, 40, 217);
+  --callout-border: rgba(109, 40, 217, 0.22);
+  --callout-bg:     rgba(109, 40, 217, 0.07);
+}
+
+/* manuscript */
+.callout[data-callout='manuscript'] {
+  --callout-color:  rgb(120, 113, 108);
+  --callout-border: rgba(120, 113, 108, 0.22);
+  --callout-bg:     rgba(120, 113, 108, 0.07);
+}
+
+/* science */
+.callout[data-callout='science'] {
+  --callout-color:  rgb(3, 105, 161);
+  --callout-border: rgba(3, 105, 161, 0.22);
+  --callout-bg:     rgba(3, 105, 161, 0.07);
+}
+
+/* admission */
+.callout[data-callout='admission'] {
+  --callout-color:  rgb(159, 18, 57);
+  --callout-border: rgba(159, 18, 57, 0.22);
+  --callout-bg:     rgba(159, 18, 57, 0.07);
+}
+
+/* source */
+.callout[data-callout='source'] {
+  --callout-color:  rgb(82, 82, 91);
+  --callout-border: rgba(82, 82, 91, 0.22);
+  --callout-bg:     rgba(82, 82, 91, 0.07);
+}
+
 /* ── Dark mode ──────────────────────────────────────────────────────────── */
 
 .dark .callout[data-callout='hadith'] {
@@ -42,4 +98,52 @@
   --callout-color:  rgb(74, 222, 128);
   --callout-border: rgba(74, 222, 128, 0.28);
   --callout-bg:     rgba(74, 222, 128, 0.1);
+}
+
+.dark .callout[data-callout='scholar'] {
+  --callout-color:  rgb(251, 191, 36);
+  --callout-border: rgba(251, 191, 36, 0.28);
+  --callout-bg:     rgba(251, 191, 36, 0.1);
+}
+
+.dark .callout[data-callout='cite'] {
+  --callout-color:  rgb(148, 163, 184);
+  --callout-border: rgba(148, 163, 184, 0.28);
+  --callout-bg:     rgba(148, 163, 184, 0.1);
+}
+
+.dark .callout[data-callout='research'] {
+  --callout-color:  rgb(34, 211, 238);
+  --callout-border: rgba(34, 211, 238, 0.28);
+  --callout-bg:     rgba(34, 211, 238, 0.1);
+}
+
+.dark .callout[data-callout='consensus'] {
+  --callout-color:  rgb(167, 139, 250);
+  --callout-border: rgba(167, 139, 250, 0.28);
+  --callout-bg:     rgba(167, 139, 250, 0.1);
+}
+
+.dark .callout[data-callout='manuscript'] {
+  --callout-color:  rgb(214, 211, 209);
+  --callout-border: rgba(214, 211, 209, 0.28);
+  --callout-bg:     rgba(214, 211, 209, 0.1);
+}
+
+.dark .callout[data-callout='science'] {
+  --callout-color:  rgb(56, 189, 248);
+  --callout-border: rgba(56, 189, 248, 0.28);
+  --callout-bg:     rgba(56, 189, 248, 0.1);
+}
+
+.dark .callout[data-callout='admission'] {
+  --callout-color:  rgb(251, 113, 133);
+  --callout-border: rgba(251, 113, 133, 0.28);
+  --callout-bg:     rgba(251, 113, 133, 0.1);
+}
+
+.dark .callout[data-callout='source'] {
+  --callout-color:  rgb(161, 161, 170);
+  --callout-border: rgba(161, 161, 170, 0.28);
+  --callout-bg:     rgba(161, 161, 170, 0.1);
 }
