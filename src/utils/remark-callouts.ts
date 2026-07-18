@@ -1,15 +1,7 @@
 import { visit } from 'unist-util-visit';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
 import type { Plugin } from 'unified';
 import type { Root, Blockquote, Paragraph, Text } from 'mdast';
-
-interface CalloutMapping {
-  type: string;
-  icon: string;        // Lucide icon name (no prefix) OR emoji string
-  iconType?: 'lucide' | 'emoji';
-  title: string;
-}
+import { resolveCalloutType, getCalloutMeta } from './callout-registry';
 
 /**
  * Recursively extract all text content from a node and its children
@@ -100,42 +92,6 @@ function getIconSVG(iconName: string, iconType: 'lucide' | 'emoji' = 'lucide'): 
   return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="callout-icon">${path}</svg>`;
 }
 
-const calloutMappings: Record<string, CalloutMapping> = {
-  note:      { type: 'note',      icon: 'info',           title: 'Note' },
-  tip:       { type: 'tip',       icon: 'lightbulb',      title: 'Tip' },
-  important: { type: 'important', icon: 'star',           title: 'Important' },
-  warning:   { type: 'warning',   icon: 'triangle-alert', title: 'Warning' },
-  caution:   { type: 'caution',   icon: 'circle-alert',   title: 'Caution' },
-  danger:    { type: 'caution',   icon: 'circle-x',       title: 'Danger' },
-  info:      { type: 'note',      icon: 'info',           title: 'Info' },
-  question:  { type: 'important', icon: 'circle-help',    title: 'Question' },
-  success:   { type: 'tip',       icon: 'circle-check',   title: 'Success' },
-  failure:   { type: 'caution',   icon: 'circle-x',       title: 'Failure' },
-  bug:       { type: 'caution',   icon: 'bug',            title: 'Bug' },
-  example:   { type: 'tip',       icon: 'code',           title: 'Example' },
-  quote:     { type: 'note',      icon: 'quote',          title: 'Quote' },
-  abstract:  { type: 'important', icon: 'clipboard-list', title: 'Abstract' },
-  summary:   { type: 'important', icon: 'clipboard-list', title: 'Summary' },
-  tldr:      { type: 'important', icon: 'clipboard-list', title: 'TL;DR' },
-  todo:      { type: 'note',      icon: 'check-circle-2', title: 'Todo' },
-};
-
-// Merge custom callouts from Callout Manager (generated at build time)
-try {
-  const metaPath = join(process.cwd(), 'src/generated/callouts-custom.json');
-  if (existsSync(metaPath)) {
-    const custom: Record<string, { icon: string; iconType: 'lucide' | 'emoji'; title: string }> =
-      JSON.parse(readFileSync(metaPath, 'utf-8'));
-    for (const [id, meta] of Object.entries(custom)) {
-      if (!calloutMappings[id]) {
-        calloutMappings[id] = { type: id, icon: meta.icon, iconType: meta.iconType, title: meta.title };
-      }
-    }
-  }
-} catch {
-  // If metadata not found, custom callouts fall back to default icon
-}
-
 const remarkCallouts: Plugin<[], Root> = () => {
   return (tree) => {
     visit(tree, 'blockquote', (node: Blockquote, index, parent) => {
@@ -154,12 +110,8 @@ const remarkCallouts: Plugin<[], Root> = () => {
       if (!calloutMatch) return;
       
       const [fullMatch, calloutType, collapseState, customTitle] = calloutMatch;
-      const calloutKey = calloutType.toLowerCase();
-      const mapping = calloutMappings[calloutKey] || {
-        type: 'note',
-        icon: 'info',
-        title: calloutType.charAt(0).toUpperCase() + calloutType.slice(1)
-      };
+      const calloutKey = resolveCalloutType(calloutType);
+      const mapping = getCalloutMeta(calloutKey);
       
       // Get remaining text after the callout syntax
       const remainingText = paragraphText.slice(fullMatch.length).trim();
