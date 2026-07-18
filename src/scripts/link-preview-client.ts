@@ -31,9 +31,18 @@ const cache = new Map<string, Promise<string | null>>();
 let card: HTMLElement | null = null;
 let body: HTMLElement | null = null;
 let activeAnchor: HTMLAnchorElement | null = null;
+let shownAnchor: HTMLAnchorElement | null = null; // the link the visible card belongs to
 let openTimer: ReturnType<typeof setTimeout> | undefined;
 let closeTimer: ReturnType<typeof setTimeout> | undefined;
 let inflight: AbortController | null = null;
+
+// Clear the pending open AND drop its id, so `openTimer` is a truthful "an open
+// is scheduled" flag. (A bare clearTimeout leaves a stale, truthy id behind —
+// which used to strand a link in a can't-reopen state.)
+function clearOpen() {
+  clearTimeout(openTimer);
+  openTimer = undefined;
+}
 
 function ensureCard(): HTMLElement {
   if (card && card.isConnected) return card;
@@ -123,6 +132,7 @@ function open(anchor: HTMLAnchorElement) {
     body.scrollTop = 0;
     el.classList.add('is-visible');
     el.setAttribute('aria-hidden', 'false');
+    shownAnchor = anchor;
     position(anchor, el);
   });
 }
@@ -133,9 +143,10 @@ function scheduleClose() {
   closeTimer = setTimeout(closeNow, CLOSE_DELAY);
 }
 function closeNow() {
-  clearTimeout(openTimer);
+  clearOpen();
   clearTimeout(closeTimer);
   activeAnchor = null;
+  shownAnchor = null;
   inflight?.abort();
   if (card) {
     card.classList.remove('is-visible');
@@ -147,16 +158,21 @@ function onOver(e: Event) {
   const a = previewableAnchor(e.target);
   if (!a) return;
   cancelClose();
-  if (a === activeAnchor) return; // already showing / pending for this link
+  // Only bail if this exact link is genuinely already pending or already shown.
+  // (The old `a === activeAnchor` guard also matched links whose open-timer had
+  // been cancelled by onOut, leaving them permanently unable to reopen.)
+  const pending = openTimer !== undefined && a === activeAnchor;
+  const shown = a === shownAnchor && !!card?.classList.contains('is-visible');
+  if (pending || shown) return;
   activeAnchor = a;
-  clearTimeout(openTimer);
-  openTimer = setTimeout(() => open(a), OPEN_DELAY);
+  clearOpen();
+  openTimer = setTimeout(() => { openTimer = undefined; open(a); }, OPEN_DELAY);
 }
 
 function onOut(e: Event) {
   const to = (e as MouseEvent).relatedTarget as Element | null;
   if (to && (to.closest?.('.link-preview') || to === activeAnchor)) return;
-  clearTimeout(openTimer); // cancel a not-yet-shown preview
+  clearOpen(); // cancel a not-yet-shown preview (and drop the timer id)
   if (activeAnchor) scheduleClose();
 }
 

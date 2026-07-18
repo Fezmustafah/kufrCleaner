@@ -72,12 +72,39 @@ const minDepth = shouldShow ? Math.min(...filtered.map(h => h.depth)) : 2;
     .mobile-toc {
       display: block;
       position: sticky;
-      top: 3.75rem; /* just below the fixed 3.5rem navbar */
+      top: 3.5rem;  /* flush under the fixed 3.5rem navbar — no seam */
       z-index: 45;  /* above article content (z:0), below header (z:50) */
-      margin: 0 0 1.5rem;
+      /* Full-bleed to the viewport edges (cancel the grid's 1rem padding) so the
+         bar + drawer line up with the full-width navbar band — no inset card
+         flaring past a narrower bar. */
+      margin: 0 -1rem 1.5rem;
+    }
+
+    /* When stuck under the navbar, fill the otherwise-transparent navbar band
+       with the same frosted glass as the bar, so navbar + TOC read as one solid
+       header instead of letting page content scroll through the gap above it.
+       Only appears once stuck (toggled by mobile-toc-client) — at the very top
+       of the page the navbar stays transparent over the hero, as designed. */
+    .mobile-toc.is-stuck::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3.5rem;
+      background: rgb(var(--color-primary-50) / 0.92);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+    .dark .mobile-toc.is-stuck::before {
+      background: rgb(var(--color-primary-900) / 0.92);
     }
   }
 
+  /* Edge-to-edge frosted strip — the bottom lip of the header, not a card.
+     No border, no rounding: it merges into the navbar band above (.is-stuck) and
+     the drawer panel below (when open). Only a soft downward shadow lifts it off
+     the content. */
   .mobile-toc-bar {
     position: relative;
     z-index: 2;
@@ -85,24 +112,25 @@ const minDepth = shouldShow ? Math.min(...filtered.map(h => h.depth)) : 2;
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    padding: 0.55rem 0.85rem;
-    border: 1px solid rgb(var(--color-primary-200) / 0.8);
-    border-radius: 0.75rem;
+    padding: 0.6rem 1rem;
+    border: 0;
+    border-radius: 0;
     background: rgb(var(--color-primary-50) / 0.92);
     color: rgb(var(--color-primary-700));
     font-size: 0.875rem;
     line-height: 1.2;
     text-align: left;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 20px rgb(0 0 0 / 0.06);
+    box-shadow: 0 8px 18px rgb(0 0 0 / 0.05);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
   }
   .dark .mobile-toc-bar {
-    border-color: rgb(var(--color-primary-700) / 0.7);
     background: rgb(var(--color-primary-900) / 0.92);
     color: rgb(var(--color-primary-200));
   }
+  /* Drawer open → panel sits directly below, so drop the bar's shadow (no seam) */
+  .mobile-toc.is-open .mobile-toc-bar { box-shadow: none; }
 
   .mobile-toc-bar-icon { width: 1rem; height: 1rem; flex: none; opacity: 0.7; }
   .mobile-toc-current {
@@ -119,29 +147,31 @@ const minDepth = shouldShow ? Math.min(...filtered.map(h => h.depth)) : 2;
   }
   .mobile-toc.is-open .mobile-toc-chevron { transform: rotate(180deg); }
 
+  /* Drawer body — drops flush from the bar (top: 100%, no gap), edge-to-edge,
+     rounded only at the bottom. No top border/rounding so bar + panel read as
+     one continuous drawer pulled down from the navbar. */
   .mobile-toc-panel {
     position: absolute;
     z-index: 2;
-    top: calc(100% + 0.4rem);
+    top: 100%;
     left: 0;
     right: 0;
     max-height: 60vh;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 0.5rem;
-    border: 1px solid rgb(var(--color-primary-200) / 0.8);
-    border-radius: 0.9rem;
+    padding: 0.35rem 0.5rem 0.75rem;
+    border: 0;
+    border-radius: 0 0 1rem 1rem;
     background: #ffffff;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 12px 34px rgb(0 0 0 / 0.14);
+    box-shadow: 0 16px 32px rgb(0 0 0 / 0.16);
     opacity: 0;
     visibility: hidden;
     transform: translateY(-6px);
     transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
   }
   .dark .mobile-toc-panel {
-    border-color: rgb(var(--color-primary-700) / 0.6);
     background: rgb(var(--color-primary-900));
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 34px rgb(0 0 0 / 0.5);
+    box-shadow: 0 16px 32px rgb(0 0 0 / 0.5);
   }
   .mobile-toc.is-open .mobile-toc-panel {
     opacity: 1;

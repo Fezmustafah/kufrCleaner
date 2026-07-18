@@ -3,36 +3,52 @@ import Icon from './Icon.astro';
 ---
 
 <dialog id="img-lightbox" aria-label="Image viewer">
+  <span id="img-lightbox-count" aria-hidden="true"></span>
   <button id="img-lightbox-close" aria-label="Close">
     <Icon name="x" class="w-6 h-6" />
+  </button>
+  <button id="img-lightbox-prev" aria-label="Previous image" hidden>
+    <Icon name="chevron-left" class="w-6 h-6" />
   </button>
   <div id="img-lightbox-inner">
     <img id="img-lightbox-img" src="" alt="" decoding="async" />
     <p id="img-lightbox-caption"></p>
   </div>
+  <button id="img-lightbox-next" aria-label="Next image" hidden>
+    <Icon name="chevron-right" class="w-6 h-6" />
+  </button>
 </dialog>
 
 <style>
+  /* Full-viewport dark stage. The image card + side arrows sit on it as flex
+     siblings, so the arrows land OUTSIDE the image (true lightbox layout). The
+     dialog itself is the dark overlay — no ::backdrop blur, since a full-viewport
+     blur forces the GPU to recomposite the whole page every frame (the old source
+     of open/close lag, bad on mobile & long articles). */
   #img-lightbox {
     position: fixed;
     inset: 0;
-    margin: auto;
-    padding: 1.25rem;
-    max-width: min(90vw, 1200px);
-    max-height: 90vh;
-    width: fit-content;
-    border-radius: 0.75rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    /* Reserve fixed side rails for the arrows so the centered image card never
+       slides under them — the arrows stay locked at the viewport edges. */
+    padding: 0 3.5rem;
+    border: none;
+    background: rgba(0, 0, 0, 0.9);
     overflow: hidden;
-    @apply bg-white dark:bg-primary-950 border border-primary-200 dark:border-primary-800;
   }
-
-  /* Solid backdrop — no backdrop-filter blur. A full-viewport blur forces the
-     GPU to recomposite the entire page behind the dialog every frame, which is
-     the source of the open/close lag (severe on mobile & long articles). */
-  #img-lightbox::backdrop {
-    background: rgba(0, 0, 0, 0.85);
+  #img-lightbox[open] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+  /* Single image → no arrows → no reserved rails, so the image gets full width */
+  #img-lightbox.lb-solo { padding-inline: 1.25rem; }
+  #img-lightbox::backdrop { background: transparent; }
 
   #img-lightbox-close {
     position: absolute;
@@ -53,11 +69,74 @@ import Icon from './Icon.astro';
 
   #img-lightbox-close:hover { background: rgba(0, 0, 0, 0.7); }
 
+  /* Arrows locked to the viewport edges (in the reserved rails), vertically
+     centred — fixed like the close button, never dancing with the image size. */
+  #img-lightbox-prev,
+  #img-lightbox-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    user-select: none;
+    -webkit-user-select: none;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+  }
+  #img-lightbox-prev { left: 0.5rem; }
+  #img-lightbox-next { right: 0.5rem; }
+  #img-lightbox-prev:hover,
+  #img-lightbox-next:hover { background: rgba(255, 255, 255, 0.22); }
+  /* #id specificity beats the UA [hidden] rule, so restore it explicitly */
+  #img-lightbox-prev[hidden],
+  #img-lightbox-next[hidden] { display: none; }
+
+  /* One consistent focus ring for all three controls — symmetric prev/next */
+  #img-lightbox-close:focus-visible,
+  #img-lightbox-prev:focus-visible,
+  #img-lightbox-next:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.9);
+    outline-offset: 2px;
+  }
+
+  /* Position counter (e.g. "3 / 12") — mirrors the close button, top-left */
+  #img-lightbox-count {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.75rem;
+    z-index: 10;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: white;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 9999px;
+  }
+  #img-lightbox-count:empty { display: none; }
+
+  /* The image card — sized to the image, flanked by the arrows. Shrinks (min-
+     width:0 + flex-shrink) so the arrows always have room on narrow screens. */
   #img-lightbox-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.625rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 1.25rem;
+    max-width: min(90vw, 1100px);
+    max-height: 90vh;
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    @apply bg-white dark:bg-primary-950 border border-primary-200 dark:border-primary-800;
   }
 
   #img-lightbox-img {
@@ -75,6 +154,8 @@ import Icon from './Icon.astro';
     font-size: 0.875rem;
     font-style: italic;
     text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
     @apply text-primary-600 dark:text-primary-300;
   }
 
@@ -88,33 +169,83 @@ import Icon from './Icon.astro';
     }
   }
 
-  function openLightbox(src: string, alt: string) {
+  // All prose images on the page, in document order — the gallery you page
+  // through. Rebuilt on every (re)wire so it tracks Swup-swapped content.
+  let gallery: HTMLImageElement[] = [];
+  let current = 0;
+
+  function render() {
+    const img = gallery[current];
+    if (!img) return;
+    const lbImg = document.getElementById('img-lightbox-img') as HTMLImageElement;
+    lbImg.src = img.currentSrc || img.src;
+    lbImg.alt = img.alt;
+    (document.getElementById('img-lightbox-caption') as HTMLElement).textContent = img.alt;
+
+    const multi = gallery.length > 1;
+    (document.getElementById('img-lightbox-count') as HTMLElement).textContent =
+      multi ? `${current + 1} / ${gallery.length}` : '';
+    (document.getElementById('img-lightbox-prev') as HTMLElement).hidden = !multi;
+    (document.getElementById('img-lightbox-next') as HTMLElement).hidden = !multi;
+    // Drop the arrow rails when there's a single image — no wasted side gutters.
+    document.getElementById('img-lightbox')?.classList.toggle('lb-solo', !multi);
+  }
+
+  // Step through the gallery, wrapping at the ends.
+  function go(delta: number) {
+    if (gallery.length < 2) return;
+    current = (current + delta + gallery.length) % gallery.length;
+    render();
+  }
+
+  function openAt(index: number) {
     const dialog = document.getElementById('img-lightbox') as HTMLDialogElement | null;
     if (!dialog) return;
-    (document.getElementById('img-lightbox-img') as HTMLImageElement).src = src;
-    (document.getElementById('img-lightbox-img') as HTMLImageElement).alt = alt;
-    const cap = document.getElementById('img-lightbox-caption') as HTMLElement;
-    cap.textContent = alt;
-    dialog.showModal();
+    current = Math.max(0, index);
+    render();
+    if (!dialog.open) dialog.showModal();
+  }
+
+  // Kept for any external caller (window.openLightbox(src, alt)) — resolve the
+  // src back to a gallery index so prev/next still work.
+  function openLightbox(src: string, _alt?: string) {
+    const found = gallery.findIndex(i => (i.currentSrc || i.src) === src);
+    openAt(found >= 0 ? found : 0);
   }
 
   function wireLightbox() {
-    // Wire dialog close (idempotent — AbortController per call would be cleaner but this is safe)
+    // Wire dialog chrome once (close, prev/next, arrow keys).
     const dialog = document.getElementById('img-lightbox') as HTMLDialogElement | null;
     if (dialog && !(dialog as any)._dialogWired) {
       (dialog as any)._dialogWired = true;
       dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
       document.getElementById('img-lightbox-close')
         ?.addEventListener('click', () => dialog.close());
+      document.getElementById('img-lightbox-prev')
+        ?.addEventListener('click', (e) => { e.stopPropagation(); go(-1); });
+      document.getElementById('img-lightbox-next')
+        ?.addEventListener('click', (e) => { e.stopPropagation(); go(1); });
+      dialog.addEventListener('keydown', (e: KeyboardEvent) => {
+        // Move focus to the arrow matching the direction, so the focus ring
+        // follows the key pressed instead of lingering on the last-clicked one.
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault(); go(-1);
+          document.getElementById('img-lightbox-prev')?.focus();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault(); go(1);
+          document.getElementById('img-lightbox-next')?.focus();
+        }
+      });
     }
 
-    // Wire every prose image that hasn't been wired yet
-    document.querySelectorAll<HTMLImageElement>('.prose img').forEach(img => {
+    // (Re)build the gallery and wire each image once.
+    gallery = Array.from(document.querySelectorAll<HTMLImageElement>('.prose img'));
+    gallery.forEach(img => {
       if ((img as any)._lightboxWired) return;
       (img as any)._lightboxWired = true;
       img.style.cursor = 'pointer';
       img.tabIndex = 0;
-      img.addEventListener('click', () => openLightbox(img.src, img.alt));
+      img.addEventListener('click', () => openAt(gallery.indexOf(img)));
       img.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); img.click(); }
       });

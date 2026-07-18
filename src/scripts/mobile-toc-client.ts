@@ -61,6 +61,13 @@ function initMobileToc() {
       .forEach(h => { if (linkBySlug.has(h.id)) headingEls.push(h); });
   }
 
+  // Stuck detection: once the bar reaches its sticky line under the navbar,
+  // flag it so CSS can fill the transparent navbar band (see .is-stuck::before).
+  const STICK_TOP = 56; // 3.5rem — matches the sticky top / navbar height
+  const updateStuck = () => {
+    root.classList.toggle('is-stuck', bar.getBoundingClientRect().top <= STICK_TOP + 0.5);
+  };
+
   let activeSlug = '';
   const setActive = (slug: string) => {
     if (slug === activeSlug) return;
@@ -80,19 +87,18 @@ function initMobileToc() {
     setActive(cur);
   };
 
-  if (headingEls.length) {
-    recompute();
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => { recompute(); ticking = false; });
-    };
-    document.addEventListener('scroll', onScroll, { passive: true, signal });
-    window.addEventListener('resize', onScroll, { passive: true, signal });
-  }
+  updateStuck();
+  recompute(); // safe with no headings — early-returns
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { updateStuck(); recompute(); ticking = false; });
+  };
+  document.addEventListener('scroll', onScroll, { passive: true, signal });
+  window.addEventListener('resize', onScroll, { passive: true, signal });
 
-  cleanup = () => { controller.abort(); close(); };
+  cleanup = () => { controller.abort(); close(); root.classList.remove('is-stuck'); };
 }
 
 function boot() { initMobileToc(); }

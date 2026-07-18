@@ -120,64 +120,6 @@ const sourceCounts = {
 // margin notes beside the TOC rail. {{ in code fences may false-positive;
 // harmless (just alignment).
 
-// Per-section metadata for the TOC hover card: a plain-text excerpt of the
-// section body + the names of its direct child headings. Keyed by normalized
-// heading text (TOC entries carry rendered text, not markdown source).
-const stripMd = (s: string) =>
-  s
-    .replace(/^\s*(?:[-+*]|\d+\.)\s+/, '')
-    .replace(/%%[\s\S]*?%%/g, '')
-    .replace(/\{\{sidenotes\[([^\]]*)\]:[\s\S]*?\}\}/g, '$1') // labeled note: keep the anchor words
-    .replace(/\{\{[\s\S]*?\}\}/g, '')
-    .replace(/!\[\[[^\]]*\]\]/g, '')
-    .replace(/\[\[([^\]|]*)\|([^\]]*)\]\]/g, '$2')
-    .replace(/\[\[([^\]]*)\]\]/g, '$1')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]+>/g, '')
-    .replace(/[*_`~$]|==|!!|\^\^|\(\(|\)\)|\|\|/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-const normalizeHeading = (s: string) => stripMd(s).toLowerCase();
-
-const sectionMeta = (() => {
-  const meta = new Map<string, { excerpt: string; children: string[] }>();
-  const found: { key: string; depth: number; text: string; parts: string[] }[] = [];
-  let cur: (typeof found)[number] | null = null;
-  let inCode = false;
-
-  for (const rawLine of (post.body || '').split('\n')) {
-    if (/^\s*(```|~~~)/.test(rawLine)) { inCode = !inCode; continue; }
-    if (inCode) continue;
-
-    const m = rawLine.match(/^(#{2,6})\s+(.+)/);
-    if (m) {
-      cur = { key: normalizeHeading(m[2]), depth: m[1].length, text: stripMd(m[2]), parts: [] };
-      found.push(cur);
-      continue;
-    }
-    if (!cur || cur.parts.join(' ').length > 300) continue;
-    // Callout markers contribute their body text, not the marker line
-    const line = rawLine.replace(/^>+\s*(\[!\w+\][+-]?\s*)?/, '');
-    const text = stripMd(line);
-    if (text) cur.parts.push(text);
-  }
-
-  found.forEach((s, i) => {
-    const children: string[] = [];
-    for (let j = i + 1; j < found.length; j++) {
-      if (found[j].depth <= s.depth) break;
-      if (found[j].depth === s.depth + 1) children.push(found[j].text);
-    }
-    let excerpt = s.parts.join(' ');
-    if (excerpt.length > 220) excerpt = excerpt.slice(0, 220).replace(/\s+\S*$/, '') + '…';
-    if (!meta.has(s.key)) meta.set(s.key, { excerpt, children });
-  });
-
-  return meta;
-})();
-
 const graphSidebarEnabled = siteConfig.postOptions.graphView.enabled && siteConfig.postOptions.graphView.showInSidebar;
 let hasLocalGraphConnections = false;
 if (graphSidebarEnabled) {
@@ -401,7 +343,7 @@ if (graphSidebarEnabled) {
       <!-- Left sidebar: minimal line-rail TOC (behaviour in toc-client.ts) -->
       {shouldShowTOC && (
         <aside class="post-layout-left-col" id="post-left-sidebar">
-          <TableOfContents headings={toc} sectionMeta={sectionMeta} />
+          <TableOfContents headings={toc} />
         </aside>
       )}
 

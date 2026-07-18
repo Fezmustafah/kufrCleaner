@@ -1,23 +1,23 @@
 ---
-// Minimal line-rail TOC, ported from aarnphm.github.io (Quartz).
-// Each heading renders as a thin horizontal line; hovering the rail magnifies
-// lines with a gaussian falloff and shows a floating label; headings currently
-// on screen get their line emphasised (`in-view`, via IntersectionObserver).
-// All behaviour lives in /src/scripts/toc-client.ts (loaded globally from
-// BaseLayout — Swup-safe, re-inits on astro:page-load).
+// Minimal line-rail TOC. Each heading is a thin horizontal tick whose width
+// encodes the heading (longer title + shallower depth → longer bar), so even a
+// flat all-h2 post reads as a varied minimap. Ticks pop in with a staggered
+// load animation (re-triggered per navigation by toc-client). They're purely
+// decorative — hovering the rail reveals a full text outline panel (every
+// heading as a readable, indented link, on-screen sections highlighted) and
+// navigation happens by clicking a panel row, not a tick.
+// Panel show/hide and the page veil are pure CSS (:hover / :has); the dynamic
+// bits (scroll-spy, click-to-scroll, overflow masks, rail release, animation
+// replay) live in /src/scripts/toc-client.ts (loaded globally from BaseLayout,
+// Swup-safe, re-inits on astro:page-load).
 import type { Heading } from '@/types';
 import { getTableOfContentsDepth } from '@/config';
 
 export interface Props {
   headings: Heading[];
-  /** Per-section hover-card data, keyed by normalized heading text (built in PostLayout) */
-  sectionMeta?: Map<string, { excerpt: string; children: string[] }>;
 }
 
-const { headings, sectionMeta } = Astro.props;
-
-const metaFor = (text: string) =>
-  sectionMeta?.get(text.replace(/\s+/g, ' ').trim().toLowerCase());
+const { headings } = Astro.props;
 
 const maxDepth = getTableOfContentsDepth();
 // footnote-label = the GFM footnote section's heading — not part of the body
@@ -32,46 +32,58 @@ const minDepth = filteredHeadings.length > 0
 
 const denseTocThreshold = 50;
 const density = filteredHeadings.length > denseTocThreshold ? 'dense' : undefined;
+
+// Tick length: title length gives organic per-heading variation; depth trims
+// it so nested headings read as shorter. Clamped to a tidy 0.5–1.15rem band.
+const tickWidthRem = (h: Heading) => {
+  const lenFactor = Math.min(h.text.length, 55) / 55; // 0..1
+  const depthPenalty = Math.min(h.depth - minDepth, 3) * 0.13;
+  const w = (0.5 + lenFactor * 0.65) * (1 - depthPenalty);
+  return `${w.toFixed(3)}rem`;
+};
 ---
 
 {shouldShowTOC && (
   <div class="toc" data-layout="minimal" data-density={density}>
-    <nav id="toc-vertical" aria-label="Table of contents">
+    <nav id="toc-vertical" data-toc-scroll aria-hidden="true">
       {filteredHeadings.map((h, idx) => (
-        <button
+        <div
           class={`toc-item depth-${h.depth - minDepth}`}
           data-depth={h.depth - minDepth}
-          data-href={`#${h.slug}`}
           data-for={h.slug}
-          data-excerpt={metaFor(h.text)?.excerpt || ''}
-          data-children={JSON.stringify(metaFor(h.text)?.children || [])}
-          tabindex={-1}
-          type="button"
-          style={`--animation-order: ${idx + 1}`}
-          aria-label={h.text}
+          style={`--animation-order: ${idx + 1}; --fill-width: ${tickWidthRem(h)}`}
         >
           <div class="fill"></div>
-        </button>
+        </div>
       ))}
     </nav>
-    <!-- Hover preview card (Codex-style): title + section excerpt + subsection chips -->
-    <div class="toc-card" aria-hidden="true">
-      <div class="toc-card-title"></div>
-      <div class="toc-card-excerpt"></div>
-      <div class="toc-card-footer"></div>
+    <!-- Full text outline, revealed on hover — the high-level overview + the
+         only way to navigate from here. -->
+    <div class="toc-panel" role="navigation" aria-label="Table of contents">
+      <div class="toc-panel-heading">Contents</div>
+      <ol class="toc-panel-list" data-toc-scroll>
+        {filteredHeadings.map((h) => (
+          <li>
+            <a
+              class={`toc-panel-item depth-${h.depth - minDepth}`}
+              data-depth={h.depth - minDepth}
+              data-href={`#${h.slug}`}
+              data-for={h.slug}
+              href={`#${h.slug}`}
+            >{h.text}</a>
+          </li>
+        ))}
+      </ol>
     </div>
   </div>
 )}
 
 <style is:global>
-  /* Global (not scoped): toc-client.ts toggles classes on <body>, and the
-     veil pseudo-element lives on body — unreachable from scoped styles. */
+  /* Global (not scoped): toc-client.ts toggles classes on scrollers + the nav,
+     and the veil pseudo-element lives on body — unreachable from scoped CSS. */
 
   .toc[data-layout='minimal'] {
-    --toc-rail-width: 4.5rem;
-    --toc-label-offset: calc(var(--toc-rail-width) + 1.25rem);
-    --fill-width: 1rem;
-    --toc-scroll-buffer: 48px;
+    --toc-rail-width: 1.6rem; /* snug to the widest tick — small panel gap */
     --toc-mask-buffer: 32px;
 
     display: flex;
@@ -92,18 +104,18 @@ const density = filteredHeadings.length > denseTocThreshold ? 'dense' : undefine
     display: flex;
     flex-direction: column;
     position: relative;
-    cursor: pointer;
     width: var(--toc-rail-width);
     max-height: calc(100vh - 12rem);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
-    scrollbar-width: none;
-    scroll-padding-block: var(--toc-scroll-buffer);
+    scrollbar-width: none; /* rail stays a clean minimap */
+    cursor: pointer; /* click the rail to pin/unpin the outline */
   }
   nav#toc-vertical::-webkit-scrollbar { display: none; }
 
-  nav#toc-vertical.is-scrollable {
+  /* Fade masks on either scrollable column (rail or panel list) */
+  [data-toc-scroll].is-scrollable {
     -webkit-mask-image: linear-gradient(
       to bottom,
       transparent 0,
@@ -119,206 +131,216 @@ const density = filteredHeadings.length > denseTocThreshold ? 'dense' : undefine
       transparent 100%
     );
   }
-  nav#toc-vertical.is-scrollable.at-start {
+  [data-toc-scroll].is-scrollable.at-start {
     -webkit-mask-image: linear-gradient(to bottom, black calc(100% - var(--toc-mask-buffer)), transparent 100%);
     mask-image: linear-gradient(to bottom, black calc(100% - var(--toc-mask-buffer)), transparent 100%);
   }
-  nav#toc-vertical.is-scrollable.at-end {
+  [data-toc-scroll].is-scrollable.at-end {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, black var(--toc-mask-buffer), black 100%);
     mask-image: linear-gradient(to bottom, transparent 0, black var(--toc-mask-buffer), black 100%);
   }
-  nav#toc-vertical.is-scrollable.at-start.at-end {
+  [data-toc-scroll].is-scrollable.at-start.at-end {
     -webkit-mask-image: none;
     mask-image: none;
   }
 
-  nav#toc-vertical button.toc-item {
+  /* ── Ticks (decorative) ────────────────────────────────────────────────── */
+  nav#toc-vertical .toc-item {
     display: inline-flex;
     flex: none;
-    border: none;
-    background: transparent;
     height: var(--button-height);
     min-block-size: var(--button-height);
     max-width: var(--fill-width);
     position: relative;
     align-items: center;
-    padding: 0;
-    transform-origin: center;
   }
 
-  /* Depth → line width: h2 longest, deeper headings shorter */
-  nav#toc-vertical button.toc-item.depth-1 { --fill-width: 0.7rem; }
-  nav#toc-vertical button.toc-item.depth-2,
-  nav#toc-vertical button.toc-item.depth-3,
-  nav#toc-vertical button.toc-item.depth-4 { --fill-width: 0.45rem; }
-
-  nav#toc-vertical button.toc-item > .fill {
+  nav#toc-vertical .toc-item > .fill {
     background-color: rgb(var(--color-primary-900));
     opacity: 0.3;
     height: 3px;
     width: 100%;
     min-width: var(--fill-width);
-    transform: scaleX(0);
+    transform: scaleX(1); /* safe default: visible if JS never adds .toc-animate */
     transform-origin: 0 0;
-    animation: toc-fill-expand 0.5s forwards;
-    animation-delay: calc((var(--animation-order) - 1) * 0.1s + 0.3s);
-    transition:
-      background-color 0.08s cubic-bezier(0.2, 0, 0, 1),
-      opacity 0.08s cubic-bezier(0.2, 0, 0, 1);
-    will-change: transform;
+    transition: background-color 0.15s ease, opacity 0.15s ease;
   }
-  .dark nav#toc-vertical button.toc-item > .fill {
+  .dark nav#toc-vertical .toc-item > .fill {
     background-color: rgb(var(--color-primary-100));
   }
 
-  /* No stagger on dense TOCs (50+ headings) */
-  .toc[data-layout='minimal'][data-density='dense'] nav#toc-vertical button.toc-item > .fill {
+  /* Load pop — toc-client adds .toc-animate on every init so it replays across
+     Swup navigations (a CSS-only animation on morphed DOM won't). `backwards`
+     holds scaleX(0) through the stagger delay, then grows to the scaleX(1) base. */
+  nav#toc-vertical.toc-animate .toc-item > .fill {
+    animation: toc-fill-expand 0.45s backwards cubic-bezier(0.2, 0, 0, 1);
+    animation-delay: calc((var(--animation-order) - 1) * 0.03s + 0.1s);
+  }
+  /* No stagger on dense TOCs (50+ headings) — just show them */
+  .toc[data-layout='minimal'][data-density='dense'] nav#toc-vertical.toc-animate .toc-item > .fill {
     animation: none;
-    transform: scaleX(1);
   }
 
   /* Heading currently on screen — gold, the scroll-tracking signal */
-  nav#toc-vertical button.toc-item.in-view > .fill {
+  nav#toc-vertical .toc-item.in-view > .fill {
     background-color: rgb(var(--color-highlight-600));
     opacity: 0.9;
   }
-  .dark nav#toc-vertical button.toc-item.in-view > .fill {
+  .dark nav#toc-vertical .toc-item.in-view > .fill {
     background-color: rgb(var(--color-highlight-400));
   }
 
-  /* Hover state: all lines wake up, nearest is fully dark */
-  .toc[data-layout='minimal'].is-hovering nav#toc-vertical button.toc-item > .fill {
-    opacity: 0.45;
-  }
-  .toc[data-layout='minimal'].is-hovering nav#toc-vertical button.toc-item.in-view > .fill {
-    opacity: 0.9;
-  }
-  .toc[data-layout='minimal'].is-hovering nav#toc-vertical button.toc-item.is-active > .fill {
-    background-color: rgb(var(--color-primary-900));
-    opacity: 1;
-  }
-  .dark .toc[data-layout='minimal'].is-hovering nav#toc-vertical button.toc-item.is-active > .fill {
-    background-color: rgb(var(--color-primary-50));
-  }
+  /* Ticks wake a touch while the panel is open (hover or pinned) */
+  .toc[data-layout='minimal']:hover nav#toc-vertical .toc-item > .fill,
+  .toc[data-layout='minimal'].is-pinned nav#toc-vertical .toc-item > .fill { opacity: 0.5; }
+  .toc[data-layout='minimal']:hover nav#toc-vertical .toc-item.in-view > .fill,
+  .toc[data-layout='minimal'].is-pinned nav#toc-vertical .toc-item.in-view > .fill { opacity: 0.95; }
 
-  /* Floating preview card — follows the cursor beside the rail (Codex-style) */
-  .toc[data-layout='minimal'] > .toc-card {
+  /* ── Text outline panel ────────────────────────────────────────────────── */
+  .toc-panel {
     position: absolute;
-    top: 0;
-    left: var(--toc-label-offset);
+    top: 50%;
+    left: 100%; /* rail column's right edge — no dead hover gap */
+    margin-left: 0.4rem;
+    display: flex;
+    flex-direction: column;
     width: max-content;
-    max-width: min(26rem, 44vw);
+    min-width: 13rem;
+    max-width: min(22rem, 38vw);
+    max-height: calc(100vh - 8rem);
     background: #ffffff;
     border: 1px solid rgb(var(--color-primary-200) / 0.7);
     border-radius: 1rem;
     box-shadow:
       0 1px 2px rgb(0 0 0 / 0.04),
-      0 8px 28px rgb(0 0 0 / 0.10);
-    padding: 0.8rem 1rem 0.75rem;
+      0 12px 32px rgb(0 0 0 / 0.12);
+    padding: 0.85rem 0.4rem 0.6rem;
     opacity: 0;
     pointer-events: none;
-    transform: translate3d(0, var(--toc-label-y, 0px), 0) translateY(-50%);
-    transform-origin: 0 50%;
-    transition: opacity 0.12s cubic-bezier(0.2, 0, 0, 1);
-    will-change: transform, opacity;
+    transform: translate(-0.5rem, -50%);
+    transition:
+      opacity 0.16s cubic-bezier(0.2, 0, 0, 1),
+      transform 0.16s cubic-bezier(0.2, 0, 0, 1);
     z-index: 60;
   }
-  .dark .toc[data-layout='minimal'] > .toc-card {
+  /* Transparent bridge so crossing the 0.4rem margin gap doesn't drop :hover */
+  .toc-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -0.5rem;
+    width: 0.5rem;
+  }
+  .dark .toc-panel {
     background: rgb(var(--color-primary-900));
     border-color: rgb(var(--color-primary-700) / 0.6);
     box-shadow:
       0 1px 2px rgb(0 0 0 / 0.3),
-      0 8px 28px rgb(0 0 0 / 0.45);
+      0 12px 32px rgb(0 0 0 / 0.5);
   }
-  .toc[data-layout='minimal'].is-hovering > .toc-card.is-visible {
+  /* Open on hover, or stay open when pinned (a row was clicked) */
+  .toc[data-layout='minimal']:hover .toc-panel,
+  .toc[data-layout='minimal'].is-pinned .toc-panel {
     opacity: 1;
+    pointer-events: auto;
+    transform: translate(0, -50%);
+  }
+  /* Pinned = persistent browse mode: a hairline accent marks it as "on" */
+  .toc[data-layout='minimal'].is-pinned .toc-panel {
+    border-color: rgb(var(--color-highlight-500) / 0.55);
   }
 
-  .toc-card-title {
-    font-size: 0.9rem;
+  .toc-panel-heading {
+    flex: none;
+    font-size: 0.7rem;
     font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--color-primary-400));
+    padding: 0 0.75rem 0.5rem;
+  }
+
+  .toc-panel-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Subtle scrollbar — an affordance that the outline scrolls (a11y) */
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-primary-300)) transparent;
+  }
+  .dark .toc-panel-list { scrollbar-color: rgb(var(--color-primary-600)) transparent; }
+  .toc-panel-list::-webkit-scrollbar { width: 7px; }
+  .toc-panel-list::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-primary-300));
+    border-radius: 4px;
+  }
+  .dark .toc-panel-list::-webkit-scrollbar-thumb { background: rgb(var(--color-primary-600)); }
+
+  .toc-panel-item {
+    display: block;
+    padding: 0.28rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
     line-height: 1.35;
-    color: rgb(var(--color-primary-900));
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .dark .toc-card-title { color: rgb(var(--color-primary-50)); }
-
-  .toc-card-excerpt {
-    margin-top: 0.3rem;
-    font-size: 0.85rem;
-    line-height: 1.45;
-    color: rgb(var(--color-primary-400));
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    color: rgb(var(--color-primary-500));
+    text-decoration: none;
     text-wrap: pretty;
+    transition: color 0.12s ease, background-color 0.12s ease;
   }
-  .dark .toc-card-excerpt { color: rgb(var(--color-primary-400)); }
-  .toc-card-excerpt:empty { display: none; }
-
-  .toc-card-footer {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    margin-top: 0.55rem;
-    font-size: 0.8rem;
-    color: rgb(var(--color-primary-400));
-    min-width: 0;
+  .dark .toc-panel-item { color: rgb(var(--color-primary-400)); }
+  .toc-panel-item:hover {
+    color: rgb(var(--color-primary-900));
+    background: rgb(var(--color-primary-100) / 0.6);
   }
-  .toc-card-footer:empty { display: none; }
-
-  .toc-card-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-width: 0;
-    flex-shrink: 1;
-  }
-  .toc-card-chip svg {
-    flex-shrink: 0;
-    width: 14px;
-    height: 14px;
-    opacity: 0.75;
-  }
-  .toc-card-chip-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 9rem;
-  }
-  .toc-card-more {
-    flex-shrink: 0;
+  .dark .toc-panel-item:hover {
+    color: rgb(var(--color-primary-50));
+    background: rgb(var(--color-primary-800) / 0.6);
   }
 
-  /* Page veil while hovering the rail — content dims/blurs behind the label */
-  body.toc-hovering::before {
+  /* Depth → indent (h2 flush, deeper stepped in) */
+  .toc-panel-item.depth-1 { padding-left: 1.6rem; }
+  .toc-panel-item.depth-2 { padding-left: 2.4rem; font-size: 0.85rem; }
+  .toc-panel-item.depth-3 { padding-left: 3.2rem; font-size: 0.85rem; }
+  .toc-panel-item.depth-4 { padding-left: 4rem; font-size: 0.85rem; }
+
+  /* Current section(s) — gold, matching the rail ticks */
+  .toc-panel-item.in-view {
+    color: rgb(var(--color-highlight-700));
+    font-weight: 600;
+  }
+  .dark .toc-panel-item.in-view {
+    color: rgb(var(--color-highlight-400));
+  }
+
+  /* ── Page veil while the panel is open ─────────────────────────────────── */
+  /* ponytail: backdrop-blur repaints if the page scrolls while hovering the
+     rail (rare — you scroll the panel, not the page). Drop the blur if it janks. */
+  /* Veil is a hover-only reading focus; suppressed when pinned so the pinned
+     outline floats over readable (un-dimmed) content. */
+  body:has(.toc[data-layout='minimal']:hover):not(:has(.toc[data-layout='minimal'].is-pinned))::before {
     content: '';
     position: fixed;
     inset: 0;
     z-index: 40;
     pointer-events: none;
     background: rgb(255 255 255 / 0.56);
-  }
-  .dark body.toc-hovering::before {
-    background: rgb(var(--color-primary-950) / 0.56);
-  }
-  body.toc-hovering:not(.toc-scrolling)::before {
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
   }
-  /* Rail (sticky left col) must sit above the veil */
-  body.toc-hovering .post-layout-left-col {
+  .dark body:has(.toc[data-layout='minimal']:hover):not(:has(.toc[data-layout='minimal'].is-pinned))::before {
+    background: rgb(var(--color-primary-950) / 0.56);
+  }
+  /* Rail (sticky left col) must sit above the veil / stay on top while open */
+  body:has(.toc[data-layout='minimal']:hover) .post-layout-left-col,
+  body:has(.toc[data-layout='minimal'].is-pinned) .post-layout-left-col {
     z-index: 50;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    nav#toc-vertical button.toc-item > .fill {
-      animation: none;
-      transform: scaleX(1);
-    }
+    nav#toc-vertical.toc-animate .toc-item > .fill { animation: none; }
+    .toc-panel { transition: none; }
   }
 </style>

@@ -1,29 +1,22 @@
-// Minimal line-rail TOC behaviour, ported from aarnphm.github.io (Quartz)
-// toc.inline.ts and adapted to this repo's Swup lifecycle: loaded globally
-// from BaseLayout, re-inits on astro:page-load, no-ops when no rail is in
-// the DOM. Listeners are wired through an AbortController so each nav
-// tears down the previous page's handlers (same pattern as marginalia).
+// Minimal line-rail TOC (static ticks) + full text outline panel on hover.
+// Ticks pop in with a staggered load animation and encode heading depth via
+// width — all CSS. Panel show/hide and the page veil are CSS too (:hover /
+// :has). This module only handles the dynamic bits:
+//   • scroll-spy — mark which sections are on screen (in-view on tick + row)
+//   • click-to-scroll — a tick or a panel row smooth-scrolls + flashes the heading
+//   • overflow masks — fade the top/bottom of the rail or panel when it scrolls
+//   • rail release — fade the rail out where the post body ends (footnotes)
+// Loaded globally from BaseLayout; Swup-safe (re-inits on astro:page-load).
+// Listeners are wired through an AbortController so each nav tears down the
+// previous page's handlers (same pattern as marginalia).
 
 import { annotate } from 'rough-notation';
 import type { RoughAnnotation } from 'rough-notation/lib/model';
 
 const tocScrollBuffer = 48;
-const tocHoverSigma = 42;
-const tocHoverRadius = tocHoverSigma * 3;
-const tocHoverLerp = 0.32;
-const tocHoverEpsilon = 0.08;
-
-interface TocButtonMetric {
-  button: HTMLButtonElement;
-  fill: HTMLElement | null;
-  centerY: number;
-  label: string;
-  touched: boolean;
-}
 
 let headingAnnotation: RoughAnnotation | null = null;
 let tocCleanup: (() => void) | null = null;
-let tocObserver: IntersectionObserver | null = null;
 
 function flashHeadingAnnotation(headingId: string) {
   const heading = document.getElementById(headingId);
@@ -52,164 +45,27 @@ function scrollToHeading(hash: string) {
   history.pushState(null, '', hash);
 }
 
-/* ── Geometry helpers (verbatim port) ────────────────────────────────────── */
+/* ── Overflow fade masks ──────────────────────────────────────────────────── */
 
-function readTocButtonMetrics(buttons: NodeListOf<HTMLButtonElement>): TocButtonMetric[] {
-  const metrics: TocButtonMetric[] = [];
-  buttons.forEach(button => {
-    metrics.push({
-      button,
-      fill: button.querySelector<HTMLElement>('.fill'),
-      centerY: button.offsetTop + button.offsetHeight / 2,
-      label: button.getAttribute('aria-label') ?? '',
-      touched: false,
-    });
-  });
-  return metrics;
+function updateTocOverflow(el: HTMLElement) {
+  const scrollable = el.scrollHeight > el.clientHeight + 1;
+  const atStart = el.scrollTop <= 1;
+  const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+  el.classList.toggle('is-scrollable', scrollable);
+  el.classList.toggle('at-start', scrollable && atStart);
+  el.classList.toggle('at-end', scrollable && atEnd);
 }
 
-function readTocMaxScale(nav: HTMLElement, metrics: TocButtonMetric[]): number {
-  const baseWidth = Math.max(1, metrics[0]?.fill?.offsetWidth ?? 1);
-  return Math.max(1, nav.clientWidth / baseWidth);
-}
-
-function firstTocMetricIndexAt(metrics: TocButtonMetric[], centerY: number): number {
-  let low = 0;
-  let high = metrics.length;
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2);
-    if (metrics[mid].centerY < centerY) low = mid + 1;
-    else high = mid;
-  }
-  return low;
-}
-
-function nearestTocMetric(metrics: TocButtonMetric[], centerY: number): TocButtonMetric | null {
-  const nextIndex = firstTocMetricIndexAt(metrics, centerY);
-  const previous = metrics[nextIndex - 1];
-  const next = metrics[nextIndex];
-  if (!previous) return next ?? null;
-  if (!next) return previous;
-  return centerY - previous.centerY <= next.centerY - centerY ? previous : next;
-}
-
-function updateTocButtonFill(metric: TocButtonMetric, mouseY: number, maxScale: number): void {
-  const { fill } = metric;
-  if (!fill) return;
-  const distance = mouseY - metric.centerY;
-  const falloff = Math.exp(-(distance * distance) / (2 * tocHoverSigma * tocHoverSigma));
-  const scale = 1 + (maxScale - 1) * falloff;
-  fill.style.animation = 'none';
-  fill.style.transform = `scaleX(${scale.toFixed(3)})`;
-}
-
-function resetTocButton(button: HTMLButtonElement) {
-  const fill = button.querySelector<HTMLElement>('.fill');
-  button.classList.remove('is-active');
-  if (!fill) return;
-  fill.style.animation = 'none';
-  fill.style.transform = 'scaleX(1)';
-  fill.style.opacity = '';
-}
-
-function resetTocButtons(buttons?: NodeListOf<HTMLButtonElement>) {
-  buttons?.forEach(resetTocButton);
-}
-
-function hideTocLabel(toc: HTMLElement) {
-  toc.querySelector<HTMLElement>('.toc-card')?.classList.remove('is-visible');
-}
-
-const CHIP_ICON =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>';
-
-const maxChips = 2;
-
-function fillTocCard(card: HTMLElement, button: HTMLButtonElement, label: string) {
-  const title = card.querySelector<HTMLElement>('.toc-card-title');
-  const excerpt = card.querySelector<HTMLElement>('.toc-card-excerpt');
-  const footer = card.querySelector<HTMLElement>('.toc-card-footer');
-  if (title) title.textContent = label;
-  if (excerpt) excerpt.textContent = button.dataset.excerpt || '';
-
-  if (!footer) return;
-  footer.textContent = '';
-  let children: string[] = [];
-  try {
-    children = JSON.parse(button.dataset.children || '[]');
-  } catch { /* malformed data attribute — footer stays empty */ }
-
-  children.slice(0, maxChips).forEach(name => {
-    const chip = document.createElement('span');
-    chip.className = 'toc-card-chip';
-    chip.innerHTML = CHIP_ICON;
-    const nm = document.createElement('span');
-    nm.className = 'toc-card-chip-name';
-    nm.textContent = name;
-    chip.appendChild(nm);
-    footer.appendChild(chip);
-  });
-  if (children.length > maxChips) {
-    const more = document.createElement('span');
-    more.className = 'toc-card-more';
-    more.textContent = `+${children.length - maxChips}`;
-    footer.appendChild(more);
-  }
-}
-
-function updateTocLabel(
-  toc: HTMLElement,
-  metric: TocButtonMetric,
-  activeButton: HTMLButtonElement | null,
-  labelY: number,
-  tocTop: number,
-): HTMLButtonElement {
-  const { button } = metric;
-  const card = toc.querySelector<HTMLElement>('.toc-card');
-  if (!card) return button;
-
-  if (button !== activeButton) {
-    activeButton?.classList.remove('is-active');
-    button.classList.add('is-active');
-    fillTocCard(card, button, metric.label);
-    // offsetHeight forces layout — read once per content change, not per frame
-    card.dataset.half = String(card.offsetHeight / 2);
-  }
-
-  // Clamp so the card (translateY(-50%)-centred on the cursor) stays on screen
-  const half = Number(card.dataset.half) || 0;
-  const minY = 12 + half - tocTop;
-  const maxY = window.innerHeight - 12 - half - tocTop;
-  const clampedY = Math.min(Math.max(labelY, minY), Math.max(minY, maxY));
-
-  toc.style.setProperty('--toc-label-y', `${clampedY.toFixed(1)}px`);
-  card.classList.add('is-visible');
-  return button;
-}
-
-function updateTocOverflow(nav: HTMLElement) {
-  const scrollable = nav.scrollHeight > nav.clientHeight + 1;
-  const atStart = nav.scrollTop <= 1;
-  const atEnd = nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 1;
-  nav.classList.toggle('is-scrollable', scrollable);
-  nav.classList.toggle('at-start', scrollable && atStart);
-  nav.classList.toggle('at-end', scrollable && atEnd);
-}
-
-function scrollTocButtonIntoView(button: HTMLButtonElement) {
-  const nav = button.closest<HTMLElement>('#toc-vertical');
-  if (!nav || nav.scrollHeight <= nav.clientHeight + 1) return;
-
-  const navRect = nav.getBoundingClientRect();
-  const buttonRect = button.getBoundingClientRect();
-  const before = buttonRect.top - navRect.top - tocScrollBuffer;
-  const after = buttonRect.bottom - navRect.bottom + tocScrollBuffer;
-  let nextScroll = nav.scrollTop;
-
-  if (before < 0) nextScroll += before;
-  else if (after > 0) nextScroll += after;
-
-  if (Math.abs(nextScroll - nav.scrollTop) >= 1) nav.scrollTop = nextScroll;
+function scrollItemIntoView(item: HTMLElement, container: HTMLElement) {
+  if (container.scrollHeight <= container.clientHeight + 1) return;
+  const cRect = container.getBoundingClientRect();
+  const iRect = item.getBoundingClientRect();
+  const before = iRect.top - cRect.top - tocScrollBuffer;
+  const after = iRect.bottom - cRect.bottom + tocScrollBuffer;
+  let next = container.scrollTop;
+  if (before < 0) next += before;
+  else if (after > 0) next += after;
+  if (Math.abs(next - container.scrollTop) >= 1) container.scrollTop = next;
 }
 
 /* ── Setup ───────────────────────────────────────────────────────────────── */
@@ -217,9 +73,6 @@ function scrollTocButtonIntoView(button: HTMLButtonElement) {
 function initializeTableOfContents() {
   tocCleanup?.();
   tocCleanup = null;
-  tocObserver?.disconnect();
-  tocObserver = null;
-  document.body.classList.remove('toc-hovering', 'toc-scrolling');
 
   const toc = document.querySelector<HTMLElement>('.toc[data-layout="minimal"]');
   if (!toc) return;
@@ -229,15 +82,17 @@ function initializeTableOfContents() {
 
   const nav = toc.querySelector<HTMLElement>('#toc-vertical');
   if (!nav) return;
+  const panelList = toc.querySelector<HTMLElement>('.toc-panel-list');
 
-  const buttons = toc.querySelectorAll<HTMLButtonElement>('button[data-for]');
-  if (buttons.length === 0) return;
-
-  // Map slug → rail button, observe the matching article headings
-  const entryBySlug = new Map<string, HTMLButtonElement>();
-  buttons.forEach(b => {
-    const slug = b.dataset.for;
-    if (slug) entryBySlug.set(slug, b);
+  // slug → every element tracking it (rail tick + panel row), so scroll-spy
+  // lights up both from one observer callback.
+  const bySlug = new Map<string, HTMLElement[]>();
+  toc.querySelectorAll<HTMLElement>('[data-for]').forEach(el => {
+    const slug = el.dataset.for;
+    if (!slug) return;
+    const arr = bySlug.get(slug);
+    if (arr) arr.push(el);
+    else bySlug.set(slug, [el]);
   });
 
   const article = document.getElementById('post-content');
@@ -246,162 +101,102 @@ function initializeTableOfContents() {
     article
       .querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')
       .forEach(h => {
-        if (entryBySlug.has(h.id)) headings.push(h);
+        if (bySlug.has(h.id)) headings.push(h);
       });
   }
 
-  tocObserver = new IntersectionObserver(entries => {
-    for (const entry of entries) {
-      const button = entryBySlug.get(entry.target.id);
-      if (!button) continue;
-      const windowHeight = entry.rootBounds?.height;
-      if (!windowHeight) continue;
-
-      const inView = entry.boundingClientRect.y < windowHeight && entry.boundingClientRect.bottom > 0;
-      button.classList.toggle('in-view', inView);
-      if (entry.isIntersecting) scrollTocButtonIntoView(button);
+  // Scroll-spy by CURRENT SECTION, not by heading-in-viewport: the active
+  // heading is the last one you've scrolled past its activation line (just
+  // below the fixed navbar). This keeps a tick lit through a section's whole
+  // body — long images and all — instead of going dark between headings.
+  const activationOffset = 140; // px from viewport top; clears the 3.5rem navbar
+  let activeSlug: string | null = null;
+  const updateActiveHeading = () => {
+    if (!headings.length) return;
+    let active: HTMLElement | null = null;
+    for (const h of headings) {
+      // Headings are in document order → tops increase; stop at the first one
+      // still below the line (everything after it is too).
+      if (h.getBoundingClientRect().top <= activationOffset) active = h;
+      else break;
     }
-  });
-  headings.forEach(h => tocObserver!.observe(h));
+    const slug = (active ?? headings[0]).id; // above the first heading → light the first
+    if (slug === activeSlug) return;
+    activeSlug = slug;
+    bySlug.forEach((els, s) => {
+      const on = s === slug;
+      els.forEach(el => el.classList.toggle('in-view', on));
+    });
+    // Keep the active tick (and panel row) in view within their own scroll
+    // container, so a long rail follows along instead of stranding the lit tick
+    // off-screen. No-ops when the column isn't scrollable.
+    bySlug.get(slug)?.forEach(el => {
+      const container = el.closest<HTMLElement>('[data-toc-scroll]');
+      if (container) scrollItemIntoView(el, container);
+    });
+  };
+
+  // Replay the tick load-pop on every init — a CSS-only animation won't re-run
+  // on Swup-morphed DOM. Remove → force reflow → re-add so it restarts.
+  nav.classList.remove('toc-animate');
+  void nav.offsetWidth;
+  nav.classList.add('toc-animate');
 
   const controller = new AbortController();
   const { signal } = controller;
 
-  let metrics = readTocButtonMetrics(buttons);
-  let maxScale = readTocMaxScale(nav, metrics);
-  // The rail is fixed-positioned: its box only moves on resize, so these are
-  // cached here (refreshed by refreshTocGeometry) instead of re-read per
-  // scroll/hover frame — getBoundingClientRect forces a reflow whenever lazy
-  // images have dirtied layout, which is constant on image-heavy posts.
-  let navViewportTop = nav.getBoundingClientRect().top;
-  let tocViewportTop = toc.getBoundingClientRect().top;
+  const setPinned = (v: boolean) => toc.classList.toggle('is-pinned', v);
 
-  let frame = 0;
-  let currentMouseY = 0;
-  let targetMouseY = 0;
-  let activeButton: HTMLButtonElement | null = null;
-  let hovering = false;
-  let touchedMetrics: TocButtonMetric[] = [];
-  let nextTouchedMetrics: TocButtonMetric[] = [];
-  let scrollEndTimer = 0;
+  // Navigation is by panel row only (ticks are decorative) → smooth-scroll +
+  // flash the heading. Does not touch the pinned state.
+  toc.addEventListener('click', (evt) => {
+    const el = (evt.target as Element)?.closest?.('.toc-panel-item') as HTMLElement | null;
+    const href = el?.dataset.href;
+    if (!href?.startsWith('#')) return;
+    evt.preventDefault();
+    scrollToHeading(href);
+  }, { signal });
 
-  const setTocScrolling = (scrolling: boolean) => {
-    document.body.classList.toggle('toc-scrolling', scrolling);
-  };
+  // Clicking the tick rail toggles the outline pinned open ("stay ON") so it
+  // persists after the cursor leaves — a click to browse, a click to dismiss.
+  nav.addEventListener('click', () => {
+    setPinned(!toc.classList.contains('is-pinned'));
+  }, { signal });
 
-  const clearTocScrolling = () => {
-    if (scrollEndTimer !== 0) {
-      window.clearTimeout(scrollEndTimer);
-      scrollEndTimer = 0;
-    }
-    setTocScrolling(false);
-  };
+  // Also dismiss the pinned outline with a click anywhere outside it, or Escape.
+  // Clicks inside .toc keep it open (that's how you pick headings while pinned).
+  document.addEventListener('click', (evt) => {
+    if (!toc.classList.contains('is-pinned')) return;
+    if ((evt.target as Element)?.closest?.('.toc')) return;
+    setPinned(false);
+  }, { signal });
+  document.addEventListener('keydown', (evt) => {
+    if ((evt as KeyboardEvent).key === 'Escape') setPinned(false);
+  }, { signal });
 
-  const refreshTocGeometry = () => {
-    navViewportTop = nav.getBoundingClientRect().top;
-    tocViewportTop = toc.getBoundingClientRect().top;
-    metrics = readTocButtonMetrics(buttons);
-    maxScale = readTocMaxScale(nav, metrics);
-    updateTocOverflow(nav);
-  };
+  // When the panel opens, bring the current section into view within it so a
+  // long outline doesn't always open scrolled to the top.
+  toc.addEventListener('mouseenter', () => {
+    if (!panelList) return;
+    const active = panelList.querySelector<HTMLElement>('.toc-panel-item.in-view');
+    if (active) scrollItemIntoView(active, panelList);
+  }, { signal });
 
-  const scheduleHover = () => {
-    if (frame === 0) frame = requestAnimationFrame(updateHover);
-  };
-
-  // Re-read the rail's viewport box when a hover STARTS. The rail is
-  // position:fixed, so during Swup's enter-transform #swup-container is its
-  // containing block and getBoundingClientRect measures it against the
-  // document-tall container (~3000px off) — a value init/the rAF/fonts.ready
-  // re-measures can all cache while the transform is live. Reading live here is
-  // always correct because the rail only becomes hoverable AFTER the transform
-  // clears, so it no longer relies on the 200ms timer winning that race.
-  const refreshRailTop = () => {
-    navViewportTop = nav.getBoundingClientRect().top;
-    tocViewportTop = toc.getBoundingClientRect().top;
-  };
-
-  const onMouseEnter = (evt: MouseEvent) => {
-    hovering = true;
-    toc.classList.add('is-hovering');
-    document.body.classList.add('toc-hovering');
-    refreshRailTop();
-    targetMouseY = evt.clientY - navViewportTop;
-    currentMouseY = targetMouseY;
-    scheduleHover();
-  };
-
-  const onMouseLeave = () => {
-    hovering = false;
-    toc.classList.remove('is-hovering');
-    clearTocScrolling();
-    if (frame !== 0) {
-      cancelAnimationFrame(frame);
-      frame = 0;
-    }
-    activeButton?.classList.remove('is-active');
-    activeButton = null;
-    document.body.classList.remove('toc-hovering');
-    hideTocLabel(toc);
-    resetTocButtons(buttons);
-    touchedMetrics.length = 0;
-    nextTouchedMetrics.length = 0;
-  };
-
-  const updateHover = () => {
-    frame = 0;
-    currentMouseY += (targetMouseY - currentMouseY) * tocHoverLerp;
-
-    const contentMouseY = currentMouseY + nav.scrollTop;
-    nextTouchedMetrics.length = 0;
-    const startIndex = firstTocMetricIndexAt(metrics, contentMouseY - tocHoverRadius);
-    const endIndex = firstTocMetricIndexAt(metrics, contentMouseY + tocHoverRadius);
-
-    for (let index = startIndex; index < endIndex; index++) {
-      const metric = metrics[index];
-      metric.touched = true;
-      updateTocButtonFill(metric, contentMouseY, maxScale);
-      nextTouchedMetrics.push(metric);
-    }
-
-    for (const metric of touchedMetrics) {
-      if (!metric.touched) resetTocButton(metric.button);
-    }
-    for (const metric of nextTouchedMetrics) {
-      metric.touched = false;
-    }
-
-    const previousTouchedMetrics = touchedMetrics;
-    touchedMetrics = nextTouchedMetrics;
-    nextTouchedMetrics = previousTouchedMetrics;
-
-    const nearestMetric = nearestTocMetric(metrics, contentMouseY);
-    if (nearestMetric) {
-      activeButton = updateTocLabel(toc, nearestMetric, activeButton, currentMouseY, tocViewportTop);
-    }
-
-    if (hovering && Math.abs(targetMouseY - currentMouseY) > tocHoverEpsilon) {
-      scheduleHover();
-    }
-  };
-
-  const onPointerMove = (evt: PointerEvent) => {
-    // Restore hover state after a click cleared it (cursor never left the
-    // rail, so mouseenter won't fire again).
-    if (!hovering) {
-      hovering = true;
-      toc.classList.add('is-hovering');
-      document.body.classList.add('toc-hovering');
-      refreshRailTop();
-    }
-    targetMouseY = evt.clientY - navViewportTop;
-    scheduleHover();
-  };
+  // Overflow fade masks on whichever column scrolls (rail and/or panel list).
+  const scrollers = [nav, panelList].filter(Boolean) as HTMLElement[];
+  const refreshOverflow = () => scrollers.forEach(updateTocOverflow);
+  scrollers.forEach(s =>
+    s.addEventListener('scroll', () => updateTocOverflow(s), { passive: true, signal })
+  );
+  window.addEventListener('resize', () => {
+    refreshOverflow();
+    updateActiveHeading();
+  }, { passive: true, signal });
 
   // The rail accompanies the post BODY only (aarnphm): the document "ends"
-  // where the end-zone begins — footnotes if present, else the actions/
-  // colophon/connections block — and the rail bows out there (.toc-released
-  // fades it; see PostLayout CSS). Bare content bottom is the last resort.
+  // where the end-zone begins — the colophon if present, else the footnote
+  // section — and the rail bows out there (.toc-released fades it; see
+  // PostLayout CSS). Bare content bottom is the last resort.
   const leftCol = document.querySelector<HTMLElement>('.post-layout-left-col');
   const releaseBoundary =
     document.querySelector<HTMLElement>('.post-colophon') ??
@@ -412,97 +207,47 @@ function initializeTableOfContents() {
     if (!leftCol || !releaseBoundary) return;
     const rect = releaseBoundary.getBoundingClientRect();
     const limit = releaseUsesBottom ? rect.bottom : rect.top;
-    // Release when the "rest" scrolls up into the rail's own zone (the rail
-    // is fixed-centered; mid-viewport alone can be unreachable when the
-    // footnote section sits at the very end of a short document).
     // Rail bottom is read LIVE, not cached: during Swup's enter animation
-    // #swup-container carries a transform, which makes it the containing
-    // block for this fixed rail — any rect cached in that window is measured
-    // against the document-tall container and stays wrong forever. The read
-    // shares this frame's reflow with the boundary read above, so it's free.
+    // #swup-container carries a transform, which makes it the containing block
+    // for this fixed rail — any rect cached in that window is measured against
+    // the document-tall container and stays wrong forever.
     leftCol.classList.toggle('toc-released', limit < nav.getBoundingClientRect().bottom + 32);
   };
 
-  // Scroll fires far more often than frames paint — coalesce the release
-  // check (a forced-reflow read) to once per frame.
+  // Scroll fires far more often than frames paint — coalesce the release check
+  // (a forced-reflow read) to once per frame.
   let scrollFrame = false;
-  const onPageScroll = () => {
-    if (!scrollFrame) {
-      scrollFrame = true;
-      requestAnimationFrame(() => {
-        scrollFrame = false;
-        updateTocRelease();
-      });
-    }
-    if (!hovering) return;
-    setTocScrolling(true);
-    if (scrollEndTimer !== 0) window.clearTimeout(scrollEndTimer);
-    scrollEndTimer = window.setTimeout(() => {
-      scrollEndTimer = 0;
-      setTocScrolling(false);
-    }, 140);
-  };
-
-  const onClick = (evt: MouseEvent) => {
-    if (!(evt.target instanceof Element)) return;
-    // The visible bar is a scaleX transform — its hit box is a 3px strip.
-    // A click anywhere on the rail resolves to the nearest bar instead.
-    let button = evt.target.closest<HTMLButtonElement>('button[data-href]');
-    if (!button) {
-      const y = evt.clientY - nav.getBoundingClientRect().top + nav.scrollTop;
-      button = nearestTocMetric(metrics, y)?.button ?? null;
-    }
-    if (!button) return;
-    const href = button.dataset.href;
-    if (!href?.startsWith('#')) return;
-
-    evt.preventDefault();
-    scrollToHeading(href);
-    // Drop the veil so the navigation is visible; hovering resets with it and
-    // the next pointermove restores both (see onPointerMove).
-    hovering = false;
-    activeButton = null; // resetTocButtons strips is-active; force re-apply on next hover frame
-    toc.classList.remove('is-hovering');
-    document.body.classList.remove('toc-hovering');
-    hideTocLabel(toc);
-    resetTocButtons(buttons);
-  };
-
-  nav.addEventListener('click', onClick, { signal });
-  nav.addEventListener('mouseenter', onMouseEnter, { signal });
-  nav.addEventListener('mouseleave', onMouseLeave, { signal });
-  nav.addEventListener('pointermove', onPointerMove, { passive: true, signal });
-  window.addEventListener('scroll', onPageScroll, { passive: true, signal });
-  window.addEventListener('resize', refreshTocGeometry, { passive: true, signal });
-  nav.addEventListener(
-    'scroll',
-    () => {
-      updateTocOverflow(nav);
-      if (toc.classList.contains('is-hovering')) scheduleHover();
-    },
-    { passive: true, signal },
-  );
+  window.addEventListener('scroll', () => {
+    if (scrollFrame) return;
+    scrollFrame = true;
+    requestAnimationFrame(() => {
+      scrollFrame = false;
+      updateTocRelease();
+      updateActiveHeading();
+    });
+  }, { passive: true, signal });
 
   tocCleanup = () => {
     controller.abort();
-    if (frame !== 0) {
-      cancelAnimationFrame(frame);
-      frame = 0;
-    }
-    activeButton = null;
     leftCol?.classList.remove('toc-released');
-    document.body.classList.remove('toc-hovering', 'toc-scrolling');
+    toc.classList.remove('is-pinned');
   };
 
+  refreshOverflow();
   updateTocRelease();
-  requestAnimationFrame(refreshTocGeometry);
+  updateActiveHeading();
   // init runs while Swup's 140ms enter transition still transforms
   // #swup-container (see updateTocRelease) — re-measure after it settles.
   window.setTimeout(() => {
-    refreshTocGeometry();
+    refreshOverflow();
     updateTocRelease();
+    updateActiveHeading();
   }, 200);
-  document.fonts.ready.then(() => requestAnimationFrame(refreshTocGeometry));
+  document.fonts.ready.then(() => {
+    refreshOverflow();
+    updateTocRelease();
+    updateActiveHeading();
+  });
 }
 
 (window as any).initializeTableOfContents = initializeTableOfContents;
@@ -511,7 +256,7 @@ function initializeTableOfContents() {
 // crossing when the viewport widens.
 let tocResizeTimer = 0;
 window.addEventListener('resize', () => {
-  if (tocCleanup) return; // already live; its own resize handler refreshes geometry
+  if (tocCleanup) return; // already live; its own resize handler refreshes masks
   window.clearTimeout(tocResizeTimer);
   tocResizeTimer = window.setTimeout(initializeTableOfContents, 150);
 }, { passive: true });
