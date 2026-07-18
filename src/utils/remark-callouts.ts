@@ -84,6 +84,76 @@ const iconPaths: Record<string, string> = {
   'book-heart':      '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M16 8.5c0-.83-.67-1.5-1.5-1.5-.28 0-.54.08-.76.22A1.5 1.5 0 0 0 11 8.5c0 1.2 1.5 2.5 2.25 3.09a.5.5 0 0 0 .57 0C14.5 11 16 9.7 16 8.5"/>',
 };
 
+// Resolved callout types that quote/cite a source. Only these split a
+// single-line `> [!type] attribution "quoted text"` into title + body.
+const SPLIT_TYPES = new Set([
+  'scholar', 'cite', 'research', 'consensus', 'manuscript', 'science',
+  'admission', 'source', 'quran', 'bible', 'hadith', 'quote',
+]);
+
+// Length (in flattened text) contributed by an inline node, for offset math
+// against `paragraphText` (built the same way via extractTextFromNode).
+function inlineTextLength(node: any): number {
+  if (node.type === 'text') return (node.value as string).length;
+  if (Array.isArray(node.children)) return node.children.reduce((n: number, c: any) => n + inlineTextLength(c), 0);
+  return 0; // atomic inline counts 0 for offset purposes
+}
+
+// Returns the inline nodes representing text from `offset` to the end of
+// `children`, splitting a text node or descending into a container when the
+// offset lands inside it. Preserves mdast structure (emphasis, citations, ...).
+function sliceInlineChildrenFrom(children: any[], offset: number): any[] {
+  const out: any[] = [];
+  let pos = 0;
+  for (const child of children) {
+    const len = inlineTextLength(child);
+    if (pos + len <= offset) { pos += len; continue; }
+    if (pos >= offset) { out.push(child); pos += len; continue; }
+    const cut = offset - pos;
+    if (child.type === 'text') {
+      out.push({ type: 'text', value: (child.value as string).slice(cut) });
+    } else if (Array.isArray(child.children)) {
+      out.push({ ...child, children: sliceInlineChildrenFrom(child.children, cut) });
+    } else {
+      out.push(child);
+    }
+    pos += len;
+  }
+  return out;
+}
+
+// Strips a leading/trailing literal quote character (allowing an adjacent
+// `_` from emphasis markers) from the actual first/last text node in the
+// tree — mutates in place so the change survives inside nested containers.
+function stripWrappingQuotes(inline: any[]): any[] {
+  const nodes = inline.map(n => ({ ...n, children: n.children ? [...n.children] : n.children }));
+  const first = findEdgeTextNode(nodes, true);
+  if (first) first.value = (first.value as string).replace(/^\s*[_"“]+/, '');
+  const last = findEdgeTextNode(nodes, false);
+  if (last) last.value = (last.value as string).replace(/[_"”]+\s*$/, '');
+  return nodes;
+}
+
+// Returns the actual first/last text node (mutable reference) by walking
+// children in order (or reverse order) via indices — NOT reversed copies —
+// so mutating the returned node mutates the tree we return.
+function findEdgeTextNode(nodes: any[], first: boolean): any | null {
+  const order = first ? [...nodes.keys()] : [...nodes.keys()].reverse();
+  for (const i of order) {
+    const n = nodes[i];
+    if (n && n.type === 'text') return n;
+    if (n && Array.isArray(n.children)) { const r = findEdgeTextNode(n.children, first); if (r) return r; }
+  }
+  return null;
+}
+
+// Trims a split-off title label and strips trailing separator punctuation
+// (verse/citation dashes, colons, underscores from emphasis) left dangling
+// right before the quote mark, e.g. "Ibn Kathir —" -> "Ibn Kathir".
+function cleanSplitTitle(raw: string): string {
+  return raw.trim().replace(/[\s_—–:-]+$/, '').trim();
+}
+
 function getIconSVG(iconName: string, iconType: 'lucide' | 'emoji' = 'lucide'): string {
   if (iconType === 'emoji') {
     return `<span class="callout-icon callout-icon-emoji" aria-hidden="true">${iconName}</span>`;
@@ -134,22 +204,52 @@ const remarkCallouts: Plugin<[], Root> = () => {
                                 calloutStartsOnOwnLine !== null || 
                                 remainingText.length === 0;
       
+      // Single-line source-family split: `> [!type] attribution "quoted text"`.
+      // Splits at the first straight double-quote in the marker-line text so
+      // the attribution becomes the title and the quotation becomes real
+      // body content instead of one giant small-caps title.
+      //
+      // NOTE: this deliberately checks `hasMultipleParagraphs` /
+      // `calloutStartsOnOwnLine` directly rather than the composite
+      // `isCalloutOnOwnLine`. That composite also flips true whenever
+      // `remainingText` is empty — which is exactly the normal shape of a
+      // genuine single-line quote callout (the whole marker line, including
+      // the quote, is consumed into `customTitle`, leaving nothing after
+      // it). Gating on `!isCalloutOnOwnLine` would make `doSplit` false for
+      // the very case this feature targets, so the quote must live inside
+      // `customTitle` itself (the marker-line text) rather than relying on
+      // `remainingText`.
+      const quoteOffset = paragraphText.indexOf('"');
+      const doSplit = SPLIT_TYPES.has(calloutKey) && !!customTitle && customTitle.indexOf('"') >= 0 &&
+        !hasMultipleParagraphs && !calloutStartsOnOwnLine;
+
       // Custom title on the [!type] line always wins; fall back to mapped title
-      const calloutTitle = customTitle || mapping.title;
-      
+      let calloutTitle = customTitle || mapping.title;
+      if (doSplit) {
+        const label = cleanSplitTitle(customTitle.slice(0, customTitle.indexOf('"')));
+        calloutTitle = label || mapping.title;
+      }
+
       // Determine if callout should be collapsible and its initial state
       const isCollapsible = collapseState === '+' || collapseState === '-';
       const isCollapsed = collapseState === '-';
-      
+
       // Process the remaining content
       let contentChildren = [...node.children];
-      
+
       // Handle content based on structure:
+      // - Single-line source-family split: quoted part becomes the first body paragraph
       // - Multiple paragraphs: Remove first paragraph (callout line separate from content)
       // - Single paragraph, callout on own line (newline detected): Keep paragraph, remove callout syntax
       // - Single paragraph, callout only: Remove paragraph (no content)
       // - Single paragraph, callout with title on same line: Keep paragraph, remove callout syntax
-      if (hasMultipleParagraphs) {
+      if (doSplit) {
+        let bodyInline = sliceInlineChildrenFrom(firstParagraph.children, quoteOffset);
+        if (calloutKey === 'quote') {
+          bodyInline = stripWrappingQuotes(bodyInline);
+        }
+        contentChildren = [{ type: 'paragraph', children: bodyInline }, ...node.children.slice(1)];
+      } else if (hasMultipleParagraphs) {
         // Multiple paragraphs - callout line is separate, remove first paragraph
         contentChildren = contentChildren.slice(1);
       } else if (calloutStartsOnOwnLine) {
