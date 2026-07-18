@@ -1033,7 +1033,7 @@ body > label[for^='web-haptics-'] > input {
    columns; the two most-recently-passed sections stay as stacked spines,
    older ones scroll away. */
 .reading-deck-track[data-deck-layout="panes"] {
-  --deck-spine-width: 40px;
+  --deck-spine-width: 46px;
   display: flex;
   flex-direction: row;
   gap: 0;
@@ -1049,6 +1049,9 @@ body > label[for^='web-haptics-'] > input {
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--color-primary-300)) transparent;
   touch-action: pan-x;
+  /* Gentle settle-into-place per section without trapping free scroll. */
+  scroll-snap-type: x proximity;
+  scroll-padding-left: calc(var(--deck-spine-width) * 2);
 }
 /* Visible horizontal scrollbar = an obvious "drag to move across panes" handle. */
 .reading-deck-track[data-deck-layout="panes"]::-webkit-scrollbar { display: block; height: 10px; }
@@ -1076,7 +1079,9 @@ body > label[for^='web-haptics-'] > input {
   border: 0;
   border-left: 1px solid rgb(var(--color-primary-200));
   border-radius: 0;
-  box-shadow: none;
+  /* Andy-style depth: each pane casts left over the one behind it as it slides. */
+  box-shadow: -16px 0 34px -22px rgb(var(--color-primary-950) / 0.6);
+  scroll-snap-align: start;
   content-visibility: visible;
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--color-primary-300)) transparent;
@@ -1127,9 +1132,9 @@ body > label[for^='web-haptics-'] > input {
   background: rgb(var(--color-primary-100));
   color: rgb(var(--color-primary-700));
   font-family: var(--font-heading, inherit);
-  font-size: 0.82rem;
+  font-size: 1rem;
   font-weight: 600;
-  line-height: 2.5rem;
+  line-height: var(--deck-spine-width);
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -1156,6 +1161,48 @@ body > label[for^='web-haptics-'] > input {
 .dark .reading-deck-spine {
   background: rgb(var(--color-primary-800));
   color: rgb(var(--color-primary-200));
+}
+
+/* Deep read replaces the single sticky scroll-shadow (built for the one-card
+   deck, mistracks across panes) with a per-pane "continue" arrow. */
+.reading-deck[data-active-feed="slides"] .reading-deck-scroll-shadow { display: none; }
+
+.reading-deck-pane-arrow {
+  position: sticky;
+  bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  margin: -2.7rem 1rem 0 auto; /* pull back up so it doesn't add scroll length */
+  padding: 0;
+  border: 1px solid rgb(var(--color-primary-300) / 0.7);
+  border-radius: 50%;
+  color: rgb(var(--color-primary-700));
+  background: rgb(var(--color-primary-50) / 0.85);
+  box-shadow: 0 6px 18px rgb(var(--color-primary-950) / 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateX(0.4rem);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.15s ease;
+}
+.reading-deck-card[data-at-end] > .reading-deck-pane-arrow {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.reading-deck-card.collapsed > .reading-deck-pane-arrow { display: none; }
+.reading-deck-pane-arrow:hover {
+  background: rgb(var(--color-highlight-500) / 0.18);
+  border-color: rgb(var(--color-highlight-500) / 0.5);
+}
+.dark .reading-deck-pane-arrow {
+  border-color: rgb(var(--color-primary-600) / 0.8);
+  color: rgb(var(--color-primary-100));
+  background: rgb(var(--color-primary-800) / 0.82);
 }
 
 /* Deep read is full-bleed: no inset frame around the panes or the scrollbar. */

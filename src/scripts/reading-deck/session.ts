@@ -425,7 +425,7 @@ export class ReadingDeckSession {
     this.transport = mobile
       ? createMobileScrollSnapTransport({ onSettledHaptic: () => this.tick() })
       : this.feed === 'slides'
-        ? createDesktopPanesTransport()
+        ? createDesktopPanesTransport({ onSettledHaptic: () => this.tick() })
         : createDesktopTransformTransport();
     this.transport.connect(this.transportContext(model, mobile));
     this.place(false);

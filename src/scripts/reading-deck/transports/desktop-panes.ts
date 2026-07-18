@@ -10,16 +10,26 @@ import { computePaneLayout } from './panes-geometry';
 
 const MAX_SPINES = 2;
 
+interface DesktopPanesOptions {
+  onSettledHaptic?: () => void;
+}
+
 class DesktopPanesTransport implements DeckTransport {
   private context: DeckTransportContext | null = null;
   private browser: Window | null = null;
   private abort: AbortController | null = null;
   private spines: HTMLButtonElement[] = [];
+  private arrows: HTMLButtonElement[] = [];
   private resizeFrame = 0;
   private scrollFrame = 0;
   private spineWidth = 40;
   private programmatic = false;
   private settleTimer = 0;
+  private readonly onSettledHaptic?: () => void;
+
+  constructor(options: DesktopPanesOptions = {}) {
+    this.onSettledHaptic = options.onSettledHaptic;
+  }
 
   connect(context: DeckTransportContext): void {
     this.destroy();
@@ -30,6 +40,7 @@ class DesktopPanesTransport implements DeckTransport {
     context.track.dataset.deckLayout = 'panes';
     this.readSpineWidth(context);
     this.buildSpines(context);
+    this.buildArrows(context);
     // Native scroll in both axes: vertical wheel reads a pane, horizontal
     // (scrollbar / shift-wheel / trackpad swipe) moves across panes. We only
     // react to it — recompute the layout and report the active pane.
@@ -42,6 +53,8 @@ class DesktopPanesTransport implements DeckTransport {
     // the opening (resume / deep-link) index with a premature reportSettled(0).
     this.programmatic = true;
     this.applyLayout();
+    // Panes need a laid-out frame before their scroll heights are meaningful.
+    (this.browser || window).requestAnimationFrame(() => this.updateAllEnds());
   }
 
   present(index: number, motion: DeckMotion): void {
@@ -73,6 +86,7 @@ class DesktopPanesTransport implements DeckTransport {
       this.resizeFrame = 0;
       this.readSpineWidth(this.context!);
       this.applyLayout();
+      this.updateAllEnds();
     });
   }
 
@@ -89,9 +103,12 @@ class DesktopPanesTransport implements DeckTransport {
     this.programmatic = false;
     this.spines.forEach((spine) => spine.remove());
     this.spines = [];
+    this.arrows.forEach((arrow) => arrow.remove());
+    this.arrows = [];
     this.context?.cards.forEach((pane) => {
       pane.classList.remove('collapsed');
       pane.removeAttribute('data-pane-hidden');
+      pane.removeAttribute('data-at-end');
       pane.style.removeProperty('left');
     });
     if (this.context) delete this.context.track.dataset.deckLayout;
@@ -126,7 +143,10 @@ class DesktopPanesTransport implements DeckTransport {
       if (pane.role === 'active') active = pane.index;
     });
     // Only sync session state from genuine user scrolls — never mid-scripted-scroll.
-    if (!this.programmatic && active !== context.selectedIndex()) context.reportSettled(active);
+    if (!this.programmatic && active !== context.selectedIndex()) {
+      context.reportSettled(active);
+      this.onSettledHaptic?.(); // tactile "click" on touch devices; no-op on desktop
+    }
   }
 
   private paneWidth(): number {
@@ -158,8 +178,42 @@ class DesktopPanesTransport implements DeckTransport {
       this.spines.push(spine);
     });
   }
+
+  // Each pane gets a "continue →" arrow that reveals (via CSS) once the pane is
+  // scrolled to its bottom — the deliberate "slide to the next section" prompt,
+  // replacing the old single scroll-shadow that mistracked across panes.
+  private buildArrows(context: DeckTransportContext): void {
+    const doc = context.track.ownerDocument;
+    const signal = this.abort!.signal;
+    context.cards.forEach((pane, index) => {
+      if (pane.hasAttribute('data-deck-finish')) return;
+      if (pane.querySelector(':scope > .reading-deck-pane-arrow')) return;
+      const arrow = doc.createElement('button');
+      arrow.type = 'button';
+      arrow.className = 'reading-deck-pane-arrow';
+      arrow.setAttribute('aria-label', 'Continue to the next section');
+      arrow.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>';
+      arrow.addEventListener('click', () => {
+        context.requestSelect?.(Math.min(index + 1, context.cards.length - 1));
+      }, { signal });
+      pane.appendChild(arrow);
+      this.arrows.push(arrow);
+      pane.addEventListener('scroll', () => this.updatePaneEnd(pane), { passive: true, signal });
+    });
+  }
+
+  private updatePaneEnd(pane: HTMLElement): void {
+    const atEnd = pane.scrollTop + pane.clientHeight >= pane.scrollHeight - 4;
+    pane.toggleAttribute('data-at-end', atEnd);
+  }
+
+  private updateAllEnds(): void {
+    this.context?.cards.forEach((pane) => {
+      if (!pane.hasAttribute('data-deck-finish')) this.updatePaneEnd(pane);
+    });
+  }
 }
 
-export function createDesktopPanesTransport(): DeckTransport {
-  return new DesktopPanesTransport();
+export function createDesktopPanesTransport(options: DesktopPanesOptions = {}): DeckTransport {
+  return new DesktopPanesTransport(options);
 }
