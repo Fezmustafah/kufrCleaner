@@ -1169,42 +1169,36 @@ body > label[for^='web-haptics-'] > input {
    deck, mistracks across panes) with a per-pane "continue" arrow. */
 .reading-deck[data-active-feed="slides"] .reading-deck-scroll-shadow { display: none; }
 
-/* Mobile-only "continue" arrow (built by the mobile transport for slides).
-   Sticky to the pane's bottom edge; revealed once the pane is scrolled to end. */
-.reading-deck-pane-arrow { display: none; }
+/* Mobile Deep read: a subtle, page-anchored chevron pinned to the bottom that
+   gently nudges rightward — a persistent "slide for the next section" hint, not
+   tied to content scroll. Hidden on the last section (nothing to the right). */
+.reading-deck-nudge { display: none; }
 @media (max-width: 720px) {
-  .reading-deck-pane-arrow {
-    display: grid;
-    position: sticky;
-    bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
-    z-index: 6;
-    place-items: center;
-    width: 2.7rem;
-    height: 2.7rem;
-    margin: -2.7rem 0.9rem 0 auto; /* pull back up so it adds no scroll length */
-    padding: 0;
-    border: 1px solid rgb(var(--color-primary-300) / 0.7);
-    border-radius: 50%;
-    color: rgb(var(--color-primary-700));
-    background: rgb(var(--color-primary-50) / 0.9);
-    box-shadow: 0 6px 18px rgb(var(--color-primary-950) / 0.22);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    opacity: 0;
-    transform: translateY(0.4rem);
+  .reading-deck[data-active-feed="slides"] .reading-deck-nudge {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
     pointer-events: none;
-    transition: opacity 0.25s ease, transform 0.25s ease;
   }
-  .reading-deck-card[data-at-end] > .reading-deck-pane-arrow {
-    opacity: 1;
-    transform: none;
-    pointer-events: auto;
+  .reading-deck[data-active-feed="slides"][data-deck-last] .reading-deck-nudge { display: none; }
+  .reading-deck-nudge svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: rgb(var(--color-primary-500));
+    animation: reading-deck-nudge 1.8s ease-in-out infinite;
   }
-  .dark .reading-deck-pane-arrow {
-    border-color: rgb(var(--color-primary-600) / 0.8);
-    color: rgb(var(--color-primary-100));
-    background: rgb(var(--color-primary-800) / 0.85);
-  }
+  .dark .reading-deck-nudge svg { color: rgb(var(--color-primary-400)); }
+}
+@keyframes reading-deck-nudge {
+  0%, 100% { transform: translateX(-3px); opacity: 0.35; }
+  50% { transform: translateX(4px); opacity: 0.75; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-deck-nudge svg { animation: none; opacity: 0.5; }
 }
 
 /* Deep read is full-bleed: no inset frame around the panes or the scrollbar. */

@@ -18,7 +18,6 @@ class MobileScrollSnapTransport implements DeckTransport {
   private userDriven = false;
   private pendingProgrammaticIndex: number | null = null;
   private pendingReflow = false;
-  private arrows: HTMLButtonElement[] = [];
 
   constructor(
     private readonly settleDelay: number,
@@ -48,12 +47,6 @@ class MobileScrollSnapTransport implements DeckTransport {
       if (this.pendingProgrammaticIndex == null) this.userDriven = true;
       this.scheduleSettle();
     }, { passive: true, signal });
-    // Deep read on mobile: a per-section "continue →" arrow that reveals once the
-    // card is scrolled to its bottom, prompting a swipe to the next section.
-    if (context.track.closest('.reading-deck')?.getAttribute('data-active-feed') === 'slides') {
-      this.buildArrows(context);
-      (this.browser || window).requestAnimationFrame(() => this.updateAllEnds());
-    }
   }
 
   present(index: number, motion: DeckMotion): void {
@@ -89,9 +82,6 @@ class MobileScrollSnapTransport implements DeckTransport {
     this.userDriven = false;
     this.pendingProgrammaticIndex = null;
     this.pendingReflow = false;
-    this.arrows.forEach((arrow) => arrow.remove());
-    this.arrows = [];
-    this.context?.cards.forEach((card) => card.removeAttribute('data-at-end'));
     this.context = null;
     this.browser = null;
   }
@@ -130,38 +120,6 @@ class MobileScrollSnapTransport implements DeckTransport {
       this.pendingReflow = false;
       this.present(context.selectedIndex(), 'none');
     }
-  }
-
-  private buildArrows(context: DeckTransportContext): void {
-    const doc = context.track.ownerDocument;
-    const signal = this.abort!.signal;
-    context.cards.forEach((card, index) => {
-      if (card.hasAttribute('data-deck-finish') || card.classList.contains('reading-deck-cover-card')) return;
-      if (card.querySelector(':scope > .reading-deck-pane-arrow')) return;
-      const arrow = doc.createElement('button');
-      arrow.type = 'button';
-      arrow.className = 'reading-deck-pane-arrow';
-      arrow.setAttribute('aria-label', 'Continue to the next section');
-      arrow.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>';
-      arrow.addEventListener('click', () => {
-        context.requestSelect?.(Math.min(index + 1, context.cards.length - 1));
-      }, { signal });
-      card.appendChild(arrow);
-      this.arrows.push(arrow);
-      card.addEventListener('scroll', () => this.updatePaneEnd(card), { passive: true, signal });
-    });
-  }
-
-  private updatePaneEnd(card: HTMLElement): void {
-    card.toggleAttribute('data-at-end', card.scrollTop + card.clientHeight >= card.scrollHeight - 4);
-  }
-
-  private updateAllEnds(): void {
-    this.context?.cards.forEach((card) => {
-      if (!card.hasAttribute('data-deck-finish') && !card.classList.contains('reading-deck-cover-card')) {
-        this.updatePaneEnd(card);
-      }
-    });
   }
 }
 

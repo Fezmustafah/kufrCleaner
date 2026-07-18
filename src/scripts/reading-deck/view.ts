@@ -278,6 +278,8 @@ export class ReadingDeckView {
     this.position.textContent = card.isCover ? 'Ready' : `${contentIndex} / ${contentTotal}`;
     // Mobile Deep read hairline: how far through the sections (CSS shows it only there).
     this.railFill.style.width = card.isCover || contentTotal === 0 ? '0%' : `${(contentIndex / contentTotal) * 100}%`;
+    // Hide the "slide for more" nudge on the last section — nothing to the right.
+    this.dialog.toggleAttribute('data-deck-last', !card.isCover && contentIndex >= contentTotal);
     this.cardTitle.textContent = card.isCover ? 'Swipe to begin' : card.title;
     this.prev.disabled = state.current === 0;
     this.next.disabled = state.finished;
