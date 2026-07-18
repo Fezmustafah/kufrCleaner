@@ -838,7 +838,7 @@ textarea {
   align-items: center;
   gap: 5px;
   padding: 0.75rem 0;
-  color: var(--callout-color, #448aff);
+  color: var(--callout-color, rgb(var(--color-primary-600)));
   cursor: default;
 }
 
@@ -870,7 +870,7 @@ textarea {
 
 .callout-title-inner > p,
 .callout-title-inner > span {
-  color: var(--callout-color, #448aff);
+  color: var(--callout-color, rgb(var(--color-primary-600)));
   margin: 0;
 }
 
@@ -929,20 +929,20 @@ textarea {
   margin-bottom: 1rem;
 }
 
-/* ── Quotation callouts: de-carded ─────────────────────────────────────────
+/* ── Source group: de-carded quotation ──────────────────────────────────────
  * Scripture/citation types (~70% of all callouts sitewide) drop the tinted
  * card and become classical quotation blocks: left rule + attribution line.
+ * Keyed on data-callout-group (from getCalloutGroup in callout-registry.ts)
+ * instead of a per-type selector list — scholar/cite/research/consensus/
+ * manuscript/science/admission/source/quran/bible/hadith/quote all land here.
  * Color vars still come from [data-callout] rules above / callouts-custom.css.
+ * Body text stays normal ink, never the accent color.
+ * Illumination (ornate frame) for quran/bible/hadith is a future add-on that
+ * would target [data-callout='quran'] etc. directly — deferred for now.
  * Alert types (note/warning/important/…) keep the card so they regain
  * meaning by contrast.
  */
-.callout[data-callout='quote'],
-.callout[data-callout='bible'],
-.callout[data-callout='quran'],
-.callout[data-callout='hadith'],
-.callout[data-callout='scholar'],
-.callout[data-callout='admission'],
-.callout[data-callout='cite'] {
+.callout[data-callout-group='source'] {
   border: none;
   border-left: 3px solid var(--callout-color, rgb(var(--color-highlight-600)));
   border-radius: 0;
@@ -952,48 +952,54 @@ textarea {
 }
 
 /* Attribution line: small-caps source label instead of a bold card title */
-.callout[data-callout='quote'] > .callout-title,
-.callout[data-callout='bible'] > .callout-title,
-.callout[data-callout='quran'] > .callout-title,
-.callout[data-callout='hadith'] > .callout-title,
-.callout[data-callout='scholar'] > .callout-title,
-.callout[data-callout='admission'] > .callout-title,
-.callout[data-callout='cite'] > .callout-title {
+.callout[data-callout-group='source'] > .callout-title {
   padding: 0 0 0.25rem;
 }
 
-.callout[data-callout='quote'] > .callout-title .callout-title-inner,
-.callout[data-callout='bible'] > .callout-title .callout-title-inner,
-.callout[data-callout='quran'] > .callout-title .callout-title-inner,
-.callout[data-callout='hadith'] > .callout-title .callout-title-inner,
-.callout[data-callout='scholar'] > .callout-title .callout-title-inner,
-.callout[data-callout='admission'] > .callout-title .callout-title-inner,
-.callout[data-callout='cite'] > .callout-title .callout-title-inner {
+.callout[data-callout-group='source'] > .callout-title .callout-title-inner {
   font-size: 0.8em;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
 
-.callout[data-callout='quote'] > .callout-title .callout-icon,
-.callout[data-callout='bible'] > .callout-title .callout-icon,
-.callout[data-callout='quran'] > .callout-title .callout-icon,
-.callout[data-callout='hadith'] > .callout-title .callout-icon,
-.callout[data-callout='scholar'] > .callout-title .callout-icon,
-.callout[data-callout='admission'] > .callout-title .callout-icon,
-.callout[data-callout='cite'] > .callout-title .callout-icon {
+.callout[data-callout-group='source'] > .callout-title .callout-icon {
   width: 14px;
   height: 14px;
 }
 
-.callout[data-callout='quote']:not(.is-collapsed) > .callout-content,
-.callout[data-callout='bible']:not(.is-collapsed) > .callout-content,
-.callout[data-callout='quran']:not(.is-collapsed) > .callout-content,
-.callout[data-callout='hadith']:not(.is-collapsed) > .callout-content,
-.callout[data-callout='scholar']:not(.is-collapsed) > .callout-content,
-.callout[data-callout='admission']:not(.is-collapsed) > .callout-content,
-.callout[data-callout='cite']:not(.is-collapsed) > .callout-content {
+.callout[data-callout-group='source']:not(.is-collapsed) > .callout-content {
   margin-bottom: 0.15rem;
+}
+
+/* Body text is normal ink, NOT the accent colour */
+.callout[data-callout-group='source'] .callout-content,
+.callout[data-callout-group='source'] .callout-content p {
+  color: inherit;
+}
+
+/* ── quote: classical quotation with hanging opening mark ──────────────────
+ * Opening mark only — no closing mark, per the locked design.
+ */
+.callout[data-callout='quote'] {
+  position: relative;
+  padding-left: 2.4rem;
+  border-left: none;
+  font-style: italic;
+}
+.callout[data-callout='quote']::before {
+  content: '\201C';
+  position: absolute;
+  left: 0;
+  top: -0.35rem;
+  font-size: 3.2rem;
+  line-height: 1;
+  font-style: normal;
+  color: var(--callout-color, rgb(var(--color-highlight-600)));
+  opacity: 0.5;
+}
+.callout[data-callout='quote'] > .callout-title .callout-title-inner {
+  font-style: normal;
 }
 
 /* ── Dialectic pair: objection vs response ─────────────────────────────────

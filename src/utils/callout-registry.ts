@@ -79,3 +79,16 @@ export function getCalloutMeta(resolvedKey: string): CalloutMeta {
   if (m) return m;
   return { icon: 'info', title: resolvedKey.charAt(0).toUpperCase() + resolvedKey.slice(1) };
 }
+
+// Visual group for CSS: source-family types render de-carded (quotation form),
+// objection/response stay a dialectic card pair, everything else is a notice
+// card. Kept separate from SPLIT_TYPES in remark-callouts.ts (same members,
+// different purpose) — not coupled for now, a one-line duplication is fine.
+const SOURCE = new Set(['scholar', 'cite', 'research', 'consensus', 'manuscript', 'science', 'admission', 'source', 'quran', 'bible', 'hadith', 'quote']);
+const DIALECTIC = new Set(['objection', 'response']);
+
+export function getCalloutGroup(resolvedKey: string): 'source' | 'dialectic' | 'notice' {
+  if (SOURCE.has(resolvedKey)) return 'source';
+  if (DIALECTIC.has(resolvedKey)) return 'dialectic';
+  return 'notice';
+}

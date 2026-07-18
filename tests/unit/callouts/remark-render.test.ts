@@ -26,6 +26,7 @@ describe('remark callout rendering', () => {
     const html = await render('> [!scholar] Ibn Taymiyya\n> text');
     // graduation-cap path is distinct from the info circle; assert the title + a callout div
     expect(html).toContain('data-callout="scholar"');
+    expect(html).toContain('data-callout-group="source"');
     expect(html).toContain('Ibn Taymiyya');
   });
   it('renders an unknown type without crashing, capitalized title', async () => {

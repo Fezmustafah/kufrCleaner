@@ -1,7 +1,7 @@
 import { visit } from 'unist-util-visit';
 import type { Plugin } from 'unified';
 import type { Root, Blockquote, Paragraph, Text } from 'mdast';
-import { resolveCalloutType, getCalloutMeta } from './callout-registry';
+import { resolveCalloutType, getCalloutMeta, getCalloutGroup } from './callout-registry';
 
 /**
  * Recursively extract all text content from a node and its children
@@ -295,7 +295,7 @@ const remarkCallouts: Plugin<[], Root> = () => {
       // Transform the blockquote into a callout HTML structure
       const calloutHtml: any = {
         type: 'html',
-        value: `<div class="callout${isCollapsible ? ' is-collapsible' : ''}${isCollapsed ? ' is-collapsed' : ''}" data-callout="${calloutKey}">
+        value: `<div class="callout${isCollapsible ? ' is-collapsible' : ''}${isCollapsed ? ' is-collapsed' : ''}" data-callout="${calloutKey}" data-callout-group="${getCalloutGroup(calloutKey)}">
           <div class="callout-title">
             ${getIconSVG(mapping.icon, mapping.iconType ?? 'lucide')}
             <div class="callout-title-inner"><span>${calloutTitle}</span></div>
