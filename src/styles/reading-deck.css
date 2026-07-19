@@ -699,6 +699,17 @@ body.reading-deck-open {
   display: none;
 }
 
+/* Inside a card the floating-margin layout has no meaning, so a marginalia
+   note must always collapse to just its clickable number (opening the deck
+   popover), the same way it does on mobile. marginalia.css only hides the
+   note body below 1100px or when layoutMarginaliaFloats marks it overflow —
+   neither fires for deck clones — so force it hidden here at every width. The
+   .footnote-number stays inline/clickable; openMarginalia clones the note
+   into the popover, which re-shows it via .reading-deck-note-popover .footnote. */
+.reading-deck-card .footnote-container .footnote {
+  display: none;
+}
+
 /* Footnotes and marginalia use a compact, persistent, click-away popover
    instead of making the deck inert behind a modal sheet. */
 .reading-deck-note-popover {

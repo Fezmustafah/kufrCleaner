@@ -1120,44 +1120,44 @@ const _isHomePage = Astro.url.pathname === _baseUrl || Astro.url.pathname === '/
     // Make the function globally accessible
     window.initializeGiscusComments = initializeGiscusComments;
 
-    // Collapsible callouts — aarnphm grid-animation approach
+    // Collapsible callouts — aarnphm grid-animation approach, delegated.
+    // The open/closed state is driven purely by the `.is-collapsed` class
+    // (global.css sets grid-template-rows 1fr/0fr), so no per-element init of
+    // inline styles is needed. Binding one listener on `document` instead of
+    // per-.callout-title means cloned callouts toggle too: the reading deck
+    // builds slides and TLDR cards via cloneNode (which drops per-node
+    // listeners) and the TLDR lives in an inert <template> — a document-level
+    // listener still catches clicks because every clone lives under document.
     function initializeCollapsibleCallouts() {
-      const collapsibleCallouts = document.querySelectorAll('.callout.is-collapsible');
+      if (window.__calloutToggleBound) return; // bind once; survives Swup + clones
+      window.__calloutToggleBound = true;
 
-      collapsibleCallouts.forEach(callout => {
-        const title = callout.querySelector('.callout-title');
+      document.addEventListener('click', (e) => {
+        const title = e.target?.closest?.('.callout.is-collapsible > .callout-title');
+        if (!title) return;
+        const callout = title.parentElement;
         const content = callout.querySelector('.callout-content');
-
-        if (!title || !content) return;
-
-        // Set initial grid state
-        const collapsed = callout.classList.contains('is-collapsed');
-        content.style.gridTemplateRows = collapsed ? '0fr' : '1fr';
-
-        title.addEventListener('click', () => {
-          callout.classList.toggle('is-collapsed');
-          const isNowCollapsed = callout.classList.contains('is-collapsed');
-          content.style.gridTemplateRows = isNowCollapsed ? '0fr' : '1fr';
-          // Expanding/collapsing runs a 0.15s grid-rows transition that slides
-          // everything below the callout. rough-notation SVGs live on <body> and
-          // don't follow reflow, so track their spans each frame until the
-          // transition settles — this makes the annotations slide with the text
-          // instead of snapping at the end. _annReanchor reuses the existing
-          // annotation instances (stable seed = same squiggle); recreating them
-          // would re-sketch every annotation = shimmer.
-          let rafId = 0;
-          const deadline = performance.now() + 300; // safety stop if transitionend never fires (reduced-motion / no transition)
-          const tick = () => {
-            window._annReanchor?.();
-            if (performance.now() < deadline) rafId = requestAnimationFrame(tick);
-          };
-          rafId = requestAnimationFrame(tick);
-          content.addEventListener('transitionend', function done(e) {
-            if (e.propertyName !== 'grid-template-rows') return;
-            content.removeEventListener('transitionend', done);
-            cancelAnimationFrame(rafId);
-            window._annReanchor?.();
-          });
+        callout.classList.toggle('is-collapsed');
+        if (!content) return;
+        // Expanding/collapsing runs a 0.15s grid-rows transition that slides
+        // everything below the callout. rough-notation SVGs live on <body> and
+        // don't follow reflow, so track their spans each frame until the
+        // transition settles — this makes the annotations slide with the text
+        // instead of snapping at the end. _annReanchor reuses the existing
+        // annotation instances (stable seed = same squiggle); recreating them
+        // would re-sketch every annotation = shimmer.
+        let rafId = 0;
+        const deadline = performance.now() + 300; // safety stop if transitionend never fires (reduced-motion / no transition)
+        const tick = () => {
+          window._annReanchor?.();
+          if (performance.now() < deadline) rafId = requestAnimationFrame(tick);
+        };
+        rafId = requestAnimationFrame(tick);
+        content.addEventListener('transitionend', function done(ev) {
+          if (ev.propertyName !== 'grid-template-rows') return;
+          content.removeEventListener('transitionend', done);
+          cancelAnimationFrame(rafId);
+          window._annReanchor?.();
         });
       });
     }
