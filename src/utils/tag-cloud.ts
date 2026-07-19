@@ -47,8 +47,8 @@ export function layoutTagCloud(
 ): CloudLayout {
   const minFont = opts.minFont ?? 15;
   const maxFont = opts.maxFont ?? 66;
-  const pad = opts.pad ?? 5;
-  const advance = 0.55; // approx serif glyph advance in em (slight over-estimate → no overlap)
+  const pad = opts.pad ?? 4;
+  const advance = 0.5; // approx serif glyph advance in em (slight over-estimate → no overlap)
   const yScale = opts.aspect ?? 0.55; // <1 → wider-than-tall banner packing
   const rng = mulberry32(opts.seed ?? 0x5eed);
 
@@ -57,7 +57,10 @@ export function layoutTagCloud(
   const counts = items.map((i) => i.count);
   const minC = Math.min(...counts);
   const maxC = Math.max(...counts);
-  const norm = (c: number) => (maxC === minC ? 1 : (c - minC) / (maxC - minC));
+  // Log scale: post counts are power-law (refutation ~860 vs a median tag's
+  // ~20), so a linear ramp pins everything but the top two tags to minFont.
+  const norm = (c: number) =>
+    maxC === minC ? 1 : (Math.log(c) - Math.log(minC)) / (Math.log(maxC) - Math.log(minC));
 
   // Biggest first so heavy tags anchor the centre and light ones fill the gaps.
   const sorted = [...items].sort((a, b) => b.count - a.count);
@@ -67,7 +70,7 @@ export function layoutTagCloud(
 
   for (const it of sorted) {
     const weight = norm(it.count);
-    const size = Math.round(minFont + Math.sqrt(weight) * (maxFont - minFont));
+    const size = Math.round(minFont + weight * (maxFont - minFont));
     const hw = (it.text.length * size * advance) / 2 + pad;
     const hh = (size * 1.02) / 2 + pad;
 
@@ -75,8 +78,8 @@ export function layoutTagCloud(
     let x = 0;
     let y = 0;
     // ponytail: O(n·steps) bounding-box collision — fine for a few dozen tags.
-    for (let s = 0; s < 8000; s++) {
-      const r = s * 0.32;
+    for (let s = 0; s < 12000; s++) {
+      const r = s * 0.28;
       const a = a0 + s * 0.4;
       x = r * Math.cos(a);
       y = r * Math.sin(a) * yScale;

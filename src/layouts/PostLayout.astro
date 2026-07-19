@@ -4,6 +4,7 @@ import { siteConfig } from '@/config';
 import { generatePostSEO, generateBreadcrumbs, generateFAQSchema } from '@/utils/seo';
 import { getCollection } from 'astro:content';
 import { shouldShowPost, processPost, calculateReadingTime, generateTOC, getAdjacentPosts, formatDate, formatDateMobile, getReadingTimeMobile } from '@/utils/markdown';
+import { getTagTitleMap, tagTitle } from '@/utils/tag-titles';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import TableOfContents from '@/components/TableOfContents.astro';
 import MobileTableOfContents from '@/components/MobileTableOfContents.astro';
@@ -24,6 +25,7 @@ export interface Props {
 }
 
 const { post } = Astro.props;
+const tagTitles = await getTagTitleMap();
 
 // Check if we're in development mode
 const isDev = import.meta.env.DEV;
@@ -207,9 +209,10 @@ if (graphSidebarEnabled) {
                       <a
                         href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}/`}
                         class="hover:text-secondary-500 dark:hover:text-secondary-300 transition-colors"
-                        data-pagefind-filter="tag"
+                        data-pagefind-filter="tag[data-raw-tag]"
+                        data-raw-tag={tag}
                       >
-                        {tag}
+                        {tagTitle(tagTitles, tag)}
                       </a>
                     </>
                   ))}
