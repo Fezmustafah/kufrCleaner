@@ -148,7 +148,7 @@ const tagTitles = await getTagTitleMap();
         {tags.slice(0, 3).map((tag: string) => (
           <a
             href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(tag)}/`}
-            class="inline-flex items-center gap-1 text-[0.8rem] text-highlight-600 dark:text-highlight-300 bg-highlight-500/10 dark:bg-highlight-600/15 px-2 py-0.5 rounded-md border border-highlight-400/30 dark:border-highlight-600/35 hover:bg-highlight-500/20 dark:hover:bg-highlight-600/25 hover:border-highlight-400/50 hover:text-highlight-700 dark:hover:text-highlight-200 transition-colors"
+            class="tag-chip"
             aria-label={`View posts tagged with ${tagTitle(tagTitles, tag)}`}
           >
             <Icon name="tag" class="w-2.5 h-2.5 opacity-70" />

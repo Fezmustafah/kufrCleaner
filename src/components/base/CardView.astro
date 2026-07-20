@@ -3,7 +3,9 @@ import type { Note } from '@/utils/bases/types';
 import type { BaseView } from '@/utils/bases/types';
 import { getPropertyValue, formatPropertyValue } from '@/utils/bases/filter';
 import { getOptimizedFormat } from '@/utils/images';
+import { getTagTitleMap, tagTitle } from '@/utils/tag-titles';
 import ImageWrapper from '@/components/ImageWrapper.astro';
+import Icon from '@/components/Icon.astro';
 
 interface Props {
   notes: Note[];
@@ -12,6 +14,7 @@ interface Props {
 }
 
 const { notes, view, imageUrlMap = {} } = Astro.props;
+const tagTitles = await getTagTitleMap();
 const cardSize = view.cardSize || 260;
 const imageAspectRatio = view.imageAspectRatio || 0.75;
 const imageFit = view.imageFit || 'cover';
@@ -99,7 +102,10 @@ function resolveImage(note: Note): { src: string; basePath: string } | null {
                 return Array.isArray(value) && value.length > 0 ? (
                   <div class="card-tags">
                     {value.map((tag: string) => (
-                      <span class="tag-badge">{tag}</span>
+                      <span class="tag-chip">
+                        <Icon name="tag" class="w-2.5 h-2.5 opacity-70" />
+                        {tagTitle(tagTitles, tag)}
+                      </span>
                     ))}
                   </div>
                 ) : null;
@@ -137,17 +143,24 @@ function resolveImage(note: Note): { src: string; basePath: string } | null {
     padding: 1rem 0;
   }
 
+  /* Card surface matches .post-card (global.css): shadow-sm → md plus the
+     Andalusian gold border-left hover accent — one card language platform-wide */
   .card {
     break-inside: avoid;
     margin-bottom: 1rem;
     border-radius: 0.5rem;
     overflow: hidden;
     border: 1px solid rgb(var(--color-primary-200));
+    border-left: 2px solid transparent;
     background: rgb(var(--color-primary-50));
-    transition: box-shadow 0.2s;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: box-shadow 0.2s, border-color 0.2s;
   }
 
-  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .card:hover {
+    border-left-color: rgb(var(--color-highlight-400) / 0.55);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
 
   .card-image {
     width: 100%;
@@ -195,17 +208,7 @@ function resolveImage(note: Note): { src: string; basePath: string } | null {
     gap: 0.375rem;
   }
 
-  .tag-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.125rem 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: white;
-    background: rgb(var(--color-highlight-500));
-    border-radius: 0.25rem;
-    white-space: nowrap;
-  }
+  /* Tag pills use the shared .tag-chip class (global.css) */
 
   .card-prop {
     font-size: 0.875rem;

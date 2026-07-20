@@ -3,6 +3,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import { siteConfig } from '@/config';
 import { shouldShowPost, sortPostsByDate, extractCategories, formatDateShort } from '@/utils/markdown';
 import { categoryDisplayName } from '@/utils/topics';
+import { getTagTitleMap, tagTitle } from '@/utils/tag-titles';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Icon from '@/components/Icon.astro';
 
@@ -34,6 +35,7 @@ const filteredPosts = selectedTag
 const postsPerPage = siteConfig.postOptions.postsPerPage;
 const totalPosts = filteredPosts.length;
 const nextPageUrl = `${baseUrl}posts/2/`;
+const tagTitles = await getTagTitleMap();
 
 // Topic chips — same normalization as the homepage (drop noise, relabel ﷺ).
 const TOPIC_NOISE = new Set(['', 'test', 'quranic refutations', 'islamic refutations']);
@@ -156,7 +158,12 @@ const seoData = {
                   {post.data.description && <p class="pb-desc">{post.data.description}</p>}
                   {post.data.tags && post.data.tags.length > 0 && siteConfig.postOptions.tags && (
                     <span class="pb-tags">
-                      {post.data.tags.slice(0, 4).map((t: string) => <span class="pb-tag">#{t}</span>)}
+                      {post.data.tags.slice(0, 4).map((t: string) => (
+                        <span class="tag-chip">
+                          <Icon name="tag" class="w-2.5 h-2.5 opacity-70" />
+                          {tagTitle(tagTitles, t)}
+                        </span>
+                      ))}
                     </span>
                   )}
                   <span class="pb-date">{formatDateShort(post.data.date)}</span>
@@ -265,8 +272,8 @@ const seoData = {
     .pb-item:hover .pb-title { color: var(--pb-accent); }
     .pb-desc { font-family: var(--font-prose, serif); color: var(--pb-muted); font-size: 0.92rem; line-height: 1.5; margin: 0.35rem 0 0; overflow-wrap: anywhere; }
     .pb-date { font-family: var(--font-mono, monospace); font-size: 0.75rem; color: var(--pb-meta); white-space: nowrap; }
+    /* Tag pills use the shared .tag-chip class (global.css) — hidden in list view */
     .pb-tags { display: none; }
-    .pb-tag { font-size: 0.7rem; color: var(--pb-accent); background: rgb(var(--color-highlight-500) / 0.1); border: 1px solid rgb(var(--color-highlight-400) / 0.3); border-radius: 0.35rem; padding: 0.1rem 0.5rem; overflow-wrap: anywhere; }
 
     /* LIST view — full-width rows */
     .pb-results.view-list { border-top: 1px solid var(--pb-border); }
@@ -280,10 +287,12 @@ const seoData = {
     /* GRID view — masonry cards */
     .pb-results.view-grid { columns: 1; column-gap: 1rem; }
     @media (min-width: 640px) { .pb-results.view-grid { columns: 2; } }
-    .pb-results.view-grid .pb-item { break-inside: avoid; margin-bottom: 1rem; padding: 1.1rem 1.25rem; background: var(--pb-bg-inset); border: 1px solid var(--pb-border); border-left: 2px solid transparent; border-radius: 0.5rem; transition: border-color 0.2s; }
-    .pb-results.view-grid .pb-item:hover { border-left-color: var(--pb-accent-soft); }
+    /* Card surface matches .post-card (global.css): raised bg, shadow-sm → md,
+       Andalusian gold border-left hover accent — one card language platform-wide */
+    .pb-results.view-grid .pb-item { break-inside: avoid; margin-bottom: 1rem; padding: 1.1rem 1.25rem; background: var(--pb-bg-raise); border: 1px solid var(--pb-border); border-left: 2px solid transparent; border-radius: 0.5rem; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); transition: border-color 0.2s, box-shadow 0.2s; }
+    .pb-results.view-grid .pb-item:hover { border-left-color: var(--pb-accent-soft); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
     .pb-results.view-grid .pb-title { font-size: 1.2rem; margin: 0.4rem 0 0; }
-    .pb-results.view-grid .pb-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.7rem; }
+    .pb-results.view-grid .pb-tags { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.7rem; }
     .pb-results.view-grid .pb-date { display: block; margin-top: 0.6rem; }
 
     /* Load more + empty */
