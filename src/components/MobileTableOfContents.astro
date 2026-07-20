@@ -101,6 +101,13 @@ const minDepth = shouldShow ? Math.min(...filtered.map(h => h.depth)) : 2;
     }
   }
 
+  /* Mobile: the navbar shrinks to 3rem (h-12) below md — keep the sticky bar
+     and its frosted navbar-band fill flush with the shorter header. */
+  @media (max-width: 767.98px) {
+    .mobile-toc { top: 3rem; }
+    .mobile-toc.is-stuck::before { height: 3rem; }
+  }
+
   /* Edge-to-edge frosted strip — the bottom lip of the header, not a card.
      No border, no rounding: it merges into the navbar band above (.is-stuck) and
      the drawer panel below (when open). Only a soft downward shadow lifts it off

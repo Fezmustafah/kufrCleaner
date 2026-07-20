@@ -63,9 +63,11 @@ function initMobileToc() {
 
   // Stuck detection: once the bar reaches its sticky line under the navbar,
   // flag it so CSS can fill the transparent navbar band (see .is-stuck::before).
-  const STICK_TOP = 56; // 3.5rem — matches the sticky top / navbar height
+  // Sticky line = the bar's CSS `top` (3.5rem, or 3rem below md where the
+  // navbar is h-12) — read it live so the breakpoint stays in CSS only.
+  const stickTop = () => parseFloat(getComputedStyle(root).top) || 56;
   const updateStuck = () => {
-    root.classList.toggle('is-stuck', bar.getBoundingClientRect().top <= STICK_TOP + 0.5);
+    root.classList.toggle('is-stuck', bar.getBoundingClientRect().top <= stickTop() + 0.5);
   };
 
   let activeSlug = '';

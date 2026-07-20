@@ -112,6 +112,11 @@ const overlayOpacity = hero.overlayOpacity ?? 0.55;
     background-position: center;
     background-repeat: no-repeat;
   }
+  /* Mobile: #top-row is h-12 (3rem) below md — match the pull-under so the
+     hero still starts exactly at the viewport top. */
+  @media (max-width: 767.98px) {
+    .hero-section { margin-top: -3rem; }
+  }
 
   .hero-image-overlay {
     position: absolute;

@@ -128,9 +128,11 @@ import Icon from './Icon.astro';
   .scroll-btn.hidden { display: none; }
 
   @media (max-width: 640px) {
-    #scroll-rail { bottom: 5rem; right: 1rem; }
+    #scroll-rail { bottom: 2.5rem; right: 1rem; }
+    .scroll-btn { width: 2rem; height: 2rem; }
+    .scroll-btn :global(svg) { width: 0.875rem; height: 0.875rem; }
   }
   @media (max-width: 480px) {
-    #scroll-rail { bottom: 4.5rem; right: 0.75rem; }
+    #scroll-rail { bottom: 2rem; right: 0.75rem; }
   }
 </style>

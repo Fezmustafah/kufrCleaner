@@ -91,7 +91,8 @@ function initSearch() {
     if (searchIntro) searchIntro.style.display = 'none';
     if (searchHeader) {
       searchHeader.style.position = 'sticky';
-      searchHeader.style.top = '3.5rem';
+      // Sit flush under the fixed navbar: h-14 (3.5rem) desktop, h-12 (3rem) below md
+      searchHeader.style.top = window.matchMedia('(min-width: 768px)').matches ? '3.5rem' : '3rem';
       searchHeader.style.zIndex = '20';
       searchHeader.style.paddingTop = '0.75rem';
     }

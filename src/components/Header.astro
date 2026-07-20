@@ -29,8 +29,8 @@ const searchUrl = withBase('search/');
   viewport (NavDrawer). Legibility over content comes from the buttons' own
   backdrop-blur glass, not a full-width bar.
 -->
-<div id="top-row" class="h-14 z-50 pointer-events-none relative">
-  <div id="navbar-wrapper" class="pointer-events-auto fixed top-0 inset-x-0 z-50 h-14 nav-at-top">
+<div id="top-row" class="h-12 md:h-14 z-50 pointer-events-none relative">
+  <div id="navbar-wrapper" class="pointer-events-auto fixed top-0 inset-x-0 z-50 h-12 md:h-14 nav-at-top">
 
     <div id="navbar" class="onload-animation h-full">
       <div class="relative h-full max-w-[var(--page-width)] md:px-4 mx-auto px-4 flex items-center">
@@ -38,8 +38,8 @@ const searchUrl = withBase('search/');
         <!-- ── Left: logo/home ─────────────────────────────────────────── -->
         <a href={base} class="nav-home-link shrink-0" aria-label={siteConfig.title}>
           <!-- Theme-adaptive: green wordmark on light header, cream wordmark on dark -->
-          <img src={withBase('logo-light.png')} alt={siteConfig.title} class="h-11 w-auto shrink-0 block dark:hidden" />
-          <img src={withBase('logo.png')} alt="" aria-hidden="true" class="h-11 w-auto shrink-0 hidden dark:block" />
+          <img src={withBase('logo-light.png')} alt={siteConfig.title} class="h-9 md:h-11 w-auto shrink-0 block dark:hidden" />
+          <img src={withBase('logo.png')} alt="" aria-hidden="true" class="h-9 md:h-11 w-auto shrink-0 hidden dark:block" />
         </a>
 
         <!-- ── Center: empty — nav links live behind the hamburger ────── -->
@@ -367,6 +367,16 @@ document.addEventListener('swup:page:view', loadNavScript);
     :global(#theme-toggle) {
       width: 2.75rem;
       height: 2.75rem;
+    }
+  }
+  /* Mobile: compact bar (h-12) — trim the touch-size buttons back down to fit.
+     Must come after the coarse-pointer block above so it wins at equal
+     specificity on small touch screens. */
+  @media (max-width: 767.98px) {
+    :global(.nav-glass-btn),
+    :global(#theme-toggle) {
+      width: 2.25rem;
+      height: 2.25rem;
     }
   }
 
