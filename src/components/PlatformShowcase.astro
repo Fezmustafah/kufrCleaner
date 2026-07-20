@@ -46,6 +46,15 @@ const baseUrl = import.meta.env.BASE_URL;
 // The same article anchors BOTH the local-graph demo and the incoming-links demo.
 interface Mention { title: string; url: string }
 let backlinkDemo: { title: string; url: string; slug: string; count: number; mentions: Mention[] } | null = null;
+// Display-sanitize graph-data titles — a post with no frontmatter title falls
+// back to its filename ("..._(Academical RESPONSE"): underscores → spaces,
+// drop an unclosed trailing parenthetical.
+function cleanTitle(t: string): string {
+  let s = (t || '').replace(/_/g, ' ').trim();
+  const open = s.lastIndexOf('(');
+  if (open !== -1 && !s.includes(')', open)) s = s.slice(0, open).trim();
+  return s;
+}
 try {
   const graphData = JSON.parse(
     // process.cwd() (NOT new URL(import.meta.url)) — Vite rewrites
@@ -67,12 +76,12 @@ try {
   if (top && top[1].size >= 3) {
     const node = byId[top[0]];
     backlinkDemo = {
-      title: node.title,
+      title: cleanTitle(node.title),
       url: `${baseUrl}posts/${node.slug}/`,
       slug: node.slug,
       count: top[1].size,
       mentions: [...top[1]].slice(0, 4).map((id) => ({
-        title: byId[id].title,
+        title: cleanTitle(byId[id].title),
         url: `${baseUrl}posts/${byId[id].slug}/`,
       })),
     };

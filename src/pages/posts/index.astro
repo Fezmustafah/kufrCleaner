@@ -1,7 +1,7 @@
 ---
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { siteConfig } from '@/config';
-import { shouldShowPost, sortPostsByDate, extractCategories, formatDateShort } from '@/utils/markdown';
+import { shouldShowPost, sortPostsByDate, extractCategories, formatDateShort, calculateReadingTime, getReadingTimeMobile } from '@/utils/markdown';
 import { categoryDisplayName } from '@/utils/topics';
 import { getTagTitleMap, tagTitle } from '@/utils/tag-titles';
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -166,7 +166,9 @@ const seoData = {
                       ))}
                     </span>
                   )}
-                  <span class="pb-date">{formatDateShort(post.data.date)}</span>
+                  <span class="pb-date">
+                    {formatDateShort(post.data.date)}{siteConfig.postOptions.readingTime && ` · ${getReadingTimeMobile(calculateReadingTime(post.body || ''))}`}
+                  </span>
                 </a>
               );
             })}
