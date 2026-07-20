@@ -324,14 +324,32 @@ export class GraphRenderer {
 				// derived from the zoom level (simulator.getCurrentLabelOpacity).
 				// Hovered/adjacent nodes get their hover/adjacent styling on top.
 				this.updateLabel(node, hovered, adjacent);
-				// Perf micro-opt: PIXI skips invisible objects entirely, so hide
-				// fully transparent labels instead of rendering them at alpha 0.
-				const labelVisible = node.label.alpha > 0.01 || hovered || adjacent;
+				// PIXI skips invisible objects entirely, so hide labels that are
+				// transparent OR off-screen instead of rendering them. This is not
+				// just a draw-call micro-opt: a PIXI.Text only rasterizes and
+				// uploads its GPU texture when first rendered, so zooming past the
+				// label fade-in threshold on the ~1300-node global graph would
+				// otherwise upload every label texture in one burst (~600MB
+				// measured) — an instant tab kill on iOS Safari. Culling to the
+				// viewport means only on-screen labels ever get textures.
+				const labelVisible = this.labelOnScreen(node)
+					&& (node.label.alpha > 0.01 || hovered || adjacent);
 				if (node.label.visible !== labelVisible) node.label.visible = labelVisible;
 			}
 
 			node.node!.position.set(node.x!, node.y!);
 		}
+	}
+
+	/** World→screen bounds test. The margin lets labels near the edge appear
+	 *  before fully entering, and absorbs the animator's transform tween lagging
+	 *  slightly behind simulator.transform mid-zoom. */
+	labelOnScreen(node: NodeData): boolean {
+		const [sx, sy] = this.simulator.transform.apply([node.x!, node.y!]);
+		const m = 160;
+		return sx >= -m && sy >= -m
+			&& sx <= this.app.screen.width + m
+			&& sy <= this.app.screen.height + m;
 	}
 
 	/**
@@ -479,9 +497,12 @@ export class GraphRenderer {
 			// Render text textures at 4× regardless of the renderer resolution.
 			// The renderer canvas is kept at 2× for GPU performance (shapes, links),
 			// but PIXI.Text is a rasterized sprite — the higher its texture DPR, the
-			// crisper it stays when zoomed or on HiDPI screens. Text label textures
-			// are small so 4× adds negligible memory overhead.
-			resolution: 4,
+			// crisper it stays when zoomed or on HiDPI screens.
+			// On touch devices drop to 2×: label textures persist once created, so
+			// panning around the global graph zoomed-in accumulates them, and iOS
+			// Safari's tight GPU budget is the binding constraint there (labels sit
+			// at constant screen size, so 2× costs only minor softness).
+			resolution: window.matchMedia?.('(pointer: coarse)').matches ? 2 : 4,
 			zIndex: LABEL_DEFAULT_Z_INDEX,
 		});
 		node.label.anchor.set(0.5, 0.5);
