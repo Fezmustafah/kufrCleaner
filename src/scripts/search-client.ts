@@ -4,6 +4,7 @@
 // link — and Swup never executes scripts shipped only with the fetched page.
 // No-ops when #search-query is absent.
 import { highlight, escapeHtml } from '@/utils/search';
+import { topicSlug } from '@/utils/topics';
 
 // SVG path strings (hardcoded — define:vars breaks dynamic import)
 const svgPaths = {
@@ -47,12 +48,23 @@ let activeCategoryFilter: string | null = null;
 let sortMode: 'relevance' | 'newest' = 'relevance';
 let filterYear: number | null = null;
 let filterBarOpen = false;
+let filterTagsExpanded = false;
+
+// Curated tag titles, embedded by search.astro as #tag-title-data
+let tagTitles: Record<string, string> = {};
+const tagLabel = (t: string) => tagTitles[topicSlug(t)] || t;
 
 function initSearch() {
   // Always release scroll lock left over from a mobile sheet that was open during navigation
   document.body.style.overflow = '';
   // Re-init pagefind on each Swup navigation — its WASM worker may have been killed
   pagefindReady = false;
+
+  try {
+    tagTitles = JSON.parse(document.getElementById('tag-title-data')?.textContent || '{}');
+  } catch {
+    tagTitles = {};
+  }
 
   const queryInput     = document.getElementById('search-query') as HTMLInputElement | null;
   const resultsEl      = document.getElementById('search-results');
@@ -236,19 +248,31 @@ function initSearch() {
       }
     }
 
-    const chipBase  = 'text-xs px-2 py-0.5 rounded border transition-colors cursor-pointer';
+    const chipBase  = 'text-xs px-2 py-0.5 rounded-md border transition-colors cursor-pointer';
     const chipOff   = 'border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-300 hover:border-highlight-400 hover:text-highlight-600 dark:hover:text-highlight-400 bg-white dark:bg-primary-900';
-    const chipOnTag = 'bg-highlight-500 border-highlight-500 text-white';
-    const chipOnCat = 'bg-primary-700 dark:bg-primary-200 border-primary-700 dark:border-primary-200 text-white dark:text-primary-900';
+    const chipOn    = 'bg-highlight-500 border-highlight-500 text-white';
     const iconCls   = 'text-primary-400 dark:text-primary-500 flex-shrink-0';
+
+    // Cap the tag wall — a broad query surfaces 40+ tags in seven rows otherwise.
+    // Active tags always stay visible so an applied filter can't hide its own chip.
+    const TAG_CAP = 14;
+    const shownTags = filterTagsExpanded
+      ? tags
+      : tags.filter((t, i) => i < TAG_CAP || activeTagFilters.has(t));
+    const hiddenCount = tags.length - shownTags.length;
 
     const tagsHtml = tags.length > 0 ? `
       <div class="flex items-center gap-1.5 flex-wrap">
         <span class="${iconCls}">${svg(svgPaths.tag, 12)}</span>
-        ${tags.map(tag => {
+        ${shownTags.map(tag => {
           const on = activeTagFilters.has(tag);
-          return `<button data-filter-tag="${escapeHtml(tag)}" class="${chipBase} rounded-full ${on ? chipOnTag : chipOff}">#${escapeHtml(tag)}</button>`;
+          return `<button data-filter-tag="${escapeHtml(tag)}" class="${chipBase} ${on ? chipOn : chipOff}">${escapeHtml(tagLabel(tag))}</button>`;
         }).join('')}
+        ${hiddenCount > 0
+          ? `<button data-tags-more class="${chipBase} border-dashed ${chipOff}">+${hiddenCount} more</button>`
+          : filterTagsExpanded && tags.length > TAG_CAP
+            ? `<button data-tags-more class="${chipBase} border-dashed ${chipOff}">less</button>`
+            : ''}
       </div>` : '';
 
     const catsHtml = categories.length > 0 ? `
@@ -256,7 +280,7 @@ function initSearch() {
         <span class="${iconCls}">${svg(svgPaths.folder, 12)}</span>
         ${categories.map(cat => {
           const on = activeCategoryFilter === cat;
-          return `<button data-filter-category="${escapeHtml(cat)}" class="${chipBase} rounded-md ${on ? chipOnCat : chipOff}">${escapeHtml(cat)}</button>`;
+          return `<button data-filter-category="${escapeHtml(cat)}" class="${chipBase} ${on ? chipOn : chipOff}">${escapeHtml(cat)}</button>`;
         }).join('')}
       </div>` : '';
 
@@ -266,7 +290,7 @@ function initSearch() {
         ${(['relevance', 'newest'] as const).map(mode => {
           const on = sortMode === mode;
           const label = mode === 'relevance' ? 'Relevance' : 'Newest';
-          return `<button data-sort="${mode}" class="${chipBase} ${on ? chipOnCat : chipOff}">${label}</button>`;
+          return `<button data-sort="${mode}" class="${chipBase} ${on ? chipOn : chipOff}">${label}</button>`;
         }).join('')}
       </div>`;
 
@@ -335,6 +359,11 @@ function initSearch() {
       applyTagCategoryFiltersAndRender();
     });
 
+    filterBar.querySelector<HTMLButtonElement>('[data-tags-more]')?.addEventListener('click', () => {
+      filterTagsExpanded = !filterTagsExpanded;
+      buildFilterBar(allResults);
+    });
+
   }
 
   // ── Skeleton loading ───────────────────────────────────────────────────
@@ -343,33 +372,29 @@ function initSearch() {
     emptyEl!.classList.add('hidden');
     resultsEl!.innerHTML = Array.from({ length: 3 }, () => `
       <div class="px-4 py-3 border-b border-primary-100 dark:border-primary-800 animate-pulse">
-        <div class="flex items-start gap-2">
-          <div class="w-3 h-3 mt-1 rounded bg-primary-200 dark:bg-primary-700 shrink-0"></div>
-          <div class="flex-1 min-w-0 space-y-2">
-            <div class="h-3.5 bg-primary-200 dark:bg-primary-700 rounded w-4/5"></div>
-            <div class="h-3 bg-primary-100 dark:bg-primary-800 rounded w-2/5"></div>
-            <div class="flex gap-1">
-              <div class="h-4 bg-primary-100 dark:bg-primary-800 rounded-full w-12"></div>
-              <div class="h-4 bg-primary-100 dark:bg-primary-800 rounded-full w-16"></div>
-            </div>
+        <div class="space-y-2">
+          <div class="h-2.5 bg-primary-100 dark:bg-primary-800 rounded w-1/4"></div>
+          <div class="h-3.5 bg-primary-200 dark:bg-primary-700 rounded w-4/5"></div>
+          <div class="flex gap-1.5">
+            <div class="h-5 bg-primary-100 dark:bg-primary-800 rounded-md w-16"></div>
+            <div class="h-5 bg-primary-100 dark:bg-primary-800 rounded-md w-20"></div>
           </div>
         </div>
       </div>`
     ).join('');
   }
 
-  // ── Result card ────────────────────────────────────────────────────────
+  // ── Result card — same vocabulary as PostCard: gold uppercase category
+  //    kicker above the title, shared .tag-chip pills, curated tag titles ──
   function renderResultItem(item: any, i: number, rawQuery: string) {
     const isSelected = i === selectedIndex;
 
     const categoryHtml = item.category
-      ? `<span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-primary-100 dark:bg-primary-800 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-700">
-          ${svg(svgPaths.folder, 10, 'opacity-70')}${escapeHtml(item.category)}
-        </span>`
+      ? `<div class="text-[0.62rem] font-bold tracking-[0.14em] uppercase text-highlight-600 dark:text-highlight-400 mb-0.5">${escapeHtml(item.category)}</div>`
       : '';
 
-    const tagsHtml = (item.tags || []).slice(0, 3).map((t: string) =>
-      `<span class="text-xs text-highlight-600 dark:text-highlight-400">#${escapeHtml(t)}</span>`
+    const tagsHtml = (item.tags || []).slice(0, 2).map((t: string) =>
+      `<span class="tag-chip">${svg(svgPaths.tag, 10, 'opacity-70')}${escapeHtml(tagLabel(t))}</span>`
     ).join('');
 
     const datePart = item.date
@@ -391,22 +416,16 @@ function initSearch() {
                 ${isSelected
                   ? 'bg-primary-50 dark:bg-primary-800/60 border-l-highlight-500'
                   : 'hover:bg-primary-50 dark:hover:bg-primary-800/30 border-l-transparent'}">
-        <div class="flex items-start gap-2">
-          <span class="mt-0.5 text-primary-400 dark:text-primary-500 shrink-0">${svg(svgPaths.fileText, 13)}</span>
-          <div class="min-w-0 w-full">
-            <div class="font-medium text-sm text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</div>
-            ${categoryHtml || tagsHtml
-              ? `<div class="mt-1 flex flex-wrap items-center gap-1">${categoryHtml}${tagsHtml}</div>`
-              : ''}
-            ${datePart || timePart
-              ? `<div class="mt-1 flex items-center gap-2">${datePart}${timePart}${
-                  (item.subResults || []).length > 1
-                    ? `<span class="text-xs text-primary-300 dark:text-primary-600 tabular-nums">${(item.subResults || []).length} sections</span>`
-                    : ''
-                }</div>`
-              : ''}
-          </div>
-        </div>
+        ${categoryHtml}
+        <div class="font-medium text-sm text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</div>
+        ${tagsHtml ? `<div class="mt-1.5 flex flex-wrap gap-1">${tagsHtml}</div>` : ''}
+        ${datePart || timePart
+          ? `<div class="mt-1.5 flex items-center gap-2">${datePart}${timePart}${
+              (item.subResults || []).length > 1
+                ? `<span class="text-xs text-primary-300 dark:text-primary-600 tabular-nums">${(item.subResults || []).length} sections</span>`
+                : ''
+            }</div>`
+          : ''}
       </a>`;
   }
 
@@ -415,16 +434,14 @@ function initSearch() {
     const subResults: any[] = item.subResults || [];
 
     const tagsHtml = (item.tags || []).map((t: string) =>
-      `<a href="${import.meta.env.BASE_URL}tags/${escapeHtml(t)}"
-          class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-highlight-50 dark:bg-highlight-900/30 text-highlight-700 dark:text-highlight-400 border border-highlight-200 dark:border-highlight-700 hover:bg-highlight-100 dark:hover:bg-highlight-800/40 transition-colors">
-        ${svg(svgPaths.tag, 11, 'opacity-70')}${escapeHtml(t)}
+      `<a href="${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(t)}/" class="tag-chip">
+        ${svg(svgPaths.tag, 11, 'opacity-70')}${escapeHtml(tagLabel(t))}
       </a>`
     ).join('');
 
     const categoryHtml = item.category
-      ? `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-primary-100 dark:bg-primary-800 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-700">
-          ${svg(svgPaths.folder, 11, 'opacity-70')}${escapeHtml(item.category)}
-        </span>`
+      ? `<a href="${import.meta.env.BASE_URL}posts/category/${encodeURIComponent(item.category)}/"
+           class="text-[0.68rem] font-bold tracking-[0.14em] uppercase text-highlight-600 dark:text-highlight-400 hover:text-highlight-700 dark:hover:text-highlight-300 transition-colors">${escapeHtml(item.category)}</a>`
       : '';
 
     const metaHtml = item.date || item.readingTime
@@ -435,6 +452,7 @@ function initSearch() {
       : '';
 
     return `
+      ${categoryHtml ? `<div class="mb-1">${categoryHtml}</div>` : ''}
       <div class="flex items-start justify-between gap-3 mb-2">
         <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-50 leading-snug">${highlight(item.title, rawQuery)}</h2>
         <a href="${escapeHtml(safeUrl(item.url))}" title="Open post"
@@ -442,8 +460,8 @@ function initSearch() {
            aria-label="Open post">${svg(svgPaths.externalLink, 15)}</a>
       </div>
       ${metaHtml}
-      ${categoryHtml || tagsHtml
-        ? `<div class="flex flex-wrap items-center gap-2 mb-4">${categoryHtml}${tagsHtml}</div>`
+      ${tagsHtml
+        ? `<div class="flex flex-wrap items-center gap-1.5 mb-4">${tagsHtml}</div>`
         : ''}
       ${subResults.length > 0 ? `
         <div>
@@ -633,6 +651,7 @@ function initSearch() {
       activeCategoryFilter = null;
       sortMode = 'relevance';
       filterYear = null;
+      filterTagsExpanded = false;
       return;
     }
 

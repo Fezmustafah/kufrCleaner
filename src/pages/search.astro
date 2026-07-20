@@ -1,7 +1,10 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Icon from '@/components/Icon.astro';
 import { siteConfig } from '@/config';
+import { shouldShowPost } from '@/utils/markdown';
+import { getTagTitleMap, tagTitle } from '@/utils/tag-titles';
 
 const query = Astro.url.searchParams.get('q') || '';
 const pageTitle = query ? `Search: "${query}"` : 'Search';
@@ -12,10 +15,18 @@ const seoData = {
   canonical: Astro.url.href,
   ogType: 'website' as const,
 };
+
+// Empty-state affordances: live article count + most-used tags as entry points.
+const isDev = import.meta.env.DEV;
+const posts = (await getCollection('posts')).filter(post => shouldShowPost(post, isDev));
+const tagTitles = await getTagTitleMap();
+const tagCounts = new Map<string, number>();
+for (const p of posts) for (const t of p.data.tags ?? []) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+const popularTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t);
 ---
 
 <BaseLayout seoData={seoData}>
-  <div data-pagefind-ignore class="max-w-5xl mx-auto">
+  <div data-pagefind-ignore class="max-w-5xl mx-auto px-4 lg:px-0">
 
     <!--
       Centering shell: flex column that fills the viewport vertically when no results are
@@ -30,25 +41,25 @@ const seoData = {
       -->
       <div id="search-header" class="bg-white dark:bg-primary-950 pt-8 pb-3 w-full">
 
-        <!-- Intro text (fades out when results appear) -->
-        <div id="search-intro" class="text-center mb-6">
-          <p class="text-2xl font-semibold text-primary-900 dark:text-primary-50 mb-1.5">Search</p>
-          <p class="text-sm text-primary-500 dark:text-primary-400">Find posts by title, content, tags, or category</p>
+        <!-- Intro (fades out when results appear) — same identity system as the homepage hero -->
+        <div id="search-intro" class="text-center mb-7">
+          <p class="search-kicker">A Scholarly Reference</p>
+          <h1 class="search-title">Search the archive</h1>
+          <p class="search-sub">{posts.length.toLocaleString()} articles — sourced, cited, and indexed in full</p>
         </div>
 
-        <!-- Search form -->
+        <!-- Search form — single surface; the input itself is chromeless (see global.css §Search) -->
         <form id="search-form" action={`${import.meta.env.BASE_URL}search/`} method="get">
-          <div class="flex items-center gap-3 px-5 py-3.5 rounded-2xl border border-primary-300 dark:border-primary-600 bg-white dark:bg-primary-800 focus-within:border-highlight-400 dark:focus-within:border-highlight-500 focus-within:ring-2 focus-within:ring-highlight-500/20 transition-all duration-200 shadow-md hover:shadow-lg">
-            <Icon name="search" class="w-4 h-4 shrink-0 text-primary-400 dark:text-primary-500" />
+          <div class="search-field">
+            <Icon name="search" class="w-4 h-4 shrink-0 text-highlight-500/70 dark:text-highlight-400/70" />
             <input
               type="text"
               name="q"
               id="search-query"
               value={query}
-              placeholder="Search posts, tags… (prefix # to filter by tag)"
+              placeholder="Search the archive… (#tag to filter)"
               autocomplete="off"
               autofocus
-              class="flex-1 bg-transparent outline-none text-primary-900 dark:text-primary-50 placeholder-primary-400 dark:placeholder-primary-500 text-base"
             />
             <button
               id="search-clear"
@@ -89,34 +100,30 @@ const seoData = {
       </div><!-- /search-header -->
 
       <!-- Empty / pre-search state (inside shell so it contributes to vertical centering) -->
-      <div id="search-empty" class="flex-1 py-10">
-        <div class="max-w-lg mx-auto grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-          <div class="px-4 py-3 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-100 dark:border-primary-700/60">
-            <p class="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-1">Tag search</p>
-            <p class="text-xs text-primary-500 dark:text-primary-500">Type <kbd class="mx-0.5 px-1.5 py-0.5 bg-white dark:bg-primary-900 rounded border border-primary-200 dark:border-primary-700 font-mono text-xs">#tag</kbd> to filter by tag</p>
+      <div id="search-empty" class="flex-1 pt-10 pb-16">
+        <div class="max-w-2xl mx-auto text-center px-2">
+          <p class="search-hint-label">Start from a popular topic</p>
+          <div class="flex flex-wrap justify-center gap-1.5 mb-8">
+            {popularTags.map(t => (
+              <a href={`${import.meta.env.BASE_URL}posts/tag/${encodeURIComponent(t)}/`} class="tag-chip">
+                <Icon name="tag" class="w-2.5 h-2.5 opacity-70" />
+                {tagTitle(tagTitles, t)}
+              </a>
+            ))}
           </div>
-          <div class="px-4 py-3 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-100 dark:border-primary-700/60">
-            <p class="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-1">Keyboard navigation</p>
-            <p class="text-xs text-primary-500 dark:text-primary-500">
-              <kbd class="px-1.5 py-0.5 bg-white dark:bg-primary-900 rounded border border-primary-200 dark:border-primary-700 font-mono text-xs">↑↓</kbd> to move,
-              <kbd class="px-1.5 py-0.5 bg-white dark:bg-primary-900 rounded border border-primary-200 dark:border-primary-700 font-mono text-xs">↵</kbd> to open
-            </p>
-          </div>
-          <div class="px-4 py-3 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-100 dark:border-primary-700/60">
-            <p class="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-1">Filter &amp; sort</p>
-            <p class="text-xs text-primary-500 dark:text-primary-500">Use the Filters button to narrow by tag, category, year, or sort order</p>
-          </div>
-          <div class="px-4 py-3 rounded-xl bg-primary-50 dark:bg-primary-800/50 border border-primary-100 dark:border-primary-700/60">
-            <p class="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-1">Preview</p>
-            <p class="text-xs text-primary-500 dark:text-primary-500">Hover a result to preview; tap on mobile to open a preview sheet</p>
-          </div>
+          <p class="search-kbd-hints">
+            <span><kbd>#tag</kbd> filters by tag</span>
+            <span class="hidden sm:inline"><kbd>↑↓</kbd> move · <kbd>↵</kbd> open</span>
+            <span class="hidden md:inline">hover a result to preview</span>
+          </p>
+          <a href={`${import.meta.env.BASE_URL}posts/`} class="search-browse-all">or browse all {posts.length.toLocaleString()} articles <span aria-hidden="true">→</span></a>
         </div>
       </div>
 
     </div><!-- /search-shell -->
 
     <!-- Split pane (outside the centering shell) -->
-    <div id="search-pane" class="hidden rounded-xl border border-primary-200 dark:border-primary-700 overflow-hidden" style="height: 68vh; min-height: 400px;">
+    <div id="search-pane" class="hidden rounded-lg border border-primary-200 dark:border-primary-700 overflow-hidden shadow-sm" style="height: 68vh; min-height: 400px;">
       <div class="flex h-full">
         <div id="search-results" class="w-full md:w-72 md:min-w-[18rem] overflow-y-auto border-r border-primary-200 dark:border-primary-700 bg-white dark:bg-primary-900 flex-shrink-0"></div>
         <div class="hidden md:flex flex-1 flex-col overflow-hidden bg-white dark:bg-primary-900">
@@ -126,6 +133,9 @@ const seoData = {
         </div>
       </div>
     </div>
+
+    <!-- Curated tag titles for search-client.ts (renders results via innerHTML) -->
+    <script is:inline type="application/json" id="tag-title-data" set:html={JSON.stringify(Object.fromEntries(tagTitles))}></script>
 
   </div>
 
@@ -157,8 +167,6 @@ const seoData = {
 
 <!-- Behaviour lives in /src/scripts/search-client.ts, loaded globally from
      BaseLayout: a page-inline script would never run when this page is reached
-     via Swup nav (e.g. from the search palette's "Advanced search" link). -->
-
-<style>
-  mark { background-color: transparent; }
-</style>
+     via Swup nav (e.g. from the search palette's "Advanced search" link).
+     Page chrome CSS lives in global.css §Search page — results/preview markup is
+     injected via innerHTML, which Astro-scoped styles can never reach. -->
