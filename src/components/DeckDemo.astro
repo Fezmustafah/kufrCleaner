@@ -2,7 +2,9 @@
 // Homepage showcase for the two reading modes. These are self-contained,
 // scoped-CSS previews (NOT the real transport) — the article-only
 // reading-deck.css isn't loaded on the homepage, so a live instance can't
-// render here. Natively scrollable so they still feel alive.
+// render here. Each preview is a miniature replica of the real deck shell
+// (topbar + switcher, progress bar, stage, controls) so what you see here is
+// what you get on a post. Natively scrollable so they still feel alive.
 import { siteConfig } from '@/config';
 
 const enabled = siteConfig.postOptions.readingDeck;
@@ -21,49 +23,113 @@ const enabled = siteConfig.postOptions.readingDeck;
   </div>
 
   <div class="feat-demo-grid">
-    <!-- Deep read preview -->
+    <!-- ══ Deep read preview — mini deck shell, panes layout ══ -->
     <figure class="feat-demo-fig">
-      <div class="fd-panes" tabindex="0" role="group" aria-label="Deep read sliding-panes preview">
-        <div class="fd-spine"><span>The objection</span></div>
-        <article class="fd-pane">
-          <h3>Second: the reply</h3>
-          <p>Each heading becomes its own column, so a single idea sits in front of you without the rest of the page competing for attention.</p>
-          <p class="fd-pane-quote">“A different lens on the same text — not a summary of it.”</p>
-        </article>
-        <article class="fd-pane">
-          <h3>The evidence</h3>
-          <p>Move forward and the pane behind you folds into a slim spine on the left — a live breadcrumb you can click to jump back.</p>
-        </article>
-        <article class="fd-pane">
-          <h3>Conclusion</h3>
-          <p>Nothing is flattened. Highlights, block quotes, footnotes and citations all carry over exactly as written.</p>
-        </article>
+      <div class="fdk">
+        <header class="fdk-topbar" aria-hidden="true">
+          <span class="fdk-back">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+            <span>Article</span>
+          </span>
+          <span class="fdk-headwrap">
+            <span class="fdk-title">Did Islam spread by the sword?<i class="fdk-caret"></i></span>
+            <span class="fdk-switch">
+              <span>TLDR</span><span class="is-on">Deep</span>
+            </span>
+          </span>
+          <span class="fdk-iconbtn">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </span>
+        </header>
+
+        <!-- Deep read has NO progress bar and NO footer controls (the real deck
+             hides both for the slides feed) — navigation is the track scrollbar
+             and the title's contents index. -->
+        <div class="fdk-panes" tabindex="0" role="group" aria-label="Deep read sliding-panes preview">
+          <span class="fdk-spine fdk-spine-1">The objection</span>
+          <article class="fdk-pane">
+            <h3>What the sources say</h3>
+            <p>Each section becomes its own pane, so a single idea sits in front of you without the rest of the page competing for attention.</p>
+            <p class="fdk-quote">“A different lens on the same text — not a summary of it.”</p>
+          </article>
+          <span class="fdk-spine fdk-spine-2">What the sources say</span>
+          <article class="fdk-pane">
+            <h3>The verdict</h3>
+            <p>Move forward and the section behind you folds into a slim spine on the left — a live breadcrumb of where you've been.</p>
+            <p>Nothing is flattened. Highlights, block quotes, footnotes and citations all carry over exactly as written.</p>
+          </article>
+        </div>
       </div>
-      <figcaption><strong>Deep read</strong> — sliding panes across headings · scroll&nbsp;→</figcaption>
+      <figcaption><strong>Deep read</strong> — sliding panes across sections · scroll&nbsp;→</figcaption>
     </figure>
 
-    <!-- TLDR preview -->
+    <!-- ══ TLDR preview — mini deck shell, card track with cover card ══ -->
     <figure class="feat-demo-fig">
-      <div class="fd-deck" tabindex="0" role="group" aria-label="TLDR summary-cards preview">
-        <article class="fd-card">
-          <span class="fd-kicker">TLDR</span>
-          <h3>The claim, in brief</h3>
-          <ul>
-            <li>The objection rests on a mistranslation.</li>
-            <li>The earliest sources say the opposite.</li>
-            <li>The conclusion doesn’t follow from the premise.</li>
-          </ul>
-        </article>
-        <article class="fd-card">
-          <span class="fd-kicker">Key point</span>
-          <h3>What the text actually says</h3>
-          <p>A couple of lines you can read at a glance — enough to decide whether to go deeper.</p>
-        </article>
-        <article class="fd-card">
-          <span class="fd-kicker">Takeaway</span>
-          <h3>No contradiction remains</h3>
-          <p>The apparent problem dissolves once the terms are defined and the context is restored.</p>
-        </article>
+      <div class="fdk">
+        <header class="fdk-topbar" aria-hidden="true">
+          <span class="fdk-back">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+            <span>Article</span>
+          </span>
+          <span class="fdk-headwrap">
+            <span class="fdk-title">Did Islam spread by the sword?<i class="fdk-caret"></i></span>
+            <span class="fdk-switch">
+              <span class="is-on">TLDR</span><span>Deep</span>
+            </span>
+          </span>
+          <span class="fdk-iconbtn">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </span>
+        </header>
+        <div class="fdk-progress" aria-hidden="true"><span style="width: 12%"></span></div>
+
+        <div class="fdk-stage">
+          <div class="fdk-deck" tabindex="0" role="group" aria-label="TLDR summary-cards preview">
+            <article class="fdk-card fdk-card--cover">
+              <div class="fdk-cover-copy">
+                <span class="fdk-cover-mode">TLDR view</span>
+                <h3>Did Islam spread by the sword?</h3>
+                <p>What the conquest narratives actually show, source by source.</p>
+                <p class="fdk-cover-meta">3 min read</p>
+                <span class="fdk-cover-start">
+                  <span>Begin</span>
+                  <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </span>
+              </div>
+            </article>
+            <article class="fdk-card">
+              <h3>The claim, in brief</h3>
+              <ul>
+                <li>The objection rests on a mistranslation.</li>
+                <li>The earliest sources say the opposite.</li>
+                <li>The conclusion doesn’t follow from the premise.</li>
+              </ul>
+            </article>
+            <article class="fdk-card">
+              <h3>What the record shows</h3>
+              <p>A couple of lines you can read at a glance — enough to decide whether the full article is worth your time.</p>
+            </article>
+            <article class="fdk-card">
+              <h3>No contradiction remains</h3>
+              <p>The apparent problem dissolves once the terms are defined and the context is restored.</p>
+            </article>
+          </div>
+        </div>
+
+        <footer class="fdk-controls" aria-hidden="true">
+          <span class="fdk-btn is-disabled">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+            <span>Previous</span>
+          </span>
+          <span class="fdk-btn fdk-pos">
+            <b>1 / 4</b>
+            <small>Cover</small>
+          </span>
+          <span class="fdk-btn">
+            <span>Next</span>
+            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></svg>
+          </span>
+        </footer>
       </div>
       <figcaption><strong>TLDR view</strong> — glanceable summary cards · swipe&nbsp;→</figcaption>
     </figure>
@@ -119,7 +185,9 @@ const enabled = siteConfig.postOptions.readingDeck;
   @media (min-width: 760px) {
     .feat-demo-grid { grid-template-columns: 1fr 1fr; }
   }
-  .feat-demo-fig { margin: 0; }
+  /* min-width: 0 — grid items otherwise refuse to shrink below the panes'
+     intrinsic width and blow the page out horizontally on narrow screens */
+  .feat-demo-fig { margin: 0; min-width: 0; }
   .feat-demo-fig figcaption {
     margin-top: 0.7rem;
     font-size: 0.82rem;
@@ -130,147 +198,394 @@ const enabled = siteConfig.postOptions.readingDeck;
   :global(.dark) .feat-demo-fig figcaption { color: rgb(var(--color-primary-400)); }
   :global(.dark) .feat-demo-fig figcaption strong { color: rgb(var(--color-primary-200)); }
 
-  /* ── Deep read preview: horizontally-scrollable panes + a sticky spine ── */
-  .fd-panes {
+  /* ══ Mini deck shell — scaled-down replica of .reading-deck-shell ══ */
+  .fdk {
     display: flex;
-    height: 19rem;
-    overflow-x: auto;
-    overflow-y: hidden;
+    flex-direction: column;
+    height: 24rem;
+    min-width: 0;
+    overflow: hidden;
     border: 1px solid rgb(var(--color-primary-200));
     border-radius: 0.9rem;
-    background: rgb(var(--color-primary-50));
-    scrollbar-width: thin;
+    background:
+      radial-gradient(circle at 50% -20%, rgb(var(--color-highlight-400) / 0.11), transparent 35%),
+      linear-gradient(180deg, rgb(var(--color-primary-50)), rgb(var(--color-primary-100)));
+    box-shadow: 0 14px 34px -24px rgb(var(--color-primary-950) / 0.4);
   }
-  :global(.dark) .fd-panes {
+  :global(.dark) .fdk {
     border-color: rgb(var(--color-primary-800));
-    background: rgb(var(--color-primary-900));
+    background:
+      radial-gradient(circle at 50% -20%, rgb(var(--color-highlight-400) / 0.12), transparent 35%),
+      linear-gradient(180deg, rgb(var(--color-primary-900)), rgb(var(--color-primary-800)));
   }
-  .fd-spine {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    flex: 0 0 2.6rem;
+  .fdk svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ── topbar: back · title + mode switcher · menu ── */
+  .fdk-topbar {
     display: grid;
-    place-items: center;
-    border-right: 1px solid rgb(var(--color-primary-200));
-    background: rgb(var(--color-primary-100));
-    box-shadow: 3px 0 8px -4px rgb(var(--color-primary-950) / 0.25);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid rgb(var(--color-primary-200) / 0.8);
+    background: rgb(var(--color-primary-50) / 0.9);
   }
-  :global(.dark) .fd-spine {
-    border-right-color: rgb(var(--color-primary-700));
+  :global(.dark) .fdk-topbar {
+    border-bottom-color: rgb(var(--color-primary-700) / 0.8);
+    background: rgb(var(--color-primary-900) / 0.88);
+  }
+  .fdk-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-family: var(--font-heading);
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: rgb(var(--color-primary-700));
+  }
+  .fdk-back svg { width: 0.85rem; height: 0.85rem; }
+  :global(.dark) .fdk-back { color: rgb(var(--color-primary-200)); }
+  .fdk-headwrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    text-align: center;
+  }
+  .fdk-title {
+    max-width: 100%;
+    overflow: hidden;
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: rgb(var(--color-primary-900));
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  :global(.dark) .fdk-title { color: rgb(var(--color-primary-50)); }
+  /* title caret — the real deck's "title opens the contents index" affordance */
+  .fdk-caret {
+    display: inline-block;
+    width: 0.42em;
+    height: 0.42em;
+    margin-left: 0.4em;
+    margin-bottom: 0.08em;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+  }
+  .fdk-switch {
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 2px;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 999px;
+    background: rgb(var(--color-primary-200) / 0.55);
+  }
+  :global(.dark) .fdk-switch {
+    border-color: rgb(var(--color-primary-700));
     background: rgb(var(--color-primary-800));
   }
-  .fd-spine span {
-    writing-mode: vertical-rl;
+  .fdk-switch span {
+    padding: 0.14rem 0.55rem;
+    border-radius: 999px;
     font-family: var(--font-heading);
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: rgb(var(--color-primary-600));
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: rgb(var(--color-primary-500));
+    white-space: nowrap;
   }
-  :global(.dark) .fd-spine span { color: rgb(var(--color-primary-300)); }
-  .fd-pane {
-    flex: 0 0 min(17rem, 74%);
+  .fdk-switch .is-on {
+    color: rgb(var(--color-primary-900));
+    background: rgb(var(--color-primary-50));
+    box-shadow: 0 1px 4px rgb(var(--color-primary-900) / 0.12);
+  }
+  :global(.dark) .fdk-switch span { color: rgb(var(--color-primary-400)); }
+  :global(.dark) .fdk-switch .is-on {
+    color: rgb(var(--color-primary-50));
+    background: rgb(var(--color-primary-700));
+    box-shadow: 0 1px 5px rgb(var(--color-primary-900) / 0.38);
+  }
+  .fdk-iconbtn {
+    display: inline-grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border: 1px solid rgb(var(--color-primary-300) / 0.8);
+    border-radius: 50%;
+    color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-50) / 0.65);
+  }
+  .fdk-iconbtn svg { width: 0.85rem; height: 0.85rem; }
+  :global(.dark) .fdk-iconbtn {
+    border-color: rgb(var(--color-primary-600) / 0.9);
+    color: rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-800) / 0.75);
+  }
+
+  /* ── progress hairline ── */
+  .fdk-progress {
+    flex: 0 0 2px;
+    overflow: hidden;
+    background: rgb(var(--color-primary-300) / 0.42);
+  }
+  :global(.dark) .fdk-progress { background: rgb(var(--color-primary-700) / 0.68); }
+  .fdk-progress span {
+    display: block;
     height: 100%;
-    padding: 1.15rem 1.25rem;
+    background: linear-gradient(90deg, rgb(var(--color-highlight-600)), rgb(var(--color-highlight-300)));
+    box-shadow: 0 0 10px rgb(var(--color-highlight-400) / 0.65);
+  }
+
+  /* ── Deep read stage: edge-to-edge sliding panes with sticky spines ── */
+  .fdk-panes {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: rgb(var(--color-primary-50));
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-primary-300)) transparent;
+  }
+  :global(.dark) .fdk-panes {
+    background: rgb(var(--color-primary-900));
+    scrollbar-color: rgb(var(--color-primary-700)) transparent;
+  }
+  .fdk-spine {
+    position: sticky;
+    z-index: 2;
+    flex: 0 0 2.1rem;
+    padding: 0.75rem 0;
+    writing-mode: vertical-rl;
+    overflow: hidden;
+    border-right: 1px solid rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-100));
+    color: rgb(var(--color-primary-700));
+    font-family: var(--font-heading);
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 2.1rem;
+    white-space: nowrap;
+    text-align: left;
+    text-overflow: ellipsis;
+    box-shadow: 2px 0 6px -3px rgb(0 0 0 / 0.18);
+  }
+  .fdk-spine-1 { left: 0; }
+  .fdk-spine-2 { left: 2.1rem; }
+  :global(.dark) .fdk-spine {
+    border-right-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-800));
+    color: rgb(var(--color-primary-200));
+  }
+  .fdk-pane {
+    flex: 0 0 min(19rem, 80%);
+    height: 100%;
+    padding: 1rem 1.1rem;
     overflow-y: auto;
     border-left: 1px solid rgb(var(--color-primary-200) / 0.7);
     background: rgb(var(--color-primary-50));
     box-shadow: -16px 0 30px -22px rgb(var(--color-primary-950) / 0.55);
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-primary-300)) transparent;
   }
-  .fd-pane:first-of-type { box-shadow: none; }
-  :global(.dark) .fd-pane {
+  :global(.dark) .fdk-pane {
     border-left-color: rgb(var(--color-primary-800));
     background: rgb(var(--color-primary-900));
+    scrollbar-color: rgb(var(--color-primary-700)) transparent;
   }
-  .fd-pane h3 {
-    margin: 0 0 0.6rem;
+  .fdk-pane h3,
+  .fdk-card h3 {
+    margin: 0 0 0.55rem;
     font-family: var(--font-heading);
-    font-size: 1.15rem;
+    font-size: 1.3rem;
     font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
     color: rgb(var(--color-primary-900));
+    text-wrap: balance;
   }
-  :global(.dark) .fd-pane h3 { color: rgb(var(--color-primary-50)); }
-  .fd-pane p {
-    margin: 0 0 0.7rem;
-    font-size: 0.92rem;
-    line-height: 1.6;
+  :global(.dark) .fdk-pane h3,
+  :global(.dark) .fdk-card h3 { color: rgb(var(--color-primary-50)); }
+  .fdk-pane p,
+  .fdk-card p,
+  .fdk-card ul {
+    margin: 0 0 0.65rem;
+    font-family: var(--font-prose);
+    font-size: 0.88rem;
+    line-height: 1.68;
     color: rgb(var(--color-primary-700));
+    text-wrap: pretty;
   }
-  :global(.dark) .fd-pane p { color: rgb(var(--color-primary-300)); }
-  .fd-pane-quote {
+  :global(.dark) .fdk-pane p,
+  :global(.dark) .fdk-card p,
+  :global(.dark) .fdk-card ul { color: rgb(var(--color-primary-300)); }
+  .fdk-quote {
     padding-left: 0.8rem;
     border-left: 3px solid rgb(var(--color-highlight-500) / 0.6);
     font-style: italic;
     color: rgb(var(--color-primary-600)) !important;
   }
+  :global(.dark) .fdk-quote { color: rgb(var(--color-primary-400)) !important; }
 
-  /* ── TLDR preview: scroll-snap deck of glanceable summary cards ── */
-  .fd-deck {
+  /* ── TLDR stage: scroll-snap card track ── */
+  .fdk-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0.65rem;
+  }
+  .fdk-deck {
     display: flex;
-    gap: 0.9rem;
-    height: 19rem;
-    padding: 1rem;
+    gap: 0.65rem;
+    height: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
-    border: 1px solid rgb(var(--color-primary-200));
-    border-radius: 0.9rem;
-    background: rgb(var(--color-primary-100) / 0.5);
-    scrollbar-width: thin;
+    scrollbar-width: none;
   }
-  :global(.dark) .fd-deck {
-    border-color: rgb(var(--color-primary-800));
-    background: rgb(var(--color-primary-950) / 0.4);
-  }
-  .fd-card {
-    flex: 0 0 min(18rem, 82%);
+  .fdk-deck::-webkit-scrollbar { display: none; }
+  .fdk-card {
+    flex: 0 0 min(16rem, 86%);
     scroll-snap-align: center;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    padding: 1.3rem 1.35rem;
-    border: 1px solid rgb(var(--color-primary-200));
-    border-radius: 0.75rem;
+    padding: 1rem 1.1rem;
+    overflow-y: auto;
+    border: 1px solid rgb(var(--color-primary-200) / 0.95);
+    border-radius: 0.55rem;
     background: rgb(var(--color-primary-50));
-    box-shadow: 0 14px 34px -20px rgb(var(--color-primary-950) / 0.4);
+    scrollbar-width: none;
   }
-  :global(.dark) .fd-card {
+  .fdk-card::-webkit-scrollbar { display: none; }
+  :global(.dark) .fdk-card {
     border-color: rgb(var(--color-primary-700));
     background: rgb(var(--color-primary-900));
   }
-  .fd-kicker {
-    font-size: 0.68rem;
-    font-weight: 700;
+  .fdk-card ul { padding-left: 1.1rem; }
+  .fdk-card li { margin-bottom: 0.35rem; }
+
+  /* cover card — dark gradient + veil copy, like .reading-deck-cover-card */
+  .fdk-card--cover {
+    display: flex;
+    align-items: flex-end;
+    border-color: rgb(var(--color-primary-700));
+    background:
+      radial-gradient(circle at 72% 18%, rgb(var(--color-highlight-500) / 0.22), transparent 34%),
+      linear-gradient(145deg, rgb(var(--color-primary-800)), rgb(var(--color-primary-950)));
+  }
+  .fdk-cover-copy { min-width: 0; }
+  .fdk-cover-mode {
+    display: inline-block;
+    margin-bottom: 0.6rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid rgb(var(--color-highlight-300) / 0.55);
+    border-radius: 999px;
+    color: rgb(var(--color-highlight-200));
+    background: rgb(var(--color-primary-900) / 0.5);
+    font-family: var(--font-ui, inherit);
+    font-size: 0.56rem;
+    font-weight: 750;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgb(var(--color-highlight-600));
   }
-  :global(.dark) .fd-kicker { color: rgb(var(--color-highlight-400)); }
-  .fd-card h3 {
-    margin: 0;
-    font-family: var(--font-heading);
-    font-size: 1.35rem;
-    font-weight: 700;
-    line-height: 1.15;
-    color: rgb(var(--color-primary-900));
+  .fdk-card--cover h3 {
+    color: rgb(var(--color-primary-50));
+    font-size: 1.45rem;
+    letter-spacing: -0.045em;
+    line-height: 1;
   }
-  :global(.dark) .fd-card h3 { color: rgb(var(--color-primary-50)); }
-  .fd-card p {
-    margin: 0;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    color: rgb(var(--color-primary-600));
-  }
-  :global(.dark) .fd-card p { color: rgb(var(--color-primary-300)); }
-  .fd-card ul {
-    margin: 0;
-    padding-left: 1.1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    font-size: 0.95rem;
+  .fdk-card--cover p {
+    margin: 0.5rem 0 0;
+    color: rgb(var(--color-primary-200));
+    font-size: 0.82rem;
     line-height: 1.5;
-    color: rgb(var(--color-primary-700));
   }
-  :global(.dark) .fd-card ul { color: rgb(var(--color-primary-300)); }
+  .fdk-cover-meta {
+    color: rgb(var(--color-highlight-200)) !important;
+    font-family: var(--font-ui, inherit) !important;
+    font-size: 0.62rem !important;
+    font-weight: 650;
+  }
+  .fdk-cover-start {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    padding: 0.4rem 0.6rem 0.4rem 0.75rem;
+    border: 1px solid rgb(var(--color-highlight-300) / 0.58);
+    border-radius: 999px;
+    color: rgb(var(--color-primary-50));
+    background: rgb(var(--color-primary-900) / 0.45);
+    font-family: var(--font-ui, inherit);
+    font-size: 0.62rem;
+    font-weight: 800;
+  }
+  .fdk-cover-start svg { width: 0.8rem; height: 0.8rem; }
+
+  /* ── bottom controls: Previous · position · Next ── */
+  .fdk-controls {
+    display: grid;
+    grid-template-columns: minmax(2.5rem, 0.55fr) minmax(7rem, 1.9fr) minmax(2.5rem, 0.55fr);
+    gap: 0.4rem;
+    flex: 0 0 auto;
+    padding: 0.4rem 0.5rem;
+    border-top: 1px solid rgb(var(--color-primary-200) / 0.9);
+    background: rgb(var(--color-primary-50) / 0.92);
+  }
+  :global(.dark) .fdk-controls {
+    border-top-color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-900) / 0.9);
+  }
+  .fdk-btn {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    min-width: 0;
+    min-height: 2rem;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid rgb(var(--color-primary-200));
+    border-radius: 0.4rem;
+    color: rgb(var(--color-primary-700));
+    background: rgb(var(--color-primary-50));
+    font-family: var(--font-heading);
+    font-size: 0.6rem;
+    font-weight: 700;
+  }
+  .fdk-btn svg { width: 0.8rem; height: 0.8rem; flex: none; }
+  :global(.dark) .fdk-btn {
+    border-color: rgb(var(--color-primary-700));
+    color: rgb(var(--color-primary-200));
+    background: rgb(var(--color-primary-800));
+  }
+  .fdk-btn.is-disabled { opacity: 0.32; }
+  .fdk-pos {
+    flex-direction: column;
+    gap: 0.05rem;
+    border-color: rgb(var(--color-highlight-500) / 0.55);
+  }
+  .fdk-pos b {
+    color: rgb(var(--color-highlight-700));
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  :global(.dark) .fdk-pos b { color: rgb(var(--color-highlight-300)); }
+  .fdk-pos small {
+    max-width: 100%;
+    overflow: hidden;
+    color: rgb(var(--color-primary-500));
+    font-size: 0.54rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 </style>
