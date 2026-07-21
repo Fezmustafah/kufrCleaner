@@ -59,7 +59,12 @@ if (typeof document !== 'undefined') {
       return `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${cls}`;
     };
     (['pointerdown', 'click'] as const).forEach((ev) =>
-      document.addEventListener(ev, (e) => log(`${ev} ${desc(e.target)} trusted=${(e as Event).isTrusted}`), true));
+      document.addEventListener(ev, (e) => {
+        const t = e.target as Element | null;
+        const hint = t?.closest?.('.footnote-container') ? ' [MARGINALIA]'
+          : t?.closest?.('h2,h3,h4,h5,h6') ? ' [HEADING]' : '';
+        log(`${ev} ${desc(t)}${hint} trusted=${(e as Event).isTrusted}`);
+      }, true));
     const observeToc = () => {
       const el = document.querySelector('.mobile-toc');
       if (!el || (el as any)._dbgObserved) return;

@@ -198,10 +198,6 @@ function initMarginalia() {
     const labelEl = container.querySelector<HTMLElement>('.footnote-number');
     if (!noteEl || !labelEl) return;
 
-    // The reveal moment — fires however the note was opened (marker click on
-    // desktop, tap on the highlighted anchor on mobile). No-op on desktop.
-    haptics.tap();
-
     pop.innerHTML = `<span class="marginalia-popover-text">${noteEl.innerHTML}</span>`;
     pop.querySelectorAll<HTMLImageElement>('img').forEach(img => {
       wireImgLightbox(img, (e) => { e.stopPropagation(); });
@@ -270,6 +266,11 @@ function initMarginalia() {
     const noteEl  = container.querySelector<HTMLElement>('.footnote');
     const labelEl = container.querySelector<HTMLElement>('.footnote-number');
     if (!labelEl) return;
+
+    // Buzz on the actual touch of the anchor. pointerdown keeps iOS user
+    // activation (the reveal path is a touch-emulated mouseenter, which does
+    // NOT, so a haptic in showPopoverFor silently no-ops). Desktop no-op.
+    container.addEventListener('pointerdown', () => haptics.tap(), { signal: sig });
 
     const highlight   = () => container.classList.add('is-highlighted');
     const unhighlight = (e: MouseEvent) => {
