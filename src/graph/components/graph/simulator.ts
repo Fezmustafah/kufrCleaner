@@ -240,6 +240,7 @@ export class GraphSimulator {
 				if (this.currentlyHovered !== closestNode.id) {
 					this.currentlyHovered = closestNode.id;
 					this.context.setStyleHovered();
+					this.context.updateTooltip(closestNode);
 					this.requestRender = true;
 				}
 				this.container.style.cursor = this.context.enableClick && this.isClickable(closestNode) ? 'pointer' : 'default';
@@ -287,6 +288,7 @@ export class GraphSimulator {
 					if (this.currentlyHovered !== node.id) {
 						this.currentlyHovered = node.id;
 						this.context.setStyleHovered();
+						this.context.updateTooltip(node);
 						this.requestRender = true;
 					}
 				} else if (this.currentlyHovered) {
@@ -309,6 +311,7 @@ export class GraphSimulator {
 	unhoverNode() {
 		this.isHovering = false;
 		this.context.setStyleDefault();
+		this.context.updateTooltip(null);
 		this.context.animator.setOnFinished('nodeColorHover', () => {
 			this.currentlyHovered = '';
 			this.requestRender = false;
@@ -357,11 +360,17 @@ export class GraphSimulator {
 	}
 
 	enableZoom() {
+		// Same seeding as resetZoom: without it the very first wheel gesture starts
+		// from d3's default identity (k=1) while zoomTransform sits at k=scale.
+		this.renderer.resetZoom(d3.zoomIdentity.scale(this.scale));
 		d3.select(this.container as HTMLCanvasElement).call(
 			(this.zoomBehavior = (d3.zoom() as d3.ZoomBehavior<HTMLCanvasElement, unknown>)
 				.scaleExtent([this.context.config.minZoom, this.context.config.maxZoom])
 				.on('zoom', ({ transform }: { transform: d3.ZoomTransform }) => {
 					this.userZoomed = true;
+					// The anchored position goes stale the moment the view moves;
+					// hide rather than track (next hover change repositions it).
+					this.context.updateTooltip(null);
 					if (!this.context.config.enablePan) {
 						// D3 zoom to origin (instead of to mouse position)
 						const cx = this.container.clientWidth / 2;
@@ -403,15 +412,23 @@ export class GraphSimulator {
 
 	resetZoom(immediate: boolean = false) {
 		this.userZoomed = false;
-		this.renderer.resetZoom(d3.zoomIdentity);
+		// Seed d3-zoom's gesture state (canvas.__zoom) to MATCH zoomTransform —
+		// seeding it to identity while zoomTransform is scale(scale) made the first
+		// wheel after a reset snap from k=scale to k≈1.
+		this.renderer.resetZoom(d3.zoomIdentity.scale(this.scale));
 		this.zoomTransform = d3.zoomIdentity.scale(this.scale);
 		this.updateCenterTransform();
 
 		this.updateTransform(immediate);
 	}
 
-	getCurrentLabelOpacity(k: number = this.transform.k): number {
-		return Math.max((k * this.context.config.labelOpacityScale - 1) / 0.9, 0);
+	// Label fade is BASELINE-RELATIVE (alkarkari/quartz): k is measured against the
+	// at-rest zoom, so "zoom in a bit → labels appear" behaves identically whatever
+	// the fitted zoom of the dataset is. zoomTransform.k equals this.scale at rest
+	// (the bounds-fit lives in centerTransform, a constant factor that cancels out
+	// of the ratio), so k / scale IS the user's relative zoom.
+	getCurrentLabelOpacity(k: number = this.zoomTransform.k): number {
+		return Math.max(((k / this.scale) * this.context.config.labelOpacityScale - 1) / 0.9, 0);
 	}
 
 	updateZoom(scale?: number, x?: number, y?: number, immediate: boolean = false) {
@@ -421,7 +438,10 @@ export class GraphSimulator {
 			transformY: y ?? this.transform.y,
 		};
 		if (!this.currentlyHovered) {
-			values.labelOpacity = this.getCurrentLabelOpacity(this.transform.k);
+			// Default arg = zoomTransform.k: label opacity must not drift while the
+			// warmup bounds-fit animates centerTransform (transform.k changes, the
+			// user's relative zoom doesn't).
+			values.labelOpacity = this.getCurrentLabelOpacity();
 		}
 
 		if (immediate) {
@@ -440,23 +460,49 @@ export class GraphSimulator {
 	}
 
 	/**
-	 * Updates the center transform to keep the current node in the center of the screen.
+	 * Bounds-fit (alkarkari zoomToFit): centers the node bounding box in the
+	 * viewport and scales so the whole graph fits, capped at the configured base
+	 * scale so tiny local graphs don't get blown up. Runs every tick while the
+	 * user hasn't interacted (renderer gates on !userZoomed), so the view stays
+	 * fitted while the warmup layout expands — alkarkari's onEngineTick fit.
 	 * @returns {boolean} Whether the transform was updated.
 	 */
 	updateCenterTransform(): boolean {
-		let x;
-		let y;
+		const w = this.container.clientWidth;
+		const h = this.container.clientHeight;
+		let k = this.scale;
+		let bx = 0;
+		let by = 0;
 
-		if (this.currentNode) {
-			x = this.container.clientWidth / (2 * this.scale) - this.scale * this.currentNode.x!;
-			y = this.container.clientHeight / (2 * this.scale) - this.scale * this.currentNode.y!;
-		} else {
-			x = this.container.clientWidth / (2 * this.scale);
-			y = this.container.clientHeight / (2 * this.scale);
+		const nodes = this.simulation?.nodes() ?? [];
+		if (nodes.length) {
+			let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+			for (const n of nodes) {
+				const r = n.fullRadius ?? 0;
+				if (n.x! - r < minX) minX = n.x! - r;
+				if (n.x! + r > maxX) maxX = n.x! + r;
+				if (n.y! - r < minY) minY = n.y! - r;
+				if (n.y! + r > maxY) maxY = n.y! + r;
+			}
+			const pad = 32; // screen px of breathing room around the fitted graph
+			// Total on-screen zoom is zoomTransform.k * centerTransform.k = scale * k,
+			// so divide the fitted total by scale to get this transform's share.
+			// Cap at this.scale: total ≤ scale² — the pre-fit resting zoom — so a
+			// 3-node sidebar graph isn't magnified to fill the box.
+			const fitTotal = Math.min(
+				Math.max(w - 2 * pad, 1) / Math.max(maxX - minX, 1),
+				Math.max(h - 2 * pad, 1) / Math.max(maxY - minY, 1),
+			);
+			k = Math.min(fitTotal / this.scale, this.scale);
+			bx = (minX + maxX) / 2;
+			by = (minY + maxY) / 2;
 		}
 
-		if (this.centerTransform.x !== x || this.centerTransform.y !== y) {
-			this.centerTransform = new d3.ZoomTransform(this.scale, x, y);
+		const x = w / (2 * this.scale) - k * bx;
+		const y = h / (2 * this.scale) - k * by;
+
+		if (this.centerTransform.x !== x || this.centerTransform.y !== y || this.centerTransform.k !== k) {
+			this.centerTransform = new d3.ZoomTransform(k, x, y);
 			return true;
 		}
 

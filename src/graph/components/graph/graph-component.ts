@@ -19,6 +19,7 @@ import {
 import { setSlashes } from '../../sitemap/browser-utils';
 import { onClickOutside, deepDiff, mergeDefaults } from '../util';
 import { GraphSimulator } from './simulator';
+import type { NodeData } from './types';
 
 export class GraphComponent extends HTMLElement {
 	placeholderContainer: HTMLElement;
@@ -27,6 +28,7 @@ export class GraphComponent extends HTMLElement {
 	mockGraphContainer: HTMLElement;
 	actionContainer: HTMLElement;
 	blurContainer: HTMLElement;
+	tooltip: HTMLElement;
 
 	debug: boolean = false;
 	trailingSlashes: boolean = true;
@@ -95,6 +97,16 @@ export class GraphComponent extends HTMLElement {
 		this.actionContainer.classList.add('slsg-graph-action-container');
 		renderActionContainer(this);
 		this.graphContainer.appendChild(this.actionContainer);
+
+		this.tooltip = document.createElement('div');
+		this.tooltip.classList.add('slsg-graph-tooltip');
+		this.tooltip.style.display = 'none';
+		const tooltipTitle = document.createElement('div');
+		tooltipTitle.classList.add('slsg-graph-tooltip-title');
+		const tooltipDescription = document.createElement('div');
+		tooltipDescription.classList.add('slsg-graph-tooltip-description');
+		this.tooltip.append(tooltipTitle, tooltipDescription);
+		this.graphContainer.appendChild(this.tooltip);
 
 		this.mockGraphContainer = document.createElement('div');
 		this.mockGraphContainer.classList.add('slsg-graph-container');
@@ -475,6 +487,45 @@ export class GraphComponent extends HTMLElement {
 		this.animator.setAllProperties('backgroundColorHover', this.colors.backgroundColor);
 		this.simulator.resetZoom(true);
 		this.simulator.requestRender = true;
+	}
+
+	/** Hover tooltip (alkarkari): title + frontmatter description in a DOM overlay
+	 *  next to the node. Only shown for nodes that carry a description, so tag
+	 *  nodes and description-less pages fall back to the canvas label alone. */
+	updateTooltip(node: NodeData | null) {
+		if (!node?.description) {
+			this.tooltip.style.display = 'none';
+			return;
+		}
+
+		(this.tooltip.firstElementChild as HTMLElement).textContent = node.text || node.id;
+		(this.tooltip.lastElementChild as HTMLElement).textContent = node.description;
+
+		const [sx, sy] = this.simulator.transform.apply([node.x!, node.y!]);
+		const w = this.graphContainer.clientWidth;
+		const h = this.graphContainer.clientHeight;
+		const offset = 12;
+		const margin = 4;
+
+		// Measure first (display must be on), then flip past the node when the
+		// preferred side overflows, then clamp — sidebar containers are only
+		// ~220px tall, so the tooltip can be bigger than half the box.
+		this.tooltip.style.display = '';
+		const tw = this.tooltip.offsetWidth;
+		const th = this.tooltip.offsetHeight;
+
+		let left = sx + offset;
+		if (left + tw > w - margin) left = sx - offset - tw;
+		left = Math.min(Math.max(left, margin), Math.max(w - tw - margin, margin));
+
+		let top = sy + offset;
+		if (top + th > h - margin) top = sy - offset - th;
+		top = Math.min(Math.max(top, margin), Math.max(h - th - margin, margin));
+
+		this.tooltip.style.left = `${left}px`;
+		this.tooltip.style.top = `${top}px`;
+		this.tooltip.style.right = 'auto';
+		this.tooltip.style.bottom = 'auto';
 	}
 
 	setStyleDefault() {

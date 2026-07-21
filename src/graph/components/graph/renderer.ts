@@ -143,15 +143,18 @@ export class GraphRenderer {
 			}
 		}
 
-		if (this.zoomIsAnimating()) {
-			this.app.stage.updateTransform({
-				scaleX: this.context.animator.getValue('zoom'),
-				scaleY: this.context.animator.getValue('zoom'),
-				x: this.context.animator.getValue('transformX'),
-				y: this.context.animator.getValue('transformY'),
-			});
-			this.simulator.animateZoomOverride = false;
-		}
+		// Apply the stage transform EVERY tick, not only while zoomIsAnimating():
+		// when a frame stalls past zoomDuration (75ms), animator.update() above
+		// completes the tween in one step and clears isAnimating before this gate
+		// would run — stranding the stage at the previous transform while labels
+		// and hit-testing use the new one. Unconditional apply is one cheap setter.
+		this.app.stage.updateTransform({
+			scaleX: this.context.animator.getValue('zoom'),
+			scaleY: this.context.animator.getValue('zoom'),
+			x: this.context.animator.getValue('transformX'),
+			y: this.context.animator.getValue('transformY'),
+		});
+		this.simulator.animateZoomOverride = false;
 
 		// Skip redrawing individual nodes when ONLY the zoom transform is animating.
 		// app.stage.updateTransform() (above) already repositions the whole scene via
@@ -513,7 +516,10 @@ export class GraphRenderer {
 		// Counter-scale labels by 1/k (Quartz) so text stays a constant SCREEN size
 		// while the stage zooms — otherwise zooming the global graph blows the
 		// labels up into an unreadable wall of world-scaled text.
-		const invZoom = 1 / this.simulator.zoomTransform.k;
+		// k must be the ACTUAL stage scale (animator 'zoom' = zoomTransform.k ×
+		// centerTransform.k) — dividing by zoomTransform.k alone leaves the
+		// bounds-fit factor in, shrinking every label to fit-scale size.
+		const invZoom = 1 / Math.max(this.context.animator.getValue('zoom') as number, 1e-6);
 		let labelOffset, labelOpacity, labelColor, labelScale;
 		if (hovered) {
 			labelOffset = this.context.animator.getValue('labelOffset');

@@ -18,6 +18,13 @@ const sitemapEntrySchema = z.object({
 	 */
 	title: z.string(),
 	/**
+	 * The description of the page (frontmatter `description`), shown in the
+	 * hover tooltip
+	 *
+	 * @optional
+	 */
+	description: z.string().optional(),
+	/**
 	 * The links going out from the page
 	 *
 	 * @optional

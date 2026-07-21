@@ -7,6 +7,7 @@ type NodeData = {
 	exists: boolean;
 	external: boolean;
 	text?: string;
+	description?: string;
 	tags?: string[];
 	type?: 'node' | 'tag';
 	adjacent: Set<string>;

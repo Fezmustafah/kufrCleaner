@@ -236,6 +236,7 @@ export function processSitemapData(context: GraphComponent, siteData: Sitemap): 
 			exists: node.exists,
 			external: node.external,
 			text: node.title,
+			description: node.description,
 			tags: node.tags ?? [],
 			adjacent,
 

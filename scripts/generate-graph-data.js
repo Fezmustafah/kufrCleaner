@@ -647,6 +647,7 @@ async function generateGraphData() {
         exists: true,
         external: false,
         title: post.data?.title ?? post.id,
+        ...(post.data?.description ? { description: post.data.description } : {}),
         links: [...outgoingLinks, ...tagLinks],
         backlinks: [],        // filled in second pass
         tags,

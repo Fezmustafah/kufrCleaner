@@ -32,15 +32,26 @@ const BASE_CONFIG: Partial<GraphConfig> = {
     depth: mode === 'hero' ? -1 : 1,
     scale: mode === 'hero' ? 1.1 : mode === 'showcase' ? 1.3 : 1.0,
 
-    // Zoom-driven label opacity: getCurrentLabelOpacity(k) = max((k * labelOpacityScale - 1) / 0.9, 0)
-    // sidebar/showcase (initial scale 1.0, labelOpacityScale 2.0): (1.0 * 2.0 - 1) / 0.9 ≈ 1.11
+    // Airy physics (alkarkari/quartz ratios): long explicit link distances with a
+    // small collider, instead of the d3 default distance (30) + fat collider
+    // padding (20) that made collision dictate spacing. Nodes become small dots
+    // on long lines — zooming in magnifies the space between them, which is what
+    // produces the "graph opens up as you zoom" feel.
+    linkDistance: mode === 'hero' ? 90 : 60,
+    repelForce: 120,
+    colliderPadding: 5,
+    maxZoom: 8,
+
+    // Zoom-driven label opacity, relative to the at-rest (fitted) zoom:
+    // getCurrentLabelOpacity(k) = max(((k / restK) * labelOpacityScale - 1) / 0.9, 0)
+    // sidebar (labelOpacityScale 2.0): (1 * 2.0 - 1) / 0.9 ≈ 1.11
     //   → labels fully visible at rest — small local graph, titles ARE the content.
-    // hero (labelOpacityScale 0.45): hidden until k ≈ 2.2 (1/0.45), fully opaque at
-    //   k ≈ 4.2 ((1+0.9)/0.45) — labels are screen-constant size (renderer
-    //   counter-scales by 1/k), so they only appear once the view is sparse
-    //   enough for 1200+ titles not to smear into each other.
+    // hero (labelOpacityScale 0.45): hidden until ~2.2× the fitted zoom, fully
+    //   opaque at ~4.2× — labels are screen-constant size (renderer counter-scales
+    //   by 1/k), so they only appear once the view is sparse enough for 1200+
+    //   titles not to smear into each other.
     // showcase: labels OFF at rest (a dozen long titles smear in a small card);
-    // hover names the neighborhood, zooming past k ≈ 1.4 brings them all in.
+    // hover names the neighborhood, zooming past ~1.4× brings them all in.
     labelOpacityScale: mode === 'hero' ? 0.45 : mode === 'showcase' ? 0.7 : 2.0,
     renderExternal: false,
     tagRenderMode: 'node',
