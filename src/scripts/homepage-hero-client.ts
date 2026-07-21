@@ -9,6 +9,8 @@
 // the search palette (SearchPalette.astro), seeded with anything already
 // typed. The form's action=/search remains the no-JS fallback.
 
+import { haptics } from '@/scripts/haptics';
+
 function initHero() {
   const input = document.getElementById('hero-q') as HTMLInputElement | null;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -187,6 +189,7 @@ function initHero() {
     const goTo = (target: number) => {
       if (busy || target === head || cards.length < 2) return;
       busy = true;
+      haptics.tap(); // portal switch (Next portal + index chips both route here)
       const leaving = cards[head];
       // Send the front card down past the stage's bottom edge, full size
       leaving.style.zIndex = String(cards.length + 1);
@@ -221,6 +224,7 @@ function initHero() {
   if (seg) {
     seg.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
+        haptics.select();
         seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
         btn.setAttribute('aria-pressed', 'true');
         const isNew = (btn as HTMLElement).dataset.tab === 'new';
