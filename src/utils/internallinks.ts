@@ -1,5 +1,7 @@
 import type { Post, WikilinkMatch } from "@/types";
 import { visit } from "unist-util-visit";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 // Build-time base path — overridden by remarkInternalLinks options when called from astro.config.mjs.
 let BASE = process.env.DEPLOYMENT_PLATFORM === 'github-pages' ? '/kufrCleaner/' : '/';
@@ -7,6 +9,22 @@ let BASE = process.env.DEPLOYMENT_PLATFORM === 'github-pages' ? '/kufrCleaner/' 
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
+
+// On tag/category description pages, a bare wikilink usually references a
+// sibling topic page, not a post. Resolve [[slug]] to /posts/tag/slug/ (or
+// /posts/category/slug/) when the source file is a topic page AND the target
+// exists in that collection; everywhere else the posts assumption stands.
+// ponytail: sync existsSync per wikilink — topic pages are few; cache if builds slow
+function resolveTopicWikilink(slug: string, sourcePath?: string): string | null {
+  if (!sourcePath || !/[\\/]content[\\/](tags|categories)[\\/]/.test(sourcePath)) return null;
+  for (const [collection, route] of [["tags", "tag"], ["categories", "category"]] as const) {
+    const dir = join(process.cwd(), "src/content", collection);
+    if (existsSync(join(dir, `${slug}.md`)) || existsSync(join(dir, `${slug}.mdx`))) {
+      return `${BASE}posts/${route}/${slug}/`;
+    }
+  }
+  return null;
+}
 
 // Utility functions for content-aware URL processing
 function isFolderBasedContent(
@@ -510,8 +528,14 @@ export function remarkWikilinks() {
           } else {
             // Handle simple slug format - ASSUMES POSTS COLLECTION
             const slugifiedLink = createSlugFromTitle(link);
-            url = `${BASE}posts/${slugifiedLink}/`;
-            wikilinkData = link.trim();
+            const topicUrl = resolveTopicWikilink(slugifiedLink, file?.path ?? file?.history?.[0]);
+            if (topicUrl) {
+              url = topicUrl;
+              wikilinkData = ""; // topic link — no post to resolve client-side
+            } else {
+              url = `${BASE}posts/${slugifiedLink}/`;
+              wikilinkData = link.trim();
+            }
           }
 
           // Add anchor if present (for cross-page anchors, not same-page)
