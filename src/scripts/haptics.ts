@@ -73,18 +73,21 @@ if (typeof document !== 'undefined') {
     window.setTimeout(observeToc, 1200);
   }
 
-  // web-haptics produces its iOS tap by synthetically clicking a hidden <label>
-  // it appends to <body> (the switch-toggle trick). That click bubbles to app
-  // click handlers — outside-click-to-close drawers, popovers, search overlays —
-  // and misfires them (a drawer closes the same tick it opened). Swallow it here
-  // once, centrally, so no call site has to know: capture phase runs before any
-  // bubble-phase app listener, and stopping propagation does NOT cancel the
-  // label's activation, so the haptic still fires. Real user taps are isTrusted.
+  // web-haptics produces its iOS tap by clicking a hidden <label>+<input switch>
+  // it appends to <body>. Those clicks bubble to app click handlers — outside-
+  // click-to-close drawers, popovers, search overlays — and misfire them (a drawer
+  // closes the same tick it opened). Two clicks fire per tap: the label's own click
+  // (isTrusted=false) AND, when the label activates its input, a SEPARATE click on
+  // input#web-haptics-N which iOS marks isTrusted=TRUE (confirmed on-device). So we
+  // must match by TARGET, not trust. Capture phase runs before any bubble-phase app
+  // listener; stopImmediatePropagation does NOT cancel the switch toggle (a default
+  // action), so the haptic still fires. The elements are display:none — a real user
+  // can never click them, so swallowing every click on them is safe.
   document.addEventListener(
     'click',
     (e) => {
       const el = e.target as Element | null;
-      if (!e.isTrusted && el?.closest?.('label[for^="web-haptics-"]')) {
+      if (el?.closest?.('label[for^="web-haptics-"], input[id^="web-haptics-"]')) {
         e.stopImmediatePropagation();
       }
     },
