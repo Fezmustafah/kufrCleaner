@@ -468,6 +468,18 @@ if (graphSidebarEnabled) {
             setTimeout(() => anchor.classList.remove('permalink-copied'), 1500);
           });
         });
+
+        // Tactile buzz when tapping a heading. behavior:'append' makes the anchor a
+        // small icon, so wire the headings themselves — pointerdown fires on the
+        // first iOS tap and keeps the switch-trick's user activation (unlike the
+        // async copy .then()). Bubbles up from the icon too, so one buzz either way.
+        document.querySelectorAll<HTMLElement>(
+          '#post-content h2, #post-content h3, #post-content h4, #post-content h5, #post-content h6'
+        ).forEach(h => {
+          if ((h as any)._headingHaptic) return;
+          (h as any)._headingHaptic = true;
+          h.addEventListener('pointerdown', () => haptics.tap());
+        });
       }
 
       document.addEventListener('DOMContentLoaded', initHeadingPermalinks);

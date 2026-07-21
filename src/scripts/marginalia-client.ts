@@ -198,6 +198,10 @@ function initMarginalia() {
     const labelEl = container.querySelector<HTMLElement>('.footnote-number');
     if (!noteEl || !labelEl) return;
 
+    // The reveal moment — fires however the note was opened (marker click on
+    // desktop, tap on the highlighted anchor on mobile). No-op on desktop.
+    haptics.tap();
+
     pop.innerHTML = `<span class="marginalia-popover-text">${noteEl.innerHTML}</span>`;
     pop.querySelectorAll<HTMLImageElement>('img').forEach(img => {
       wireImgLightbox(img, (e) => { e.stopPropagation(); });
@@ -295,8 +299,6 @@ function initMarginalia() {
       }
     };
 
-    // pointerdown fires on the first iOS tap even when click is swallowed as a hover.
-    labelEl.addEventListener('pointerdown', () => haptics.tap(), { signal: sig });
     labelEl.addEventListener('click', activate, { signal: sig });
 
     // Keyboard access (ported from alkarkari): the marker is a real control.
