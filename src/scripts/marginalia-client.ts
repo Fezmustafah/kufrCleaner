@@ -254,8 +254,10 @@ function initMarginalia() {
     }, { signal: sig });
     ref.addEventListener('mouseleave', scheduleHide, { signal: sig });
     // Double-rAF so the hide lands after the mouseenter's rAF-deferred show
+    // pointerdown, not click: iOS treats the first tap on a <sup> ref as a hover
+    // (peek), so click may not fire on that tap — pointerdown always does.
+    ref.addEventListener('pointerdown', () => haptics.tap(), { signal: sig });
     ref.addEventListener('click', () => {
-      haptics.tap();
       requestAnimationFrame(() => requestAnimationFrame(() => pop.classList.remove('is-visible')));
     }, { signal: sig });
   });
@@ -282,7 +284,6 @@ function initMarginalia() {
     const activate = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
-      haptics.tap();
 
       if (noteInMargin(container)) {
         if (!noteEl) return;
@@ -294,6 +295,8 @@ function initMarginalia() {
       }
     };
 
+    // pointerdown fires on the first iOS tap even when click is swallowed as a hover.
+    labelEl.addEventListener('pointerdown', () => haptics.tap(), { signal: sig });
     labelEl.addEventListener('click', activate, { signal: sig });
 
     // Keyboard access (ported from alkarkari): the marker is a real control.

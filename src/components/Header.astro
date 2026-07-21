@@ -199,6 +199,7 @@ function loadNavScript() {
 
     // Search — navbar button and drawer row both toggle the search palette
     document.getElementById('nav-search-btn')?.addEventListener('click', () => {
+      haptics.tap();
       const sp = (window as any).searchPalette;
       if (sp) sp.toggle();
       else window.location.href = document.getElementById('nd-adv-search')?.getAttribute('href') || '/search/';
