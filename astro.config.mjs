@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
 import tailwind from '@astrojs/tailwind';
 import sitemap from '@astrojs/sitemap';
 import { remarkInternalLinks, remarkFolderImages, remarkImageCaptions } from './src/utils/internallinks.ts';
@@ -486,6 +487,9 @@ image: {
     })
   ],
   markdown: {
+    // Astro 7 defaults to Sätteri (Rust) — our 26-plugin unified pipeline stays
+    // on remark/rehype via the supported markdown.processor escape hatch.
+    processor: unified({
       // Clean #fn-1 / #fnref-1 footnote anchors. The default 'user-content-'
       // prefix is GitHub's DOM-clobbering guard for untrusted comment HTML —
       // pointless for our own content. (Marginalia ids are mn-* to stay clear.)
@@ -568,6 +572,7 @@ image: {
       }],
       rehypeNormalizeAnchors, // Run LAST to ensure className and href fixes aren't overridden
     ],
+    }),
     shikiConfig: {
       theme: 'github-dark',
       wrap: true

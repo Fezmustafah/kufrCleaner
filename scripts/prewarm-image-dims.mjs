@@ -9,6 +9,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
+// SKIP_IMAGE_PREWARM=1 → trust the committed cache as-is. Known-failing URLs
+// past their 7-day TTL otherwise get re-probed (6 attempts each against
+// rate-limited r2.dev), which can add many minutes to a local build.
+if (process.env.SKIP_IMAGE_PREWARM) {
+  console.log('[image-dims] SKIP_IMAGE_PREWARM set — using committed cache as-is');
+  process.exit(0);
+}
+
 const ROOT = process.cwd();
 const CACHE_FILE = path.join(ROOT, 'src', 'data', 'remote-image-dims.json');
 const CONTENT_DIR = path.join(ROOT, 'src', 'content');
