@@ -37,4 +37,22 @@ if (typeof document !== 'undefined') {
     hx?.destroy();
     hx = null;
   });
+
+  // web-haptics produces its iOS tap by synthetically clicking a hidden <label>
+  // it appends to <body> (the switch-toggle trick). That click bubbles to app
+  // click handlers — outside-click-to-close drawers, popovers, search overlays —
+  // and misfires them (a drawer closes the same tick it opened). Swallow it here
+  // once, centrally, so no call site has to know: capture phase runs before any
+  // bubble-phase app listener, and stopping propagation does NOT cancel the
+  // label's activation, so the haptic still fires. Real user taps are isTrusted.
+  document.addEventListener(
+    'click',
+    (e) => {
+      const el = e.target as Element | null;
+      if (!e.isTrusted && el?.closest?.('label[for^="web-haptics-"]')) {
+        e.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
 }

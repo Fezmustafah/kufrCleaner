@@ -317,6 +317,9 @@ function initMarginalia() {
   });
 
   document.addEventListener('click', e => {
+    // Ignore synthetic clicks (web-haptics' hidden iOS <label> tap) — only a real
+    // user click outside the popover should dismiss it. See haptics.ts.
+    if (!e.isTrusted) return;
     if (!pop.contains(e.target as Node) && !(e.target as Element).closest?.('.footnote-container')) {
       pop.classList.remove('is-visible');
     }
