@@ -79,6 +79,8 @@ const searchUrl = withBase('search/');
 <NavDrawer links={links} />
 
 <script>
+import { haptics } from '@/scripts/haptics';
+
 // The Header persists across Swup navigations; guard its one-time bindings below.
 let navBound = false;
 function loadNavScript() {
@@ -180,7 +182,9 @@ function loadNavScript() {
     (window as any).__setNavDrawer = setDrawer;
 
     document.getElementById('nav-menu-switch')?.addEventListener('click', () => {
-      setDrawer(!drawerIsOpen());
+      const next = !drawerIsOpen();
+      if (next) haptics.tap();
+      setDrawer(next);
     });
     document.getElementById('nav-drawer-close')?.addEventListener('click', () => setDrawer(false));
     scrim?.addEventListener('click', () => setDrawer(false));

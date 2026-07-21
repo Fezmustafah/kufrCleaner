@@ -71,6 +71,8 @@ const placeholder = siteConfig.commandPalette.placeholder || 'Search the wiki';
 </div>
 
 <script>
+  import { haptics } from '@/scripts/haptics';
+
   // ── Pagefind singleton (readiness reset per page view: the WASM worker may
   //    be killed between Swup navigations — same pattern as the old hero search)
   let pf: any = null;
@@ -234,6 +236,7 @@ const placeholder = siteConfig.commandPalette.placeholder || 'Search the wiki';
     };
 
     const navigate = (href: string) => {
+      haptics.select();
       close();
       const swup = (window as any).swup;
       if (swup?.navigate) swup.navigate(href);

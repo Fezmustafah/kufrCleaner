@@ -5,6 +5,7 @@ import { prefetch } from 'astro:prefetch';
 import { type GraphRenderer } from './renderer';
 import { type GraphComponent } from './graph-component';
 import { ensureLeadingSlash, setSlashes } from '../../sitemap/browser-utils';
+import { haptics } from '../../../scripts/haptics';
 
 export class GraphSimulator {
 	container!: HTMLCanvasElement;
@@ -349,6 +350,7 @@ export class GraphSimulator {
 						// Same-tab: prefer Swup SPA navigation; window.open('_self') is the
 						// fallback for iframe embeds or pages where Swup never booted.
 						const swup = (window as unknown as { swup?: { navigate?: (url: string) => void } }).swup;
+						haptics.tap();
 						if (window.self === window.top && typeof swup?.navigate === 'function') {
 							swup.navigate(url);
 						} else {

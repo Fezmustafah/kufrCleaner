@@ -19,6 +19,8 @@ import Icon from './Icon.astro';
 </button>
 
 <script>
+  import { haptics } from '@/scripts/haptics';
+
   // Named function so addEventListener deduplicates if script somehow runs twice
   function _themeToggleClick() {
     const html = document.documentElement;
@@ -27,6 +29,7 @@ import Icon from './Icon.astro';
     html.classList.remove('light', 'dark');
     html.classList.add(next);
     window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: next } }));
+    haptics.select();
   }
 
   // Wire once — the button element persists across Swup page transitions
