@@ -5,6 +5,8 @@
 // AbortController so each Swup navigation tears down the previous page's
 // handlers (same pattern as toc-client / marginalia-client).
 
+import { haptics } from '@/scripts/haptics';
+
 let cleanup: (() => void) | null = null;
 
 // header (3.5rem) + a little breathing room, matched to the heading
@@ -32,6 +34,7 @@ function initMobileToc() {
   const open = () => {
     root.classList.add('is-open');
     bar.setAttribute('aria-expanded', 'true');
+    haptics.tap();
   };
   const close = () => {
     root.classList.remove('is-open');
