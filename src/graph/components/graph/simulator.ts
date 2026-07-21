@@ -157,10 +157,13 @@ export class GraphSimulator {
 		}
 
 		// find() returns the nearest node within maxNodeRadius; confirm exact hit.
-		const found = this._quadtree.find(x, y, this._maxNodeRadius);
+		// Radii are multiplied by the semantic-zoom counter-scale so the hit area
+		// matches the visually shrunk/grown node, not its world-layout size.
+		const visualScale = this.nodeZoomScale();
+		const found = this._quadtree.find(x, y, this._maxNodeRadius * visualScale);
 		if (!found) return undefined;
 		const dx = (found.x ?? 0) - x, dy = (found.y ?? 0) - y;
-		return dx * dx + dy * dy <= (found.fullRadius ?? 0) ** 2 ? found : undefined;
+		return dx * dx + dy * dy <= ((found.fullRadius ?? 0) * visualScale) ** 2 ? found : undefined;
 	}
 
 	enableDrag() {
@@ -363,9 +366,17 @@ export class GraphSimulator {
 		// Same seeding as resetZoom: without it the very first wheel gesture starts
 		// from d3's default identity (k=1) while zoomTransform sits at k=scale.
 		this.renderer.resetZoom(d3.zoomIdentity.scale(this.scale));
+		// Zoom ceiling scales with graph size (√(n/4), capped at 16): at maxZoom 8
+		// a 1300-node graph still has ~50 long titles in view with nowhere left
+		// to zoom, while a high fixed ceiling on a small graph just zooms into
+		// empty space between nodes.
+		const n = this.nodes?.length ?? 0;
+		const maxZoom = n > 55
+			? Math.min(16, Math.max(this.context.config.maxZoom, Math.sqrt(n / 4)))
+			: this.context.config.maxZoom;
 		d3.select(this.container as HTMLCanvasElement).call(
 			(this.zoomBehavior = (d3.zoom() as d3.ZoomBehavior<HTMLCanvasElement, unknown>)
-				.scaleExtent([this.context.config.minZoom, this.context.config.maxZoom])
+				.scaleExtent([this.context.config.minZoom, maxZoom])
 				.on('zoom', ({ transform }: { transform: d3.ZoomTransform }) => {
 					this.userZoomed = true;
 					// The anchored position goes stale the moment the view moves;
@@ -427,8 +438,34 @@ export class GraphSimulator {
 	// the fitted zoom of the dataset is. zoomTransform.k equals this.scale at rest
 	// (the bounds-fit lives in centerTransform, a constant factor that cancels out
 	// of the ratio), so k / scale IS the user's relative zoom.
+	// DENSITY-AWARE: the configured labelOpacityScale describes the mode's intent
+	// for its normal size (sidebar = a dozen neighbors, labels always on). When the
+	// depth action turns that same graph into hundreds/thousands of nodes, the
+	// threshold must scale with count: nodes-in-view ∝ N/rz², so labels appear at
+	// rz ≈ √(N/55) — the zoom where roughly 55 nodes fill the viewport — instead
+	// of a fixed rz that leaves hundreds of long titles on screen at once. Dense
+	// graphs also get a steeper ramp (0.45 vs 0.9) so labels still reach full
+	// opacity within maxZoom.
 	getCurrentLabelOpacity(k: number = this.zoomTransform.k): number {
-		return Math.max(((k / this.scale) * this.context.config.labelOpacityScale - 1) / 0.9, 0);
+		const configured = this.context.config.labelOpacityScale;
+		const n = this.nodes?.length ?? 0;
+		const dense = n > 55;
+		// 40-in-view at appearance (not 55): long article titles need more air
+		// than dot-count parity suggests — the center of the cloud is denser
+		// than the uniform-density estimate.
+		const opacityScale = dense ? Math.min(configured, Math.sqrt(40 / n)) : configured;
+		return Math.max(((k / this.scale) * opacityScale - 1) / (dense ? 0.45 : 0.9), 0);
+	}
+
+	/**
+	 * aarnphm's semantic-zoom law: solid marks (nodes, labels) scale as √zoom
+	 * while distances scale linearly, so the space between nodes visibly opens
+	 * as you zoom in. This is the world-space counter-scale factor applied to
+	 * node graphics: screen radius ∝ √(relativeZoom) instead of ∝ zoom.
+	 */
+	nodeZoomScale(): number {
+		const relativeZoom = Math.max(this.zoomTransform.k / this.scale, 1e-4);
+		return Math.min(Math.max(1 / Math.sqrt(relativeZoom), 0.25), 4);
 	}
 
 	updateZoom(scale?: number, x?: number, y?: number, immediate: boolean = false) {

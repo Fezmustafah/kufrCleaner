@@ -156,15 +156,10 @@ export class GraphRenderer {
 		});
 		this.simulator.animateZoomOverride = false;
 
-		// Skip redrawing individual nodes when ONLY the zoom transform is animating.
-		// app.stage.updateTransform() (above) already repositions the whole scene via
-		// GPU transform, so per-node draw calls are redundant during pure zoom.
-		// We still draw when: sim tick fired (requestRender), a node is hovered (colors
-		// changing), or any non-zoom animation is running (label opacity, etc.).
-		const pureZoom = this.zoomIsAnimating()
-			&& !this.simulator.requestRender
-			&& this.simulator.currentlyHovered === '';
-		if (this.simulator.requestRender || (this.context.animator.anyAnimating && !pureZoom)) {
+		// Zoom frames can no longer skip node draws: node visual size follows the
+		// semantic-zoom law (√zoom counter-scale), so every zoom step changes node
+		// scale and link trim points, not just the stage transform.
+		if (this.simulator.requestRender || this.context.animator.anyAnimating) {
 			this.simulator.requestRender = false;
 			this.drawNodes(this.simulator.nodes);
 			this.drawLinks(this.simulator.links);
@@ -303,6 +298,9 @@ export class GraphRenderer {
 		// Needed for the bidirectional adjacency check below.
 		const currentlyHovered = this.simulator.currentlyHovered;
 		const hoveredNode = currentlyHovered ? nodes.find(n => n.id === currentlyHovered) : undefined;
+		// Semantic zoom (aarnphm): nodes scale as √zoom, distances as zoom — the
+		// gaps between nodes visibly open as you zoom in.
+		const visualScale = this.simulator.nodeZoomScale();
 
 		for (const node of nodes) {
 			const hovered = currentlyHovered !== '' && node.id === currentlyHovered;
@@ -318,15 +316,17 @@ export class GraphRenderer {
 			if (node.strokeWidth && node.strokeColor) {
 				this.drawNodeStroke(node, hovered);
 				node.stroke!.position.set(node.x!, node.y!);
+				node.stroke!.scale.set(visualScale);
 			}
 			this.drawNodeShape(node, hovered, adjacent);
+			node.node!.scale.set(visualScale);
 
 			if (this.context.config.renderLabels && node.label) {
 				// Stock zoom-driven label behavior (Quartz-style): every label's
 				// alpha follows the animator's 'labelOpacity' value, which is
 				// derived from the zoom level (simulator.getCurrentLabelOpacity).
 				// Hovered/adjacent nodes get their hover/adjacent styling on top.
-				this.updateLabel(node, hovered, adjacent);
+				this.updateLabel(node, visualScale, hovered, adjacent);
 				// PIXI skips invisible objects entirely, so hide labels that are
 				// transparent OR off-screen instead of rendering them. This is not
 				// just a draw-call micro-opt: a PIXI.Text only rasterizes and
@@ -358,10 +358,10 @@ export class GraphRenderer {
 	/**
 	 * No, this spa-hetti code took practically no time at all, why do you ask?
 	 */
-	getLinkOffset(node: NodeData, angle: number): [number, number] {
+	getLinkOffset(node: NodeData, angle: number, visualScale: number = 1): [number, number] {
 		let x = node.x!,
 			y = node.y!,
-			radius = node.fullRadius!;
+			radius = node.fullRadius! * visualScale;
 		if (node.shape === 'circle') {
 			const sin = Math.sin(angle),
 				cos = Math.cos(angle);
@@ -416,13 +416,13 @@ export class GraphRenderer {
 		}
 	}
 
-	drawLink(link: LinkData, hovered: boolean) {
+	drawLink(link: LinkData, hovered: boolean, visualScale: number = 1) {
 		const linkZoomLevel = this.context.config.scaleLinks ? this.context.animator.getValue('zoom') : 1;
 		const incAngle = Math.atan2(link.target.y! - link.source.y!, link.target.x! - link.source.x!);
 		const outAngle = Math.atan2(link.source.y! - link.target.y!, link.source.x! - link.target.x!);
 
-		const [xStart, yStart] = this.getLinkOffset(link.source, outAngle);
-		const [xEnd, yEnd] = this.getLinkOffset(link.target, incAngle);
+		const [xStart, yStart] = this.getLinkOffset(link.source, outAngle, visualScale);
+		const [xEnd, yEnd] = this.getLinkOffset(link.target, incAngle, visualScale);
 		let width, color;
 		if (hovered) {
 			width = this.context.animator.getValue('linkWidthHover');
@@ -477,6 +477,7 @@ export class GraphRenderer {
 
 	drawLinks(links: LinkData[]) {
 		const hovered = this.simulator.currentlyHovered !== '';
+		const visualScale = this.simulator.nodeZoomScale();
 
 		this.linkGraphics.clear().zIndex = hovered ? LINK_MUTED_Z_INDEX : LINK_DEFAULT_Z_INDEX;
 		this.linkHoverGraphics.clear();
@@ -486,7 +487,8 @@ export class GraphRenderer {
 		for (const link of links) {
 			this.drawLink(link, hovered &&
 				(link.source.id === this.simulator.currentlyHovered ||
-				 link.target.id === this.simulator.currentlyHovered));
+				 link.target.id === this.simulator.currentlyHovered),
+				visualScale);
 		}
 	}
 
@@ -512,20 +514,22 @@ export class GraphRenderer {
 		node.label.alpha = this.context.animator.getValue('labelOpacity');
 	}
 
-	updateLabel(node: NodeData, hovered?: boolean, adjacent?: boolean) {
-		// Counter-scale labels by 1/k (Quartz) so text stays a constant SCREEN size
-		// while the stage zooms — otherwise zooming the global graph blows the
-		// labels up into an unreadable wall of world-scaled text.
-		// k must be the ACTUAL stage scale (animator 'zoom' = zoomTransform.k ×
-		// centerTransform.k) — dividing by zoomTransform.k alone leaves the
-		// bounds-fit factor in, shrinking every label to fit-scale size.
-		const invZoom = 1 / Math.max(this.context.animator.getValue('zoom') as number, 1e-6);
+	updateLabel(node: NodeData, visualScale: number, hovered?: boolean, adjacent?: boolean) {
+		// aarnphm's label law: labels follow the same √zoom scaling as nodes —
+		// screen size = base × √(relativeZoom) — but CAPPED at 1.5× base: with
+		// long article titles, uncapped √ growth turns deep zoom into a wall of
+		// giant text. At rest this equals the old screen-constant 1/k, so the
+		// baseline size the modes were tuned around is unchanged.
+		const restZoom = Math.max(this.simulator.scale * this.simulator.centerTransform.k, 1e-6);
+		const rz = Math.max(this.simulator.zoomTransform.k / this.simulator.scale, 1e-4);
+		const labelGrowth = Math.min(Math.sqrt(rz), 1.5);
+		const baseLabelScale = labelGrowth / (rz * restZoom);
 		let labelOffset, labelOpacity, labelColor, labelScale;
 		if (hovered) {
 			labelOffset = this.context.animator.getValue('labelOffset');
 			labelOpacity = this.context.animator.getValue('labelOpacityHover');
 			labelColor = this.context.animator.getValue('labelColorHover');
-			labelScale = this.context.animator.getValue('labelScaleHover') * invZoom;
+			labelScale = this.context.animator.getValue('labelScaleHover') * baseLabelScale;
 		} else {
 			labelOffset = this.context.config.labelOffset;
 			// While a hover is active the animator drives label opacity (upstream
@@ -541,11 +545,13 @@ export class GraphRenderer {
 					? this.context.animator.getValue('labelOpacity')
 					: Math.min(1, this.simulator.getCurrentLabelOpacity(this.simulator.zoomTransform.k));
 			labelColor = this.context.animator.getValue('labelColor');
-			labelScale = invZoom;
+			labelScale = baseLabelScale;
 		}
 
 		node.label!.scale.set(labelScale);
-		node.label!.position.set(node.x!, node.y! + node.fullRadius! + labelOffset);
+		// Offset block scales with the node's visual size so labels hug the
+		// shrunken/grown rim instead of floating at the world-layout radius.
+		node.label!.position.set(node.x!, node.y! + (node.fullRadius! + labelOffset) * visualScale);
 		node.label!.alpha = labelOpacity;
 		node.label!.tint = labelColor;
 	}
