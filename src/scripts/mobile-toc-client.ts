@@ -48,6 +48,10 @@ function initMobileToc() {
   // fixed navbar); just close the panel.
   links.forEach(l => l.addEventListener('click', close, { signal }));
   document.addEventListener('click', e => {
+    // Ignore synthetic clicks: web-haptics fires its iOS tap by clicking a hidden
+    // <label> on <body>, which would otherwise read as an outside-click and close
+    // the drawer the same tick open() opened it. Real user taps are isTrusted.
+    if (!e.isTrusted) return;
     if (root.classList.contains('is-open') && !root.contains(e.target as Node)) close();
   }, { signal });
   document.addEventListener('keydown', e => {
