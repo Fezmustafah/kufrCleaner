@@ -42,7 +42,15 @@ function initMobileToc() {
   };
   const toggle = () => (root.classList.contains('is-open') ? close() : open());
 
-  bar.addEventListener('click', e => { e.stopPropagation(); toggle(); }, { signal });
+  // iOS Safari fires the bar's click TWICE per physical tap, toggling open→closed
+  // so the drawer never appears. Collapse duplicate taps within 400ms into one.
+  let lastToggle = -1;
+  bar.addEventListener('click', e => {
+    e.stopPropagation();
+    if (e.timeStamp - lastToggle < 400) return;
+    lastToggle = e.timeStamp;
+    toggle();
+  }, { signal });
   backdrop?.addEventListener('click', close, { signal });
   // Native anchor jump handles the scroll (heading scroll-margin-top clears the
   // fixed navbar); just close the panel.

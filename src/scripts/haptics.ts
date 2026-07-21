@@ -46,7 +46,9 @@ if (typeof document !== 'undefined') {
     const box = document.createElement('div');
     box.style.cssText =
       'position:fixed;bottom:0;left:0;right:0;max-height:45vh;overflow:auto;z-index:99999;background:rgba(0,0,0,.85);color:#0f0;font:11px/1.35 monospace;padding:6px;white-space:pre-wrap;pointer-events:none';
-    const log = (m: string) => { box.textContent = `${m}\n${box.textContent ?? ''}`.slice(0, 6000); };
+    const log = (m: string) => {
+      box.textContent = `+${performance.now().toFixed(0)}ms ${m}\n${box.textContent ?? ''}`.slice(0, 6000);
+    };
     const mount = () => document.body && document.body.appendChild(box);
     if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
     const desc = (t: EventTarget | null) => {
