@@ -4,6 +4,8 @@
 // from BaseLayout guarantees it's present on every page; init no-ops when
 // no .footnote-container is in the DOM.)
 
+import { haptics } from '@/scripts/haptics';
+
 declare global {
   interface Window {
     openLightbox: (src: string, alt: string) => void;
@@ -253,6 +255,7 @@ function initMarginalia() {
     ref.addEventListener('mouseleave', scheduleHide, { signal: sig });
     // Double-rAF so the hide lands after the mouseenter's rAF-deferred show
     ref.addEventListener('click', () => {
+      haptics.tap();
       requestAnimationFrame(() => requestAnimationFrame(() => pop.classList.remove('is-visible')));
     }, { signal: sig });
   });
@@ -279,6 +282,7 @@ function initMarginalia() {
     const activate = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
+      haptics.tap();
 
       if (noteInMargin(container)) {
         if (!noteEl) return;
