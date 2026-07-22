@@ -253,11 +253,11 @@ function initMarginalia() {
       requestAnimationFrame(() => { reposition(ref); pop.classList.add('is-visible'); });
     }, { signal: sig });
     ref.addEventListener('mouseleave', scheduleHide, { signal: sig });
-    // Double-rAF so the hide lands after the mouseenter's rAF-deferred show
-    // pointerdown, not click: iOS treats the first tap on a <sup> ref as a hover
-    // (peek), so click may not fire on that tap — pointerdown always does.
-    ref.addEventListener('pointerdown', () => haptics.tap(), { signal: sig });
+    // Haptic on click, not pointerdown: iOS fires the switch-trick buzz only from
+    // a click-activation context (matches TOC/theme/search). A <sup>'s <a> is a
+    // real link, so click fires on the first tap.
     ref.addEventListener('click', () => {
+      haptics.tap();
       requestAnimationFrame(() => requestAnimationFrame(() => pop.classList.remove('is-visible')));
     }, { signal: sig });
   });
@@ -266,11 +266,6 @@ function initMarginalia() {
     const noteEl  = container.querySelector<HTMLElement>('.footnote');
     const labelEl = container.querySelector<HTMLElement>('.footnote-number');
     if (!labelEl) return;
-
-    // Buzz on the actual touch of the anchor. pointerdown keeps iOS user
-    // activation (the reveal path is a touch-emulated mouseenter, which does
-    // NOT, so a haptic in showPopoverFor silently no-ops). Desktop no-op.
-    container.addEventListener('pointerdown', () => haptics.tap(), { signal: sig });
 
     const highlight   = () => container.classList.add('is-highlighted');
     const unhighlight = (e: MouseEvent) => {
@@ -289,6 +284,10 @@ function initMarginalia() {
     const activate = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
+      // Buzz here (the label's click handler), not on pointerdown: iOS only fires
+      // the switch-trick haptic from a click-activation. label.footnote-number is
+      // cursor:pointer, so iOS fires click on the first tap.
+      haptics.tap();
 
       if (noteInMargin(container)) {
         if (!noteEl) return;
