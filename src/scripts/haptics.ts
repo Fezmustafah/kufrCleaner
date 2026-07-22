@@ -38,46 +38,6 @@ if (typeof document !== 'undefined') {
     hx = null;
   });
 
-  // TEMP DIAGNOSTIC (remove after debugging): append ?hapticdebug=1 to any URL to
-  // get an on-screen event log — pointerdown/click (target + isTrusted) and the
-  // mobile TOC's is-open state. Registered before the swallow below so it still
-  // sees the synthetic haptic clicks. ponytail: throwaway, deleted once TOC is fixed.
-  if (location.search.includes('hapticdebug')) {
-    const box = document.createElement('div');
-    box.style.cssText =
-      'position:fixed;bottom:0;left:0;right:0;max-height:45vh;overflow:auto;z-index:99999;background:rgba(0,0,0,.85);color:#0f0;font:11px/1.35 monospace;padding:6px;white-space:pre-wrap;pointer-events:none';
-    const log = (m: string) => {
-      box.textContent = `+${performance.now().toFixed(0)}ms ${m}\n${box.textContent ?? ''}`.slice(0, 6000);
-    };
-    const mount = () => document.body && document.body.appendChild(box);
-    if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
-    const desc = (t: EventTarget | null) => {
-      const e = t as Element | null;
-      if (!e?.tagName) return String(t);
-      const cls = typeof e.className === 'string' && e.className
-        ? '.' + e.className.split(/\s+/).filter(Boolean).slice(0, 2).join('.') : '';
-      return `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${cls}`;
-    };
-    (['pointerdown', 'click'] as const).forEach((ev) =>
-      document.addEventListener(ev, (e) => {
-        const t = e.target as Element | null;
-        const hint = t?.closest?.('.footnote-container') ? ' [MARGINALIA]'
-          : t?.closest?.('h2,h3,h4,h5,h6') ? ' [HEADING]' : '';
-        log(`${ev} ${desc(t)}${hint} trusted=${(e as Event).isTrusted}`);
-      }, true));
-    const observeToc = () => {
-      const el = document.querySelector('.mobile-toc');
-      if (!el || (el as any)._dbgObserved) return;
-      (el as any)._dbgObserved = true;
-      new MutationObserver(() => log(`TOC is-open=${el.classList.contains('is-open')}`))
-        .observe(el, { attributes: true, attributeFilter: ['class'] });
-      log('TOC observer attached');
-    };
-    document.addEventListener('astro:page-load', observeToc);
-    window.setTimeout(observeToc, 400);
-    window.setTimeout(observeToc, 1200);
-  }
-
   // web-haptics produces its iOS tap by clicking a hidden <label>+<input switch>
   // it appends to <body>. Those clicks bubble to app click handlers — outside-
   // click-to-close drawers, popovers, search overlays — and misfire them (a drawer

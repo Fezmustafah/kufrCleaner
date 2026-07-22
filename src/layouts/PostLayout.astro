@@ -441,8 +441,6 @@ if (graphSidebarEnabled) {
     </script>
     <!-- Heading permalink: copy URL to clipboard on click -->
     <script>
-      import { haptics } from '@/scripts/haptics';
-
       function initHeadingPermalinks() {
         document.querySelectorAll<HTMLAnchorElement>('a[data-role="anchor"]').forEach(anchor => {
           if ((anchor as any)._permalinkWired) return;
@@ -456,9 +454,7 @@ if (graphSidebarEnabled) {
             const url = new URL(window.location.href);
             url.hash = href;
 
-            navigator.clipboard.writeText(url.toString())
-              .then(() => haptics.success())
-              .catch(() => {});
+            navigator.clipboard.writeText(url.toString()).catch(() => {});
             history.pushState(null, '', href);
 
             const target = document.getElementById(href.slice(1));
@@ -467,19 +463,6 @@ if (graphSidebarEnabled) {
             anchor.classList.add('permalink-copied');
             setTimeout(() => anchor.classList.remove('permalink-copied'), 1500);
           });
-        });
-
-        // Tactile buzz when tapping a heading. iOS fires the switch-trick haptic
-        // only from a click-activation (not pointerdown), and only fires `click`
-        // on non-interactive elements that are cursor:pointer — so the headings
-        // carry cursor:pointer (see the heading rule below). Bubbles from the
-        // appended permalink icon too, so one buzz either way.
-        document.querySelectorAll<HTMLElement>(
-          '#post-content h2, #post-content h3, #post-content h4, #post-content h5, #post-content h6'
-        ).forEach(h => {
-          if ((h as any)._headingHaptic) return;
-          (h as any)._headingHaptic = true;
-          h.addEventListener('click', () => haptics.tap());
         });
       }
 
@@ -523,9 +506,6 @@ if (graphSidebarEnabled) {
        fixed 3.5rem navbar instead of tucking the target heading under it. */
     :global(#post-content :is(h2, h3, h4, h5, h6)) {
       scroll-margin-top: 4.5rem;
-      /* cursor:pointer makes iOS Safari fire `click` on the (otherwise
-         non-interactive) heading, which the tap haptic needs. */
-      cursor: pointer;
     }
 
     .post-layout-left-col {

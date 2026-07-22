@@ -4,8 +4,6 @@
 // from BaseLayout guarantees it's present on every page; init no-ops when
 // no .footnote-container is in the DOM.)
 
-import { haptics } from '@/scripts/haptics';
-
 declare global {
   interface Window {
     openLightbox: (src: string, alt: string) => void;
@@ -253,11 +251,8 @@ function initMarginalia() {
       requestAnimationFrame(() => { reposition(ref); pop.classList.add('is-visible'); });
     }, { signal: sig });
     ref.addEventListener('mouseleave', scheduleHide, { signal: sig });
-    // Haptic on click, not pointerdown: iOS fires the switch-trick buzz only from
-    // a click-activation context (matches TOC/theme/search). A <sup>'s <a> is a
-    // real link, so click fires on the first tap.
+    // Clicking a ref navigates to the footnote; dismiss the peek popover after.
     ref.addEventListener('click', () => {
-      haptics.tap();
       requestAnimationFrame(() => requestAnimationFrame(() => pop.classList.remove('is-visible')));
     }, { signal: sig });
   });
@@ -284,10 +279,6 @@ function initMarginalia() {
     const activate = (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
-      // Buzz here (the label's click handler), not on pointerdown: iOS only fires
-      // the switch-trick haptic from a click-activation. label.footnote-number is
-      // cursor:pointer, so iOS fires click on the first tap.
-      haptics.tap();
 
       if (noteInMargin(container)) {
         if (!noteEl) return;
